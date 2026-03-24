@@ -1,0 +1,11 @@
+{
+  "version": 2,
+  "dgSpecHash": "OJcgCOTddIE=",
+  "success": true,
+  "projectFilePath": "C:\\Windows\\System32\\Logistics-Supply-Chain-System\\Server\\Server.csproj",
+  "expectedPackageFiles": [
+    "C:\\Users\\Admin\\.nuget\\packages\\microsoft.aspnetcore.openapi\\10.0.3\\microsoft.aspnetcore.openapi.10.0.3.nupkg.sha512",
+    "C:\\Users\\Admin\\.nuget\\packages\\microsoft.openapi\\2.0.0\\microsoft.openapi.2.0.0.nupkg.sha512"
+  ],
+  "logs": []
+}
