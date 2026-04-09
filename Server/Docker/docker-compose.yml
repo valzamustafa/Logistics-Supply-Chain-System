@@ -1,0 +1,293 @@
+version: '3.8'
+
+services:
+  rabbitmq:
+    image: rabbitmq:3-management
+    container_name: logistics-rabbitmq
+    ports:
+      - "5672:5672"
+      - "15672:15672"
+    environment:
+      RABBITMQ_DEFAULT_USER: admin
+      RABBITMQ_DEFAULT_PASS: admin
+    networks:
+      - logistics-network
+
+  mssql:
+    image: mcr.microsoft.com/mssql/server:2022-latest
+    container_name: logistics-mssql
+    environment:
+      ACCEPT_EULA: "Y"
+      SA_PASSWORD: "YourStrong!Password123"
+    ports:
+      - "1433:1433"
+    volumes:
+      - mssql-data:/var/opt/mssql
+    networks:
+      - logistics-network
+
+  mongodb:
+    image: mongo:6
+    container_name: logistics-mongodb
+    ports:
+      - "27017:27017"
+    volumes:
+      - mongodb-data:/data/db
+    networks:
+      - logistics-network
+
+  auth-service:
+    build:
+      context: ../services/auth-service
+      dockerfile: Dockerfile
+    container_name: auth-service
+    environment:
+      - ASPNETCORE_ENVIRONMENT=Development
+      - ASPNETCORE_URLS=http://+:80
+      - ConnectionStrings__DefaultConnection=Server=mssql;Database=AuthDB;User=sa;Password=YourStrong!Password123;TrustServerCertificate=true
+      - RabbitMQ__ConnectionString=amqp://admin:admin@rabbitmq:5672
+      - Jwt__Key=YourSuperSecretKeyForJWTTokenGeneration1234567890
+      - Jwt__Issuer=LogisticsSystem
+      - Jwt__Audience=LogisticsClients
+    depends_on:
+      - mssql
+      - rabbitmq
+    ports:
+      - "5001:80"
+    networks:
+      - logistics-network
+    volumes:
+      - ../services/auth-service:/app
+      - ~/.nuget/packages:/root/.nuget/packages
+    command: dotnet watch run --no-launch-profile --urls=http://+:80
+
+  order-service:
+    build:
+      context: ../services/order-service
+      dockerfile: Dockerfile
+    container_name: order-service
+    environment:
+      - ASPNETCORE_ENVIRONMENT=Development
+      - ASPNETCORE_URLS=http://+:80
+      - ConnectionStrings__DefaultConnection=Server=mssql;Database=OrderDB;User=sa;Password=YourStrong!Password123;TrustServerCertificate=true
+      - RabbitMQ__ConnectionString=amqp://admin:admin@rabbitmq:5672
+    depends_on:
+      - mssql
+      - rabbitmq
+    ports:
+      - "5002:80"
+    networks:
+      - logistics-network
+    volumes:
+      - ../services/order-service:/app
+      - ~/.nuget/packages:/root/.nuget/packages
+    command: dotnet watch run --no-launch-profile --urls=http://+:80
+
+  inventory-service:
+    build:
+      context: ../services/inventory-service
+      dockerfile: Dockerfile
+    container_name: inventory-service
+    environment:
+      - ASPNETCORE_ENVIRONMENT=Development
+      - ASPNETCORE_URLS=http://+:80
+      - ConnectionStrings__DefaultConnection=Server=mssql;Database=InventoryDB;User=sa;Password=YourStrong!Password123;TrustServerCertificate=true
+      - RabbitMQ__ConnectionString=amqp://admin:admin@rabbitmq:5672
+    depends_on:
+      - mssql
+      - rabbitmq
+    ports:
+      - "5003:80"
+    networks:
+      - logistics-network
+    volumes:
+      - ../services/inventory-service:/app
+      - ~/.nuget/packages:/root/.nuget/packages
+    command: dotnet watch run --no-launch-profile --urls=http://+:80
+
+  shipment-service:
+    build:
+      context: ../services/shipment-service
+      dockerfile: Dockerfile
+    container_name: shipment-service
+    environment:
+      - ASPNETCORE_ENVIRONMENT=Development
+      - ASPNETCORE_URLS=http://+:80
+      - ConnectionStrings__DefaultConnection=Server=mssql;Database=ShipmentDB;User=sa;Password=YourStrong!Password123;TrustServerCertificate=true
+      - RabbitMQ__ConnectionString=amqp://admin:admin@rabbitmq:5672
+    depends_on:
+      - mssql
+      - rabbitmq
+    ports:
+      - "5004:80"
+    networks:
+      - logistics-network
+    volumes:
+      - ../services/shipment-service:/app
+      - ~/.nuget/packages:/root/.nuget/packages
+    command: dotnet watch run --no-launch-profile --urls=http://+:80
+
+  product-service:
+    build:
+      context: ../services/product-service
+      dockerfile: Dockerfile
+    container_name: product-service
+    environment:
+      - ASPNETCORE_ENVIRONMENT=Development
+      - ASPNETCORE_URLS=http://+:80
+      - ConnectionStrings__DefaultConnection=Server=mssql;Database=ProductDB;User=sa;Password=YourStrong!Password123;TrustServerCertificate=true
+    depends_on:
+      - mssql
+    ports:
+      - "5005:80"
+    networks:
+      - logistics-network
+    volumes:
+      - ../services/product-service:/app
+      - ~/.nuget/packages:/root/.nuget/packages
+    command: dotnet watch run --no-launch-profile --urls=http://+:80
+
+  warehouse-service:
+    build:
+      context: ../services/warehouse-service
+      dockerfile: Dockerfile
+    container_name: warehouse-service
+    environment:
+      - ASPNETCORE_ENVIRONMENT=Development
+      - ASPNETCORE_URLS=http://+:80
+      - ConnectionStrings__DefaultConnection=Server=mssql;Database=WarehouseDB;User=sa;Password=YourStrong!Password123;TrustServerCertificate=true
+    depends_on:
+      - mssql
+    ports:
+      - "5006:80"
+    networks:
+      - logistics-network
+    volumes:
+      - ../services/warehouse-service:/app
+      - ~/.nuget/packages:/root/.nuget/packages
+    command: dotnet watch run --no-launch-profile --urls=http://+:80
+
+  supplier-service:
+    build:
+      context: ../services/supplier-service
+      dockerfile: Dockerfile
+    container_name: supplier-service
+    environment:
+      - ASPNETCORE_ENVIRONMENT=Development
+      - ASPNETCORE_URLS=http://+:80
+      - ConnectionStrings__DefaultConnection=Server=mssql;Database=SupplierDB;User=sa;Password=YourStrong!Password123;TrustServerCertificate=true
+    depends_on:
+      - mssql
+    ports:
+      - "5007:80"
+    networks:
+      - logistics-network
+    volumes:
+      - ../services/supplier-service:/app
+      - ~/.nuget/packages:/root/.nuget/packages
+    command: dotnet watch run --no-launch-profile --urls=http://+:80
+
+  report-service:
+    build:
+      context: ../services/report-service
+      dockerfile: Dockerfile
+    container_name: report-service
+    environment:
+      - ASPNETCORE_ENVIRONMENT=Development
+      - ASPNETCORE_URLS=http://+:80
+      - ConnectionStrings__DefaultConnection=Server=mssql;Database=ReportDB;User=sa;Password=YourStrong!Password123;TrustServerCertificate=true
+    depends_on:
+      - mssql
+    ports:
+      - "5008:80"
+    networks:
+      - logistics-network
+    volumes:
+      - ../services/report-service:/app
+      - ~/.nuget/packages:/root/.nuget/packages
+    command: dotnet watch run --no-launch-profile --urls=http://+:80
+
+  notification-service:
+    build:
+      context: ../services/notification-service
+      dockerfile: Dockerfile
+    container_name: notification-service
+    environment:
+      - ASPNETCORE_ENVIRONMENT=Development
+      - ASPNETCORE_URLS=http://+:80
+      - ConnectionStrings__DefaultConnection=Server=mssql;Database=NotificationDB;User=sa;Password=YourStrong!Password123;TrustServerCertificate=true
+      - RabbitMQ__ConnectionString=amqp://admin:admin@rabbitmq:5672
+      - Smtp__Host=smtp.gmail.com
+      - Smtp__Port=587
+      - Smtp__Username=your-email@gmail.com
+      - Smtp__Password=your-app-password
+      - Smtp__From=noreply@logistics.com
+    depends_on:
+      - mssql
+      - rabbitmq
+    ports:
+      - "5009:80"
+    networks:
+      - logistics-network
+    volumes:
+      - ../services/notification-service:/app
+      - ~/.nuget/packages:/root/.nuget/packages
+    command: dotnet watch run --no-launch-profile --urls=http://+:80
+
+  tracking-service:
+    build:
+      context: ../services/tracking-service
+      dockerfile: Dockerfile
+    container_name: tracking-service
+    environment:
+      - ASPNETCORE_ENVIRONMENT=Development
+      - ASPNETCORE_URLS=http://+:80
+      - ConnectionStrings__MongoDB=mongodb://mongodb:27017
+      - RabbitMQ__ConnectionString=amqp://admin:admin@rabbitmq:5672
+    depends_on:
+      - mongodb
+      - rabbitmq
+    ports:
+      - "5010:80"
+    networks:
+      - logistics-network
+    volumes:
+      - ../services/tracking-service:/app
+      - ~/.nuget/packages:/root/.nuget/packages
+    command: dotnet watch run --no-launch-profile --urls=http://+:80
+
+  api-gateway:
+    build:
+      context: ../api-gateway
+      dockerfile: Dockerfile
+    container_name: api-gateway
+    environment:
+      - ASPNETCORE_ENVIRONMENT=Development
+      - ASPNETCORE_URLS=http://+:80
+    depends_on:
+      - auth-service
+      - order-service
+      - inventory-service
+      - shipment-service
+      - product-service
+      - warehouse-service
+      - supplier-service
+      - report-service
+      - notification-service
+      - tracking-service
+    ports:
+      - "5000:80"
+    networks:
+      - logistics-network
+    volumes:
+      - ../api-gateway:/app
+      - ~/.nuget/packages:/root/.nuget/packages
+    command: dotnet watch run --no-launch-profile --urls=http://+:80
+
+networks:
+  logistics-network:
+    driver: bridge
+
+volumes:
+  mssql-data:
+  mongodb-data:
