@@ -1,5 +1,4 @@
 using System.ComponentModel.DataAnnotations;
-using System.ComponentModel.DataAnnotations.Schema;
 using System.Text.Json.Serialization;
 
 namespace AuthService.Models
@@ -23,8 +22,8 @@ namespace AuthService.Models
         
         public DateTime? LastLoginAt { get; set; }
         
-        // Navigation properties
         public virtual ICollection<UserRole> UserRoles { get; set; } = new List<UserRole>();
         public virtual ICollection<RefreshToken> RefreshTokens { get; set; } = new List<RefreshToken>();
+        public virtual ICollection<Notification> Notifications { get; set; } = new List<Notification>();
     }
 }

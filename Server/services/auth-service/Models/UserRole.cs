@@ -14,7 +14,6 @@ namespace AuthService.Models
         [Required]
         public int RoleId { get; set; }
         
-        [Required]
         public DateTime AssignedAt { get; set; } = DateTime.UtcNow;
         
         [ForeignKey(nameof(UserId))]
