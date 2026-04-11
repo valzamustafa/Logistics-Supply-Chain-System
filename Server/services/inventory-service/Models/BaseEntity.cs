@@ -19,3 +19,4 @@ namespace InventoryService.Models
         [Required]
         public DateTime UpdatedAt { get; set; } = DateTime.UtcNow;
     }
+}
