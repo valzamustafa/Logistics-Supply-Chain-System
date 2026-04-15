@@ -30,6 +30,13 @@ namespace InventoryService.Repositories.Implementations
             return await _context.Inventories.ToListAsync();
         }
 
+        public async Task<IEnumerable<Inventory>> GetByWarehouseAsync(int warehouseId)
+        {
+            return await _context.Inventories
+                .Where(i => i.WarehouseId == warehouseId)
+                .ToListAsync();
+        }
+
         public async Task<StockMovement> UpdateStockAsync(StockMovement movement, int warehouseId)
         {
             using var transaction = await _context.Database.BeginTransactionAsync();
@@ -52,6 +59,7 @@ namespace InventoryService.Repositories.Implementations
                     _context.Inventories.Add(inventory);
                 }
 
+              
                 if (movement.Type == "IN")
                     inventory.Quantity += movement.Quantity;
                 else if (movement.Type == "OUT")
@@ -92,3 +100,4 @@ namespace InventoryService.Repositories.Implementations
         }
     }
 }
+

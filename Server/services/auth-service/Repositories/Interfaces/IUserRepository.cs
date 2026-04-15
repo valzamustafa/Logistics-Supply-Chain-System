@@ -12,5 +12,6 @@ namespace AuthService.Repositories.Interfaces
         Task DeleteAsync(int id);
         Task<bool> ExistsAsync(string email);
         Task<User?> GetUserWithRolesAsync(int id);
+        Task<User?> GetUserWithRolesAsync(string email);
     }
 }

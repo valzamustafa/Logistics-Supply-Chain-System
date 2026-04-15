@@ -26,6 +26,12 @@ namespace InventoryService.Business
             return inventory.Select(MapToDto);
         }
 
+        public async Task<IEnumerable<InventoryDto>> GetInventoryByWarehouseAsync(int warehouseId)
+        {
+            var inventory = await _inventoryRepository.GetByWarehouseAsync(warehouseId);
+            return inventory.Select(MapToDto);
+        }
+
         public async Task<StockMovementDto> UpdateStockAsync(UpdateStockDto request)
         {
             var movement = new StockMovement
@@ -71,4 +77,3 @@ namespace InventoryService.Business
         }
     }
 }
-
