@@ -1,7 +1,8 @@
 using System.ComponentModel.DataAnnotations;
 using System.ComponentModel.DataAnnotations.Schema;
+using System.Text.Json.Serialization;
 
-// product-service/Models/Category.cs
+
 namespace ProductService.Models
 {
     public class Category : BaseEntity
@@ -14,8 +15,13 @@ namespace ProductService.Models
         
         public int? ParentCategoryId { get; set; }
         
+        [JsonIgnore]
         public virtual Category? ParentCategory { get; set; }
+        
+        [JsonIgnore]
         public virtual ICollection<Category> SubCategories { get; set; } = new List<Category>();
+        
+        [JsonIgnore]
         public virtual ICollection<Product> Products { get; set; } = new List<Product>();
     }
 }
