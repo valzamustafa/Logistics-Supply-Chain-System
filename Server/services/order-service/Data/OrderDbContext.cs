@@ -19,10 +19,30 @@ namespace OrderService.Data
         {
             base.OnModelCreating(modelBuilder);
 
-            modelBuilder.Entity<Order>()
-                .HasIndex(o => o.OrderNumber)
-                .IsUnique();
+            modelBuilder.Entity<Order>(entity =>
+            {
+                entity.Property(o => o.TotalAmount).HasPrecision(18, 2);
+                entity.Property(o => o.DiscountAmount).HasPrecision(18, 2);
+                entity.Property(o => o.TaxAmount).HasPrecision(18, 2);
+                entity.Property(o => o.ShippingCost).HasPrecision(18, 2);
+                entity.HasIndex(o => o.OrderNumber).IsUnique();
+            });
+
+            modelBuilder.Entity<OrderItem>(entity =>
+            {
+                entity.Property(i => i.UnitPrice).HasPrecision(18, 2);
+                entity.Property(i => i.DiscountPercent).HasPrecision(18, 2);
+            });
+
+            modelBuilder.Entity<Payment>(entity =>
+            {
+                entity.Property(p => p.Amount).HasPrecision(18, 2);
+            });
+
+            modelBuilder.Entity<PaymentTransaction>(entity =>
+            {
+                entity.Property(t => t.Amount).HasPrecision(18, 2);
+            });
         }
     }
 }
-
