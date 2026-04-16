@@ -31,6 +31,16 @@ namespace ProductService.Controllers
             return Ok(product);
         }
 
+        [HttpGet("sku/{sku}")]
+        public async Task<IActionResult> GetBySku(string sku)
+        {
+            var products = await _productService.GetAllProductsAsync();
+            var product = products.FirstOrDefault(p => p.SKU == sku);
+            if (product == null)
+                return NotFound();
+            return Ok(product);
+        }
+
         [HttpGet("category/{categoryId}")]
         public async Task<IActionResult> GetByCategory(int categoryId)
         {
@@ -39,8 +49,22 @@ namespace ProductService.Controllers
         }
 
         [HttpPost]
-        public async Task<IActionResult> Create([FromBody] Product product)
+        public async Task<IActionResult> Create([FromBody] ProductCreateDto dto)
         {
+            if (!ModelState.IsValid)
+                return ValidationProblem(ModelState);
+
+            var product = new Product
+            {
+                Name = dto.Name,
+                SKU = dto.SKU,
+                Description = dto.Description,
+                Price = dto.Price,
+                Cost = dto.Cost,
+                CategoryId = dto.CategoryId,
+                IsActive = dto.IsActive
+            };
+
             try
             {
                 var created = await _productService.CreateProductAsync(product);
@@ -53,13 +77,32 @@ namespace ProductService.Controllers
         }
 
         [HttpPut("{id}")]
-        public async Task<IActionResult> Update(int id, [FromBody] Product product)
+        public async Task<IActionResult> Update(int id, [FromBody] ProductUpdateDto dto)
         {
-            if (id != product.Id)
-                return BadRequest();
+            if (!ModelState.IsValid)
+                return ValidationProblem(ModelState);
 
-            var updated = await _productService.UpdateProductAsync(product);
-            return Ok(updated);
+            var product = new Product
+            {
+                Id = id,
+                Name = dto.Name,
+                SKU = dto.SKU,
+                Description = dto.Description,
+                Price = dto.Price,
+                Cost = dto.Cost,
+                CategoryId = dto.CategoryId,
+                IsActive = dto.IsActive
+            };
+
+            try
+            {
+                var updated = await _productService.UpdateProductAsync(product);
+                return Ok(updated);
+            }
+            catch (InvalidOperationException ex)
+            {
+                return NotFound(new { message = ex.Message });
+            }
         }
 
         [HttpDelete("{id}")]
@@ -69,6 +112,20 @@ namespace ProductService.Controllers
             if (!deleted)
                 return NotFound();
             return NoContent();
+        }
+
+        [HttpGet("categories")]
+        public async Task<IActionResult> GetCategories()
+        {
+            var categories = await _productService.GetCategoriesAsync();
+            return Ok(categories);
+        }
+
+        [HttpPost("categories")]
+        public async Task<IActionResult> CreateCategory([FromBody] Category category)
+        {
+            // Add category creation when needed
+            return BadRequest(new { message = "Category creation is not implemented." });
         }
     }
 }

@@ -8,6 +8,7 @@ namespace ProductService.Repositories.Interfaces
         Task<Product?> GetBySkuAsync(string sku);
         Task<IEnumerable<Product>> GetAllAsync();
         Task<IEnumerable<Product>> GetByCategoryAsync(int categoryId);
+        Task<IEnumerable<Category>> GetCategoriesAsync();
         Task<Product> CreateAsync(Product product);
         Task<Product> UpdateAsync(Product product);
         Task DeleteAsync(int id);

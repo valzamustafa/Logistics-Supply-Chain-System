@@ -1,7 +1,6 @@
 using System.ComponentModel.DataAnnotations;
 using System.ComponentModel.DataAnnotations.Schema;
 
-// product-service/Models/ProductImage.cs
 namespace ProductService.Models
 {
     public class ProductImage : BaseEntity

@@ -41,6 +41,13 @@ namespace ProductService.Repositories.Implementations
                 .ToListAsync();
         }
 
+        public async Task<IEnumerable<Category>> GetCategoriesAsync()
+        {
+            return await _context.Categories
+                .OrderBy(c => c.Name)
+                .ToListAsync();
+        }
+
         public async Task<Product> CreateAsync(Product product)
         {
             _context.Products.Add(product);

@@ -1,7 +1,7 @@
 using System.ComponentModel.DataAnnotations;
 using System.ComponentModel.DataAnnotations.Schema;
 
-// product-service/Models/ProductReview.cs
+
 namespace ProductService.Models
 {
     public class ProductReview : BaseEntity
