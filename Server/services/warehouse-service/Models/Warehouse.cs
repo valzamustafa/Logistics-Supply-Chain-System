@@ -1,10 +1,12 @@
 using System.ComponentModel.DataAnnotations;
-using System.ComponentModel.DataAnnotations.Schema;
 
 namespace WarehouseService.Models
 {
-    public class Warehouse : BaseEntity
+    public class Warehouse
     {
+        [Key]
+        public int Id { get; set; }
+        
         [Required, MaxLength(100)]
         public string Name { get; set; } = string.Empty;
         
@@ -16,7 +18,13 @@ namespace WarehouseService.Models
         
         public bool IsActive { get; set; } = true;
         
+        public int CreatedBy { get; set; }
+        public int UpdatedBy { get; set; }
+        public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
+        public DateTime UpdatedAt { get; set; } = DateTime.UtcNow;
+        
         public virtual ICollection<WarehouseZone> Zones { get; set; } = new List<WarehouseZone>();
         public virtual ICollection<WarehouseStaff> Staff { get; set; } = new List<WarehouseStaff>();
+        public virtual ICollection<WarehouseStock> Stocks { get; set; } = new List<WarehouseStock>(); 
     }
 }

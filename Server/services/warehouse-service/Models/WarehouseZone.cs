@@ -3,8 +3,11 @@ using System.ComponentModel.DataAnnotations.Schema;
 
 namespace WarehouseService.Models
 {
-    public class WarehouseZone : BaseEntity
+    public class WarehouseZone
     {
+        [Key]
+        public int Id { get; set; }
+        
         [Required]
         public int WarehouseId { get; set; }
         
@@ -16,6 +19,12 @@ namespace WarehouseService.Models
         
         public int Capacity { get; set; }
         
+        public int CreatedBy { get; set; }
+        public int UpdatedBy { get; set; }
+        public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
+        public DateTime UpdatedAt { get; set; } = DateTime.UtcNow;
+        
+        [ForeignKey(nameof(WarehouseId))]
         public virtual Warehouse Warehouse { get; set; } = null!;
     }
 }
