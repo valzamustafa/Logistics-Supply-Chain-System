@@ -32,6 +32,14 @@ namespace AuthService.Repositories.Implementations
                 .FirstOrDefaultAsync(u => u.Id == id);
         }
 
+        public async Task<User?> GetUserWithRolesAsync(string email)
+        {
+            return await _context.Users
+                .Include(u => u.UserRoles)
+                .ThenInclude(ur => ur.Role)
+                .FirstOrDefaultAsync(u => u.Email == email);
+        }
+
         public async Task<IEnumerable<User>> GetAllAsync()
         {
             return await _context.Users.ToListAsync();

@@ -31,6 +31,13 @@ namespace InventoryService.Controllers
             return Ok(inventory);
         }
 
+        [HttpGet("warehouse/{warehouseId}")]
+        public async Task<IActionResult> GetByWarehouse(int warehouseId)
+        {
+            var inventory = await _inventoryService.GetInventoryByWarehouseAsync(warehouseId);
+            return Ok(inventory);
+        }
+
         [HttpPost("stock")]
         public async Task<IActionResult> UpdateStock([FromBody] UpdateStockDto request)
         {
