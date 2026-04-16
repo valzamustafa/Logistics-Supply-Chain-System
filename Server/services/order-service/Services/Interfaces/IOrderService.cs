@@ -12,4 +12,3 @@ namespace OrderService.Services.Interfaces
         Task<bool> CancelOrderAsync(int orderId);
     }
 }
-
