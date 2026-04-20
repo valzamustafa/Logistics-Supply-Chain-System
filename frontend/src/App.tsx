@@ -7,13 +7,17 @@ import { OrdersPage } from './pages/OrderPage';
 import { ShipmentsPage } from './pages/ShipmentsPage';
 import { TrackingPage } from './pages/TrackingPage';
 import { ReportsPage } from './pages/ReportsPage';
+import { AdminDashboard } from './pages/admin/AdminDashboard';
+import { ManagerDashboard } from './pages/manager/ManagerDashboard';
+import { DriverDashboard } from './pages/driver/DriverDashboard';
+import { UserDashboard } from './pages/user/UserDashboard';
 
-const PlaceholderDashboard = () => (
+const PlaceholderPage = () => (
   <div className="flex h-full items-center justify-center text-white">
     <div className="text-center">
       <div className="text-6xl mb-4">🚧</div>
       <h2 className="text-2xl font-bold mb-2">Coming Soon</h2>
-      <p className="text-slate-400">This dashboard is under development</p>
+      <p className="text-slate-400">This feature is under development</p>
     </div>
   </div>
 );
@@ -50,74 +54,74 @@ function AppContent() {
       {/* Public Routes */}
       <Route path="/login" element={<LoginPage />} />
       <Route path="/register" element={<RegisterPage />} />
-      
 
-      <Route path="/orders" element={
-        <ProtectedLayout allowedRoles={['Admin', 'Manager', 'User']}>
-          <OrdersPage />
-        </ProtectedLayout>
-      } />
-      <Route path="/shipments" element={
-        <ProtectedLayout allowedRoles={['Admin', 'Manager', 'Driver']}>
-          <ShipmentsPage />
-        </ProtectedLayout>
-      } />
-      <Route path="/tracking" element={
-        <ProtectedLayout allowedRoles={['Admin', 'Manager', 'User', 'Driver']}>
-          <TrackingPage />
-        </ProtectedLayout>
-      } />
-      <Route path="/reports" element={
-        <ProtectedLayout allowedRoles={['Admin', 'Manager']}>
-          <ReportsPage />
-        </ProtectedLayout>
-      } />
-      
-      {/* Dashboard Routes - Placeholders */}
       <Route path="/admin" element={
         <ProtectedLayout allowedRoles={['Admin']}>
-          <PlaceholderDashboard />
+          <AdminDashboard />
         </ProtectedLayout>
       } />
       <Route path="/manager" element={
         <ProtectedLayout allowedRoles={['Manager']}>
-          <PlaceholderDashboard />
+          <ManagerDashboard />
         </ProtectedLayout>
       } />
       <Route path="/driver" element={
         <ProtectedLayout allowedRoles={['Driver']}>
-          <PlaceholderDashboard />
-        </ProtectedLayout>
-      } />
-      <Route path="/warehouse" element={
-        <ProtectedLayout allowedRoles={['WarehouseStaff', 'Warehouse']}>
-          <PlaceholderDashboard />
+          <DriverDashboard />
         </ProtectedLayout>
       } />
       <Route path="/dashboard" element={
         <ProtectedLayout allowedRoles={['User']}>
-          <PlaceholderDashboard />
+          <UserDashboard />
         </ProtectedLayout>
       } />
- 
+      
+
+      <Route path="/warehouse" element={
+        <ProtectedLayout allowedRoles={['WarehouseStaff', 'Warehouse']}>
+          <PlaceholderPage />
+        </ProtectedLayout>
+      } />
+      
+   
       <Route path="/products" element={
         <ProtectedLayout allowedRoles={['Admin', 'Manager', 'WarehouseStaff', 'Warehouse']}>
-          <PlaceholderDashboard />
+          <PlaceholderPage />
         </ProtectedLayout>
       } />
       <Route path="/inventory" element={
         <ProtectedLayout allowedRoles={['Admin', 'Manager', 'WarehouseStaff', 'Warehouse']}>
-          <PlaceholderDashboard />
+          <PlaceholderPage />
+        </ProtectedLayout>
+      } />
+      <Route path="/orders" element={
+        <ProtectedLayout allowedRoles={['Admin', 'Manager', 'User']}>
+          <PlaceholderPage />
+        </ProtectedLayout>
+      } />
+      <Route path="/shipments" element={
+        <ProtectedLayout allowedRoles={['Admin', 'Manager', 'Driver']}>
+          <PlaceholderPage />
+        </ProtectedLayout>
+      } />
+      <Route path="/tracking" element={
+        <ProtectedLayout allowedRoles={['Admin', 'Manager', 'User', 'Driver']}>
+          <PlaceholderPage />
+        </ProtectedLayout>
+      } />
+      <Route path="/reports" element={
+        <ProtectedLayout allowedRoles={['Admin', 'Manager']}>
+          <PlaceholderPage />
         </ProtectedLayout>
       } />
       <Route path="/admin/users" element={
         <ProtectedLayout allowedRoles={['Admin']}>
-          <PlaceholderDashboard />
+          <PlaceholderPage />
         </ProtectedLayout>
       } />
       <Route path="/admin/roles" element={
         <ProtectedLayout allowedRoles={['Admin']}>
-          <PlaceholderDashboard />
+          <PlaceholderPage />
         </ProtectedLayout>
       } />
       
