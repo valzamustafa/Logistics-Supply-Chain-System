@@ -1,3 +1,5 @@
+using WarehouseService.Models;
+
 namespace WarehouseService.DTOs
 {
     public class StockMovementDto

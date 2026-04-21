@@ -1,3 +1,7 @@
+using Microsoft.AspNetCore.Mvc;
+using WarehouseService.DTOs;
+using WarehouseService.Services.Interfaces;
+
 namespace WarehouseService.Controllers
 {
     [ApiController]
