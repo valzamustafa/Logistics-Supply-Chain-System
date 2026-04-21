@@ -3,7 +3,7 @@ using OrderService.Data;
 using OrderService.Repositories.Interfaces;
 using OrderService.Repositories.Implementations;
 using OrderService.Services.Interfaces;
-using OrderService.Business;  // Përdor namespace-in e ri
+using OrderService.Business;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -11,11 +11,15 @@ builder.Services.AddControllers();
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();
 
+
 builder.Services.AddDbContext<OrderDbContext>(options =>
     options.UseSqlServer(builder.Configuration.GetConnectionString("OrderDB")));
 
+
 builder.Services.AddScoped<IOrderRepository, OrderRepository>();
-builder.Services.AddScoped<IOrderService, OrderService.Business.OrderService>();  // Emri i plotë
+
+
+builder.Services.AddScoped<IOrderService, OrderService.Business.OrderService>();
 
 var app = builder.Build();
 

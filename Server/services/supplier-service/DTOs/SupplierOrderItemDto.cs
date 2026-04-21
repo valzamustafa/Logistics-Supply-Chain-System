@@ -1,6 +1,6 @@
 namespace SupplierService.DTOs
 {
-  public class SupplierOrderItemDto
+    public class SupplierOrderItemDto
     {
         public int Id { get; set; }
         public int ProductId { get; set; }
