@@ -8,7 +8,7 @@ volumes:
 
 services:
   mssql:
-    image: mcr.microsoft.com/mssql/server:2019-latest  # Ndrysho nga 2022 në 2019
+    image: mcr.microsoft.com/mssql/server:2019-latest
     container_name: logistics-mssql
     user: root
     environment:
@@ -44,23 +44,6 @@ services:
       retries: 5
       start_period: 30s
 
-  # Wait for SQL Server to be ready
-  sql-ready:
-    image: mcr.microsoft.com/mssql/server:2022-latest
-    container_name: sql-ready-check
-    depends_on:
-      mssql:
-        condition: service_healthy
-    command: >
-      bash -c "
-        echo 'SQL Server is ready!' &&
-        sleep 5
-      "
-    networks:
-      - logistics-network
-    profiles:
-      - setup
-
   auth-service:
     build: ./services/auth-service
     container_name: auth-service
@@ -70,7 +53,7 @@ services:
     environment:
       - ASPNETCORE_ENVIRONMENT=Development
       - ASPNETCORE_URLS=http://+:80
-      - ConnectionStrings__DefaultConnection=Server=mssql;Database=AuthServiceDB;User Id=sa;Password=YourStrong!Password123;TrustServerCertificate=true;Encrypt=false
+      - ConnectionStrings__AuthDB=Server=mssql;Database=AuthServiceDB;User Id=sa;Password=YourStrong!Password123;TrustServerCertificate=true;Encrypt=false
       - Jwt__Key=YourSuperSecretKeyForJWTThatIsAtLeast32CharactersLong123!
       - Jwt__Issuer=Logjistika
       - Jwt__Audience=LogjistikaClients
@@ -89,7 +72,10 @@ services:
     environment:
       - ASPNETCORE_ENVIRONMENT=Development
       - ASPNETCORE_URLS=http://+:80
-      - ConnectionStrings__DefaultConnection=Server=mssql;Database=ProductServiceDB;User Id=sa;Password=YourStrong!Password123;TrustServerCertificate=true;Encrypt=false
+      - ConnectionStrings__ProductDB=Server=mssql;Database=ProductServiceDB;User Id=sa;Password=YourStrong!Password123;TrustServerCertificate=true;Encrypt=false
+      - Jwt__Key=YourSuperSecretKeyForJWTThatIsAtLeast32CharactersLong123!
+      - Jwt__Issuer=Logjistika
+      - Jwt__Audience=LogjistikaClients
     ports:
       - "5005:80"
     networks:
@@ -105,7 +91,10 @@ services:
     environment:
       - ASPNETCORE_ENVIRONMENT=Development
       - ASPNETCORE_URLS=http://+:80
-      - ConnectionStrings__DefaultConnection=Server=mssql;Database=OrderServiceDB;User Id=sa;Password=YourStrong!Password123;TrustServerCertificate=true;Encrypt=false
+      - ConnectionStrings__OrderDB=Server=mssql;Database=OrderServiceDB;User Id=sa;Password=YourStrong!Password123;TrustServerCertificate=true;Encrypt=false
+      - Jwt__Key=YourSuperSecretKeyForJWTThatIsAtLeast32CharactersLong123!
+      - Jwt__Issuer=Logjistika
+      - Jwt__Audience=LogjistikaClients
     ports:
       - "5002:80"
     networks:
@@ -121,7 +110,10 @@ services:
     environment:
       - ASPNETCORE_ENVIRONMENT=Development
       - ASPNETCORE_URLS=http://+:80
-      - ConnectionStrings__DefaultConnection=Server=mssql;Database=InventoryServiceDB;User Id=sa;Password=YourStrong!Password123;TrustServerCertificate=true;Encrypt=false
+      - ConnectionStrings__InventoryDB=Server=mssql;Database=InventoryServiceDB;User Id=sa;Password=YourStrong!Password123;TrustServerCertificate=true;Encrypt=false
+      - Jwt__Key=YourSuperSecretKeyForJWTThatIsAtLeast32CharactersLong123!
+      - Jwt__Issuer=Logjistika
+      - Jwt__Audience=LogjistikaClients
     ports:
       - "5003:80"
     networks:
@@ -138,6 +130,9 @@ services:
       - ASPNETCORE_ENVIRONMENT=Development
       - ASPNETCORE_URLS=http://+:80
       - ConnectionStrings__DefaultConnection=Server=mssql;Database=ShipmentServiceDB;User Id=sa;Password=YourStrong!Password123;TrustServerCertificate=true;Encrypt=false
+      - Jwt__Key=YourSuperSecretKeyForJWTThatIsAtLeast32CharactersLong123!
+      - Jwt__Issuer=Logjistika
+      - Jwt__Audience=LogjistikaClients
     ports:
       - "5004:80"
     networks:
@@ -153,7 +148,10 @@ services:
     environment:
       - ASPNETCORE_ENVIRONMENT=Development
       - ASPNETCORE_URLS=http://+:80
-      - ConnectionStrings__DefaultConnection=Server=mssql;Database=WarehouseServiceDB;User Id=sa;Password=YourStrong!Password123;TrustServerCertificate=true;Encrypt=false
+      - ConnectionStrings__WarehouseDB=Server=mssql;Database=WarehouseServiceDB;User Id=sa;Password=YourStrong!Password123;TrustServerCertificate=true;Encrypt=false
+      - Jwt__Key=YourSuperSecretKeyForJWTThatIsAtLeast32CharactersLong123!
+      - Jwt__Issuer=Logjistika
+      - Jwt__Audience=LogjistikaClients
     ports:
       - "5006:80"
     networks:
@@ -170,6 +168,9 @@ services:
       - ASPNETCORE_ENVIRONMENT=Development
       - ASPNETCORE_URLS=http://+:80
       - ConnectionStrings__NotificationDB=Server=mssql;Database=NotificationDB;User Id=sa;Password=YourStrong!Password123;TrustServerCertificate=true;Encrypt=false
+      - Jwt__Key=YourSuperSecretKeyForJWTThatIsAtLeast32CharactersLong123!
+      - Jwt__Issuer=Logjistika
+      - Jwt__Audience=LogjistikaClients
     ports:
       - "5009:80"
     networks:
@@ -186,6 +187,9 @@ services:
       - ASPNETCORE_ENVIRONMENT=Development
       - ASPNETCORE_URLS=http://+:80
       - ConnectionStrings__ReportDB=Server=mssql;Database=ReportDB;User Id=sa;Password=YourStrong!Password123;TrustServerCertificate=true;Encrypt=false
+      - Jwt__Key=YourSuperSecretKeyForJWTThatIsAtLeast32CharactersLong123!
+      - Jwt__Issuer=Logjistika
+      - Jwt__Audience=LogjistikaClients
     ports:
       - "5008:80"
     networks:
@@ -202,6 +206,9 @@ services:
       - ASPNETCORE_ENVIRONMENT=Development
       - ASPNETCORE_URLS=http://+:80
       - ConnectionStrings__SupplierDB=Server=mssql;Database=SupplierDB;User Id=sa;Password=YourStrong!Password123;TrustServerCertificate=true;Encrypt=false
+      - Jwt__Key=YourSuperSecretKeyForJWTThatIsAtLeast32CharactersLong123!
+      - Jwt__Issuer=Logjistika
+      - Jwt__Audience=LogjistikaClients
     ports:
       - "5007:80"
     networks:
@@ -221,6 +228,9 @@ services:
       - ASPNETCORE_URLS=http://+:80
       - ConnectionStrings__TrackingDB=Server=mssql;Database=TrackingDB;User Id=sa;Password=YourStrong!Password123;TrustServerCertificate=true;Encrypt=false
       - ConnectionStrings__MongoDB=mongodb://mongodb:27017
+      - Jwt__Key=YourSuperSecretKeyForJWTThatIsAtLeast32CharactersLong123!
+      - Jwt__Issuer=Logjistika
+      - Jwt__Audience=LogjistikaClients
     ports:
       - "5010:80"
     networks:

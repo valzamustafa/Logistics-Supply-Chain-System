@@ -10,7 +10,7 @@ using System.Text;
 
 var builder = WebApplication.CreateBuilder(args);
 
-// Add services to container
+
 builder.Services.AddControllers()
     .AddJsonOptions(options =>
     {
@@ -24,7 +24,6 @@ builder.Services.AddSwaggerGen();
 var connectionString = builder.Configuration.GetConnectionString("DefaultConnection");
 if (string.IsNullOrEmpty(connectionString))
 {
-    
     connectionString = "Server=mssql;Database=ShipmentServiceDB;User Id=sa;Password=YourStrong!Password123;TrustServerCertificate=true;Encrypt=false";
 }
 builder.Services.AddDbContext<ShipmentDbContext>(options =>
@@ -35,18 +34,21 @@ builder.Services.AddCors(options =>
 {
     options.AddPolicy("AllowFrontend", policy =>
     {
-        policy.WithOrigins("http://localhost:5173", "http://localhost:3000", "http://localhost:5000")
+        policy.WithOrigins("http://localhost:5173", "http://localhost:5174", "http://localhost:3000", "http://localhost:5000")
               .AllowAnyMethod()
               .AllowAnyHeader()
               .AllowCredentials();
     });
 });
 
-// Authentication
+// JWT Configuration
 var jwtKey = builder.Configuration["Jwt:Key"];
+var jwtIssuer = builder.Configuration["Jwt:Issuer"];
+var jwtAudience = builder.Configuration["Jwt:Audience"];
+
 if (string.IsNullOrEmpty(jwtKey))
 {
-    jwtKey = "YourSuperSecretKeyForAuthService123!";
+    jwtKey = "YourSuperSecretKeyForJWTThatIsAtLeast32CharactersLong123!";
 }
 
 builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
@@ -58,13 +60,13 @@ builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
             ValidateAudience = true,
             ValidateLifetime = true,
             ValidateIssuerSigningKey = true,
-            ValidIssuer = builder.Configuration["Jwt:Issuer"] ?? "Logjistika",
-            ValidAudience = builder.Configuration["Jwt:Audience"] ?? "LogjistikaClients",
+            ValidIssuer = jwtIssuer ?? "Logjistika",
+            ValidAudience = jwtAudience ?? "LogjistikaClients",
             IssuerSigningKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(jwtKey))
         };
     });
 
-// Dependency Injection - SIGUROHU QË TË GJITHA JANË TË REGJISTRUARA
+
 builder.Services.AddScoped<IShipmentRepository, ShipmentRepository>();
 builder.Services.AddScoped<IShipmentService, ShipmentServices>();
 builder.Services.AddScoped<IDriverRepository, DriverRepository>();
@@ -72,7 +74,6 @@ builder.Services.AddScoped<IVehicleRepository, VehicleRepository>();
 
 var app = builder.Build();
 
-// Configure pipeline
 if (app.Environment.IsDevelopment())
 {
     app.UseSwagger();
@@ -90,15 +91,12 @@ using (var scope = app.Services.CreateScope())
     var dbContext = scope.ServiceProvider.GetRequiredService<ShipmentDbContext>();
     try
     {
-        // Apply all pending migrations
         dbContext.Database.Migrate();
         Console.WriteLine("Database migrated successfully!");
     }
     catch (Exception ex)
     {
         Console.WriteLine($"Database migration error: {ex.Message}");
-        Console.WriteLine("Make sure SQL Server is running and connection string is correct.");
-        throw;
     }
 }
 
