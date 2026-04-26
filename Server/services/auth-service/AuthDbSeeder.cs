@@ -1,6 +1,6 @@
-
 using AuthService.Data;
 using AuthService.Models;
+using Microsoft.EntityFrameworkCore;
 using System.Security.Cryptography;
 using System.Text;
 
@@ -10,8 +10,8 @@ namespace AuthService
     {
         public static async Task SeedDataAsync(AuthDbContext context)
         {
-          
-            if (!context.Roles.Any())
+           
+            if (!await context.Roles.AnyAsync())
             {
                 var roles = new[]
                 {
@@ -27,9 +27,9 @@ namespace AuthService
             }
 
           
-            if (!context.Users.Any())
+            if (!await context.Users.AnyAsync())
             {
-                var roles = context.Roles.ToList();
+                var roles = await context.Roles.ToListAsync();
                 var adminRole = roles.FirstOrDefault(r => r.Name == "Admin");
                 var managerRole = roles.FirstOrDefault(r => r.Name == "Manager");
                 var driverRole = roles.FirstOrDefault(r => r.Name == "Driver");
@@ -38,7 +38,7 @@ namespace AuthService
 
                 var users = new[]
                 {
-                    // Admin
+                  
                     new User
                     {
                         FirstName = "Admin",
@@ -48,7 +48,7 @@ namespace AuthService
                         IsActive = true,
                         CreatedAt = DateTime.UtcNow
                     },
-                    // Manager
+                  
                     new User
                     {
                         FirstName = "John",
@@ -58,7 +58,7 @@ namespace AuthService
                         IsActive = true,
                         CreatedAt = DateTime.UtcNow
                     },
-                    // Driver 1
+                 
                     new User
                     {
                         FirstName = "Mike",
@@ -68,7 +68,7 @@ namespace AuthService
                         IsActive = true,
                         CreatedAt = DateTime.UtcNow
                     },
-                    // Driver 2
+                    
                     new User
                     {
                         FirstName = "Sarah",
@@ -78,7 +78,7 @@ namespace AuthService
                         IsActive = true,
                         CreatedAt = DateTime.UtcNow
                     },
-                    // Warehouse Staff
+                 
                     new User
                     {
                         FirstName = "Robert",
@@ -103,7 +103,7 @@ namespace AuthService
                 context.Users.AddRange(users);
                 await context.SaveChangesAsync();
 
-                // Assign Roles
+            
                 var createdUsers = context.Users.ToList();
                 var userRoles = new List<UserRole>();
 

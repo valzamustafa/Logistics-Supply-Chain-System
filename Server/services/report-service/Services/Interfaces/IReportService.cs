@@ -11,5 +11,12 @@ namespace ReportService.Services.Interfaces
         Task<ReportDto> GenerateReportAsync(GenerateReportDto dto, int userId);
         Task<ReportSummaryDto> GetReportSummaryAsync();
         Task<bool> DeleteReportAsync(int id);
+
+        Task<IEnumerable<ReportDto>> GetAllAsync();
+        Task<ReportDto?> GetByIdAsync(int id);
+        Task<IEnumerable<ReportDto>> GetByTypeAsync(string type);
+        Task<bool> DeleteAsync(int id);
+        Task<ReportSummaryDto> GetSummaryAsync();
+        Task<byte[]> GeneratePdfAsync(ReportDto report);
     }
 }

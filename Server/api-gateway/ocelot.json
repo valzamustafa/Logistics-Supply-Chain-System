@@ -1,119 +1,119 @@
 {
   "Routes": [
     {
-      "DownstreamPathTemplate": "/api/Auth/{everything}",
+      "DownstreamPathTemplate": "/api/auth/{everything}",
       "DownstreamScheme": "http",
       "DownstreamHostAndPorts": [{ "Host": "auth-service", "Port": 80 }],
       "UpstreamPathTemplate": "/api/auth/{everything}",
       "UpstreamHttpMethod": [ "GET", "POST", "PUT", "DELETE", "OPTIONS" ]
     },
     {
-      "DownstreamPathTemplate": "/api/Products/{everything}",
+      "DownstreamPathTemplate": "/api/products/{everything}",
       "DownstreamScheme": "http",
       "DownstreamHostAndPorts": [{ "Host": "product-service", "Port": 80 }],
       "UpstreamPathTemplate": "/api/products/{everything}",
       "UpstreamHttpMethod": [ "GET", "POST", "PUT", "DELETE", "OPTIONS" ]
     },
     {
-      "DownstreamPathTemplate": "/api/Orders/{everything}",
+      "DownstreamPathTemplate": "/api/orders/{everything}",
       "DownstreamScheme": "http",
       "DownstreamHostAndPorts": [{ "Host": "order-service", "Port": 80 }],
       "UpstreamPathTemplate": "/api/orders/{everything}",
       "UpstreamHttpMethod": [ "GET", "POST", "PUT", "DELETE", "OPTIONS" ]
     },
     {
-      "DownstreamPathTemplate": "/api/Inventory/{everything}",
+      "DownstreamPathTemplate": "/api/inventory/{everything}",
       "DownstreamScheme": "http",
       "DownstreamHostAndPorts": [{ "Host": "inventory-service", "Port": 80 }],
       "UpstreamPathTemplate": "/api/inventory/{everything}",
       "UpstreamHttpMethod": [ "GET", "POST", "PUT", "DELETE", "OPTIONS" ]
     },
     {
-      "DownstreamPathTemplate": "/api/Shipments/{everything}",
+      "DownstreamPathTemplate": "/api/shipments/{everything}",
       "DownstreamScheme": "http",
       "DownstreamHostAndPorts": [{ "Host": "shipment-service", "Port": 80 }],
       "UpstreamPathTemplate": "/api/shipments/{everything}",
       "UpstreamHttpMethod": [ "GET", "POST", "PUT", "DELETE", "OPTIONS" ]
     },
     {
-      "DownstreamPathTemplate": "/api/Drivers/{everything}",
+      "DownstreamPathTemplate": "/api/drivers/{everything}",
       "DownstreamScheme": "http",
       "DownstreamHostAndPorts": [{ "Host": "shipment-service", "Port": 80 }],
       "UpstreamPathTemplate": "/api/drivers/{everything}",
       "UpstreamHttpMethod": [ "GET", "POST", "PUT", "DELETE", "OPTIONS" ]
     },
     {
-      "DownstreamPathTemplate": "/api/Drivers",
+      "DownstreamPathTemplate": "/api/drivers",
       "DownstreamScheme": "http",
       "DownstreamHostAndPorts": [{ "Host": "shipment-service", "Port": 80 }],
       "UpstreamPathTemplate": "/api/drivers",
       "UpstreamHttpMethod": [ "GET", "POST", "PUT", "DELETE", "OPTIONS" ]
     },
     {
-      "DownstreamPathTemplate": "/api/Vehicles/{everything}",
+      "DownstreamPathTemplate": "/api/vehicles/{everything}",
       "DownstreamScheme": "http",
       "DownstreamHostAndPorts": [{ "Host": "shipment-service", "Port": 80 }],
       "UpstreamPathTemplate": "/api/vehicles/{everything}",
       "UpstreamHttpMethod": [ "GET", "POST", "PUT", "DELETE", "OPTIONS" ]
     },
     {
-      "DownstreamPathTemplate": "/api/Vehicles",
+      "DownstreamPathTemplate": "/api/vehicles",
       "DownstreamScheme": "http",
       "DownstreamHostAndPorts": [{ "Host": "shipment-service", "Port": 80 }],
       "UpstreamPathTemplate": "/api/vehicles",
       "UpstreamHttpMethod": [ "GET", "POST", "PUT", "DELETE", "OPTIONS" ]
     },
     {
-      "DownstreamPathTemplate": "/api/Suppliers/{everything}",
+      "DownstreamPathTemplate": "/api/suppliers/{everything}",
       "DownstreamScheme": "http",
       "DownstreamHostAndPorts": [{ "Host": "supplier-service", "Port": 80 }],
       "UpstreamPathTemplate": "/api/suppliers/{everything}",
       "UpstreamHttpMethod": [ "GET", "POST", "PUT", "DELETE", "OPTIONS" ]
     },
     {
-      "DownstreamPathTemplate": "/api/Warehouses",
+      "DownstreamPathTemplate": "/api/warehouses",
       "DownstreamScheme": "http",
       "DownstreamHostAndPorts": [{ "Host": "warehouse-service", "Port": 80 }],
       "UpstreamPathTemplate": "/api/warehouses",
       "UpstreamHttpMethod": [ "GET", "POST", "PUT", "DELETE", "OPTIONS" ]
     },
     {
-      "DownstreamPathTemplate": "/api/Warehouses/{everything}",
+      "DownstreamPathTemplate": "/api/warehouses/{everything}",
       "DownstreamScheme": "http",
       "DownstreamHostAndPorts": [{ "Host": "warehouse-service", "Port": 80 }],
       "UpstreamPathTemplate": "/api/warehouses/{everything}",
       "UpstreamHttpMethod": [ "GET", "POST", "PUT", "DELETE", "OPTIONS" ]
     },
     {
-      "DownstreamPathTemplate": "/api/WarehouseStock",
+      "DownstreamPathTemplate": "/api/warehousestock",
       "DownstreamScheme": "http",
       "DownstreamHostAndPorts": [{ "Host": "warehouse-service", "Port": 80 }],
       "UpstreamPathTemplate": "/api/warehousestock",
       "UpstreamHttpMethod": [ "GET", "POST", "PUT", "DELETE", "OPTIONS" ]
     },
     {
-      "DownstreamPathTemplate": "/api/WarehouseStock/{everything}",
+      "DownstreamPathTemplate": "/api/warehousestock/{everything}",
       "DownstreamScheme": "http",
       "DownstreamHostAndPorts": [{ "Host": "warehouse-service", "Port": 80 }],
       "UpstreamPathTemplate": "/api/warehousestock/{everything}",
       "UpstreamHttpMethod": [ "GET", "POST", "PUT", "DELETE", "OPTIONS" ]
     },
     {
-      "DownstreamPathTemplate": "/api/Notifications/{everything}",
+      "DownstreamPathTemplate": "/api/notifications/{everything}",
       "DownstreamScheme": "http",
       "DownstreamHostAndPorts": [{ "Host": "notification-service", "Port": 80 }],
       "UpstreamPathTemplate": "/api/notifications/{everything}",
       "UpstreamHttpMethod": [ "GET", "POST", "PUT", "DELETE", "OPTIONS" ]
     },
     {
-      "DownstreamPathTemplate": "/api/Tracking/{everything}",
+      "DownstreamPathTemplate": "/api/tracking/{everything}",
       "DownstreamScheme": "http",
       "DownstreamHostAndPorts": [{ "Host": "tracking-services", "Port": 80 }],
       "UpstreamPathTemplate": "/api/tracking/{everything}",
       "UpstreamHttpMethod": [ "GET", "POST", "PUT", "DELETE", "OPTIONS" ]
     },
     {
-      "DownstreamPathTemplate": "/api/Reports/{everything}",
+      "DownstreamPathTemplate": "/api/reports/{everything}",
       "DownstreamScheme": "http",
       "DownstreamHostAndPorts": [{ "Host": "report-service", "Port": 80 }],
       "UpstreamPathTemplate": "/api/reports/{everything}",
@@ -124,4 +124,3 @@
     "BaseUrl": "http://localhost:5000"
   }
 }
-

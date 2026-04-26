@@ -98,6 +98,37 @@ namespace ReportService.Business
             return true;
         }
 
+        public async Task<bool> DeleteAsync(int id)
+        {
+            return await DeleteReportAsync(id);
+        }
+
+        public async Task<IEnumerable<ReportDto>> GetAllAsync()
+        {
+            return await GetAllReportsAsync();
+        }
+
+        public async Task<ReportDto?> GetByIdAsync(int id)
+        {
+            return await GetReportByIdAsync(id);
+        }
+
+        public async Task<IEnumerable<ReportDto>> GetByTypeAsync(string type)
+        {
+            return await GetReportsByTypeAsync(type);
+        }
+
+        public async Task<byte[]> GeneratePdfAsync(ReportDto report)
+        {
+            var pdfText = $"%PDF-1.4\n%âãÏÓ\n1 0 obj\n<< /Type /Catalog /Pages 2 0 R >>\nendobj\n2 0 obj\n<< /Type /Pages /Kids [3 0 R] /Count 1 >>\nendobj\n3 0 obj\n<< /Type /Page /Parent 2 0 R /MediaBox [0 0 612 792] /Contents 4 0 R /Resources << /Font << /F1 5 0 R >> >> >>\nendobj\n4 0 obj\n<< /Length 55 >>\nstream\nBT /F1 24 Tf 72 720 Td (Report: {report.Name}) Tj ET\nendstream\nendobj\n5 0 obj\n<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica >>\nendobj\nxref\n0 6\n0000000000 65535 f \n0000000010 00000 n \n0000000061 00000 n \n0000000116 00000 n \n0000000215 00000 n \n0000000305 00000 n \ntrailer\n<< /Size 6 /Root 1 0 R >>\nstartxref\n394\n%%EOF";
+            return await Task.FromResult(System.Text.Encoding.ASCII.GetBytes(pdfText));
+        }
+
+        public async Task<ReportSummaryDto> GetSummaryAsync()
+        {
+            return await GetReportSummaryAsync();
+        }
+
         private async Task<object> GenerateReportDataAsync(GenerateReportDto dto)
         {
            
