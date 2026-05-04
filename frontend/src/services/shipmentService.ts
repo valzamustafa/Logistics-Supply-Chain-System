@@ -24,6 +24,7 @@ export interface ShipmentItem {
 
 export interface CreateShipmentDto {
   orderId: number;
+  warehouseId?: number;
   driverId?: number;
   vehicleId?: number;
   estimatedDeliveryDate: string;
@@ -47,11 +48,15 @@ export interface ReorderShipmentDto {
 
 export const shipmentService = {
   getAll: () => api.get<Shipment[]>('/api/shipments'),
-  getById: (id: string) => api.get<Shipment>(`/api/shipments/${id}`),
+  getById: (id: string | number) => api.get<Shipment>(`/api/shipments/${id}`),
   getByOrderId: (orderId: number) => api.get<Shipment[]>(`/api/shipments/order/${orderId}`),
   create: (data: CreateShipmentDto) => api.post<Shipment>('/api/shipments', data),
-  updateStatus: (id: string, data: UpdateShipmentStatusDto) => 
+  assignDriver: (id: string | number, driverId: number) => api.put<Shipment>(`/api/shipments/${id}/assign-driver`, { driverId }),
+  updateStatus: (id: string | number, data: { status: string; location?: string }) => 
     api.put<Shipment>(`/api/shipments/${id}/status`, data),
-  reorder: (id: string, data: { newPriority: number }) => 
+    
+  getLiveTracking: (id: string | number) => 
+    api.get<any>(`/api/shipments/${id}/tracking/live`),
+  reorder: (id: string | number, data: { newPriority: number }) => 
     api.put<Shipment>(`/api/shipments/${id}/reorder`, data),
 };

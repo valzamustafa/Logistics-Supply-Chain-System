@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 import { AlertTriangle, TrendingDown, TrendingUp, BarChart3, AlertCircle, Search } from 'lucide-react';
 import { warehouseStockService, LowStockAlert, StockMovement, WarehouseStock } from '../../services/warehouseStockService';
 import { warehouseService, Warehouse } from '../../services/warehouseService';
+import { supplierService, Supplier } from '../../services/supplierService';
 
 export function WarehouseInventory() {
   const [lowStockAlerts, setLowStockAlerts] = useState<LowStockAlert[]>([]);
@@ -13,27 +14,34 @@ export function WarehouseInventory() {
   const [error, setError] = useState<string | null>(null);
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedProductId, setSelectedProductId] = useState<number | null>(null);
-  const [showReorderModal, setShowReorderModal] = useState(false);
-  const [selectedAlert, setSelectedAlert] = useState<LowStockAlert | null>(null);
-  const [reorderQuantity, setReorderQuantity] = useState('');
-  const [reorderError, setReorderError] = useState<string | null>(null);
+  const [showSupplierOrderModal, setShowSupplierOrderModal] = useState(false);
+  const [selectedSupplierOrderAlert, setSelectedSupplierOrderAlert] = useState<LowStockAlert | null>(null);
+  const [orderQuantity, setOrderQuantity] = useState('');
+  const [orderError, setOrderError] = useState<string | null>(null);
+  const [suppliers, setSuppliers] = useState<Supplier[]>([]);
+  const [selectedSupplierId, setSelectedSupplierId] = useState<number>(0);
+  const [orderUnitPrice, setOrderUnitPrice] = useState('0');
+  const [isEmergencyOrder, setIsEmergencyOrder] = useState(false);
+  const [emergencyReason, setEmergencyReason] = useState('');
 
   const fetchData = async () => {
     try {
       setLoading(true);
-      const [warehousesData, alerts, stocks] = await Promise.all([
+      const [warehousesData, alerts, stocks, suppliersData] = await Promise.all([
         warehouseService.getAll(),
         warehouseStockService.getLowStockAlerts(selectedWarehouse || undefined),
         selectedWarehouse ? warehouseStockService.getByWarehouse(selectedWarehouse) : warehouseStockService.getAll(),
+        supplierService.getAll(),
       ]);
 
       setWarehouses(warehousesData);
       setLowStockAlerts(alerts);
       setWarehouseStocks(stocks);
+      setSuppliers(suppliersData);
       setError(null);
     } catch (err) {
       console.error('Failed to fetch data:', err);
-      setError('Failed to load warehouse inventory data');
+      setError(`Failed to load warehouse inventory data: ${err.message || err}`);
     } finally {
       setLoading(false);
     }
@@ -57,30 +65,78 @@ export function WarehouseInventory() {
   const warningAlerts = lowStockAlerts.filter(a => a.deficit <= 50);
 
   const openReorderModal = (alert: LowStockAlert) => {
-    setSelectedAlert(alert);
-    setReorderQuantity(Math.max(alert.deficit, 1).toString());
-    setReorderError(null);
-    setShowReorderModal(true);
+    openSupplierOrderModal(alert);
   };
 
-  const handleReorder = async () => {
-    if (!selectedAlert) return;
-    const quantity = parseInt(reorderQuantity, 10);
+  const openSupplierOrderModal = (alert: LowStockAlert) => {
+    setSelectedSupplierOrderAlert(alert);
+    setOrderQuantity(Math.max(alert.deficit, 1).toString());
+    setSelectedSupplierId(suppliers[0]?.id ?? 0);
+    setOrderUnitPrice('0');
+    setIsEmergencyOrder(false);
+    setEmergencyReason('');
+    setOrderError(null);
+    setShowSupplierOrderModal(true);
+  };
+
+
+  const handleSupplierOrder = async () => {
+    if (!selectedSupplierOrderAlert) return;
+    const quantity = parseInt(orderQuantity, 10);
+    const price = parseFloat(orderUnitPrice);
+
+    if (!isEmergencyOrder && !selectedSupplierId) {
+      setOrderError('Select a supplier or switch to emergency purchase');
+      return;
+    }
+
     if (!quantity || quantity <= 0) {
-      setReorderError('Enter a valid reorder quantity');
+      setOrderError('Enter a valid quantity');
+      return;
+    }
+
+    if (isNaN(price) || price < 0) {
+      setOrderError('Enter a valid unit price');
       return;
     }
 
     try {
       setLoading(true);
-      await warehouseStockService.reorderStock(selectedAlert.warehouseId, selectedAlert.productId, quantity, 'Inventory reorder from warehouse alert');
+
+      if (isEmergencyOrder || selectedSupplierId === 0) {
+        await supplierService.createEmergencyPurchase({
+          warehouseId: selectedSupplierOrderAlert.warehouseId,
+          productName: selectedSupplierOrderAlert.productName,
+          quantity,
+          unitPrice: price,
+          reason: emergencyReason || 'Emergency supplier request for unavailable product',
+        });
+      } else {
+        await supplierService.createPurchaseOrder({
+          supplierId: selectedSupplierId,
+          warehouseId: selectedSupplierOrderAlert.warehouseId,
+          items: [
+            {
+              productId: selectedSupplierOrderAlert.productId,
+              quantity,
+              unitPrice: price,
+            },
+          ],
+          notes: `Reorder generated from warehouse inventory alert`,
+        });
+      }
+
       await fetchData();
-      setShowReorderModal(false);
-      setSelectedAlert(null);
-      setReorderQuantity('');
+      setShowSupplierOrderModal(false);
+      setSelectedSupplierOrderAlert(null);
+      setOrderQuantity('');
+      setOrderUnitPrice('0');
+      setSelectedSupplierId(0);
+      setIsEmergencyOrder(false);
+      setEmergencyReason('');
     } catch (err) {
-      console.error('Failed to reorder stock:', err);
-      setReorderError('Failed to reorder stock, please try again');
+      console.error('Failed to create supplier order:', err);
+      setOrderError('Failed to create supplier order, please try again');
     } finally {
       setLoading(false);
     }
@@ -99,7 +155,6 @@ export function WarehouseInventory() {
 
   return (
     <div className="p-6 space-y-6 bg-slate-900 min-h-screen">
-      {/* Header */}
       <div className="flex flex-col gap-4 md:flex-row md:justify-between md:items-center">
         <div>
           <h1 className="text-3xl font-bold text-white">Warehouse Inventory</h1>
@@ -159,7 +214,7 @@ export function WarehouseInventory() {
         </div>
       </div>
 
-      {/* Warehouse Stock Summary */}
+   
       <div className="space-y-4">
         <div className="bg-slate-800 rounded-xl border border-slate-700 p-4">
           <h2 className="text-lg font-semibold text-white mb-3">Warehouse Inventory Overview</h2>
@@ -269,15 +324,23 @@ export function WarehouseInventory() {
 
                 <div className="mt-4 flex flex-wrap gap-2 items-center justify-between">
                   <div className="text-slate-400 text-sm">Warehouse: {alert.warehouseName}</div>
-                  <button
-                    onClick={() => openReorderModal(alert)}
-                    className="px-3 py-2 bg-yellow-500/10 hover:bg-yellow-500/20 rounded-lg text-yellow-300 border border-yellow-500/20 transition"
-                  >
-                    Reorder stock
-                  </button>
+                  <div className="flex flex-wrap gap-2">
+                    <button
+                      onClick={() => openSupplierOrderModal(alert)}
+                      className="px-3 py-2 bg-cyan-500/10 hover:bg-cyan-500/20 rounded-lg text-cyan-300 border border-cyan-500/20 transition"
+                    >
+                      Order from supplier
+                    </button>
+                    <button
+                      onClick={() => openReorderModal(alert)}
+                      className="px-3 py-2 bg-yellow-500/10 hover:bg-yellow-500/20 rounded-lg text-yellow-300 border border-yellow-500/20 transition"
+                    >
+                      Reorder from supplier
+                    </button>
+                  </div>
                 </div>
 
-                {/* Progress bar */}
+            
                 <div className="mt-3 bg-slate-800 rounded-full h-2 overflow-hidden">
                   <div
                     className={`h-full ${
@@ -294,43 +357,94 @@ export function WarehouseInventory() {
         </div>
       </div>
 
-      {showReorderModal && selectedAlert && (
+
+      {showSupplierOrderModal && selectedSupplierOrderAlert && (
         <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
           <div className="bg-slate-800 rounded-xl border border-slate-700 w-96 p-6 space-y-4">
-            <h2 className="text-xl font-bold text-white">Reorder {selectedAlert.productName}</h2>
+            <h2 className="text-xl font-bold text-white">Order {selectedSupplierOrderAlert.productName} from Supplier</h2>
             <p className="text-slate-400 text-sm">
-              Warehouse: {selectedAlert.warehouseName} • Current: {selectedAlert.currentQuantity} units
+              Warehouse: {selectedSupplierOrderAlert.warehouseName} • Current: {selectedSupplierOrderAlert.currentQuantity} units
             </p>
-            {reorderError && (
+            {orderError && (
               <div className="bg-red-500/10 border border-red-500/50 text-red-300 px-3 py-2 rounded">
-                {reorderError}
+                {orderError}
               </div>
             )}
-            <label className="text-slate-300 text-sm">Quantity to reorder</label>
+            <div className="flex items-center justify-between gap-2">
+              <label className="text-slate-300 text-sm flex-1">Supplier</label>
+              <label className="flex items-center gap-2 text-slate-300 text-sm">
+                <input
+                  type="checkbox"
+                  checked={isEmergencyOrder}
+                  onChange={(e) => setIsEmergencyOrder(e.target.checked)}
+                  className="accent-cyan-500"
+                />
+                Emergency purchase request
+              </label>
+            </div>
+            {!isEmergencyOrder ? (
+              <select
+                value={selectedSupplierId}
+                onChange={(e) => setSelectedSupplierId(Number(e.target.value))}
+                className="w-full bg-slate-700 border border-slate-600 rounded px-3 py-2 text-white outline-none"
+              >
+                <option value={0}>Select supplier</option>
+                {suppliers.map((supplier) => (
+                  <option key={supplier.id} value={supplier.id}>{supplier.name}</option>
+                ))}
+              </select>
+            ) : (
+              <div className="bg-slate-900 border border-slate-700 rounded-lg p-3 text-slate-300 text-sm">
+                Emergency purchase requests can be created when no supplier is available for the selected product.
+              </div>
+            )}
+            <label className="text-slate-300 text-sm">Quantity</label>
             <input
               type="number"
               min={1}
-              value={reorderQuantity}
-              onChange={(e) => setReorderQuantity(e.target.value)}
+              value={orderQuantity}
+              onChange={(e) => setOrderQuantity(e.target.value)}
               className="w-full bg-slate-700 border border-slate-600 rounded px-3 py-2 text-white placeholder-slate-400 focus:border-cyan-500 outline-none"
             />
+            <label className="text-slate-300 text-sm">Unit price</label>
+            <input
+              type="number"
+              min={0}
+              step="0.01"
+              value={orderUnitPrice}
+              onChange={(e) => setOrderUnitPrice(e.target.value)}
+              className="w-full bg-slate-700 border border-slate-600 rounded px-3 py-2 text-white placeholder-slate-400 focus:border-cyan-500 outline-none"
+            />
+            {isEmergencyOrder && (
+              <>
+                <label className="text-slate-300 text-sm">Reason</label>
+                <textarea
+                  value={emergencyReason}
+                  onChange={(e) => setEmergencyReason(e.target.value)}
+                  className="w-full bg-slate-700 border border-slate-600 rounded px-3 py-2 text-white placeholder-slate-400 focus:border-cyan-500 outline-none"
+                  rows={3}
+                  placeholder="Describe why this order is an emergency"
+                />
+              </>
+            )}
             <div className="flex gap-2 pt-2">
               <button
                 onClick={() => {
-                  setShowReorderModal(false);
-                  setSelectedAlert(null);
-                  setReorderQuantity('');
-                  setReorderError(null);
+                  setShowSupplierOrderModal(false);
+                  setSelectedSupplierOrderAlert(null);
+                  setOrderQuantity('');
+                  setOrderUnitPrice('0');
+                  setOrderError(null);
                 }}
                 className="flex-1 px-4 py-2 bg-slate-700 hover:bg-slate-600 text-white rounded-lg transition"
               >
                 Cancel
               </button>
               <button
-                onClick={handleReorder}
+                onClick={handleSupplierOrder}
                 className="flex-1 px-4 py-2 bg-cyan-600 hover:bg-cyan-700 text-white rounded-lg transition"
               >
-                Reorder
+                Create Order
               </button>
             </div>
           </div>

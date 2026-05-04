@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
-import { Package, AlertTriangle, Building2, PieChart, TrendingUp, TrendingDown, Box, Truck, Clock, CheckCircle, XCircle, Plus, Edit, Trash2, Users, MapPin, Phone } from 'lucide-react';
+import { Package, AlertTriangle, Building2, PieChart, TrendingUp, TrendingDown, Box, Truck, Clock, CheckCircle, XCircle, Plus, Edit, Trash2, Users, MapPin, Phone, AlertCircle } from 'lucide-react';
 import { warehouseService, Warehouse, WarehouseZone, WarehouseStaff } from '../../services/warehouseService';
+import { warehouseStockService, WarehouseStock } from '../../services/warehouseStockService';
 import { WarehouseInventory } from './Inventory';
 
 type WarehouseDashboardView = 'warehouses' | 'inventory';
@@ -15,30 +16,11 @@ export function WarehouseDashboard() {
   const [showZoneModal, setShowZoneModal] = useState(false);
   const [showStaffModal, setShowStaffModal] = useState(false);
   const [editingWarehouse, setEditingWarehouse] = useState<Warehouse | null>(null);
-
   const [warehouseForm, setWarehouseForm] = useState({ name: '', location: '', phone: '' });
   const [zoneForm, setZoneForm] = useState({ warehouseId: 0, zoneName: '', description: '', capacity: 0 });
   const [staffForm, setStaffForm] = useState({ userId: 0, position: '', hireDate: '' });
-
-  
-  if (activeView === 'inventory') {
-    return (
-      <div className="space-y-4">
-        <div className="p-6 bg-slate-900">
-          <div className="flex items-center gap-4 mb-6">
-            <button
-              onClick={() => setActiveView('warehouses')}
-              className="px-4 py-2 bg-slate-700 hover:bg-slate-600 text-white rounded-lg transition"
-            >
-              ← Back to Warehouses
-            </button>
-            <h1 className="text-2xl font-bold text-white">Inventory Management</h1>
-          </div>
-        </div>
-        <WarehouseInventory />
-      </div>
-    );
-  }
+  const [warehouseStocks, setWarehouseStocks] = useState<Record<number, WarehouseStock[]>>({});
+  const [stocksLoading, setStocksLoading] = useState(false);
 
   const fetchWarehouses = async () => {
     try {
@@ -46,11 +28,44 @@ export function WarehouseDashboard() {
       const data = await warehouseService.getAll();
       setWarehouses(data);
       setError(null);
+      await fetchWarehouseStocks(data);
     } catch (err) {
       console.error('Failed to fetch warehouses:', err);
       setError('Failed to load warehouses');
     } finally {
       setLoading(false);
+    }
+  };
+
+  const fetchWarehouseStocks = async (warehousesList: Warehouse[]) => {
+    if (!warehousesList || warehousesList.length === 0) return;
+    
+    setStocksLoading(true);
+    try {
+      const stocksData: Record<number, WarehouseStock[]> = {};
+      await Promise.all(
+        warehousesList.map(async (warehouse) => {
+          try {
+            const stock = await warehouseStockService.getByWarehouse(warehouse.id);
+            stocksData[warehouse.id] = stock;
+          } catch (err) {
+            console.error(`Failed to fetch stock for warehouse ${warehouse.id}:`, err);
+            stocksData[warehouse.id] = [];
+          }
+        })
+      );
+      
+      setWarehouseStocks(stocksData);
+    } catch (err) {
+      console.error('Failed to fetch warehouse stocks:', err);
+    } finally {
+      setStocksLoading(false);
+    }
+  };
+
+  const refreshAllStocks = async () => {
+    if (warehouses.length > 0) {
+      await fetchWarehouseStocks(warehouses);
     }
   };
 
@@ -141,8 +156,35 @@ export function WarehouseDashboard() {
   const totalWarehouses = warehouses.length;
   const totalZones = warehouses.reduce((sum, w) => sum + (w.zones?.length || 0), 0);
   const totalStaff = warehouses.reduce((sum, w) => sum + (w.staff?.length || 0), 0);
+  
   const totalCapacity = warehouses.reduce((sum, w) => 
-    sum + (w.zones?.reduce((zoneSum, z) => zoneSum + z.capacity, 0) || 0), 0);
+    sum + (w.zones?.reduce((zoneSum, z) => zoneSum + (z.capacity || 0), 0) || 0), 0);
+
+  const totalProducts = Object.values(warehouseStocks).reduce(
+    (sum, stocks) => sum + (stocks?.length || 0), 0
+  );
+  const totalStockQuantity = Object.values(warehouseStocks).reduce(
+    (sum, stocks) => sum + (stocks?.reduce((s, stock) => s + (stock.quantity || 0), 0) || 0), 0
+  );
+
+  if (activeView === 'inventory') {
+    return (
+      <div className="space-y-4">
+        <div className="p-6 bg-slate-900">
+          <div className="flex items-center gap-4 mb-6">
+            <button
+              onClick={() => setActiveView('warehouses')}
+              className="px-4 py-2 bg-slate-700 hover:bg-slate-600 text-white rounded-lg transition"
+            >
+              ← Back to Warehouses
+            </button>
+            <h1 className="text-2xl font-bold text-white">Inventory Management</h1>
+          </div>
+        </div>
+        <WarehouseInventory />
+      </div>
+    );
+  }
 
   if (loading) {
     return (
@@ -157,7 +199,6 @@ export function WarehouseDashboard() {
 
   return (
     <div className="p-6 space-y-6 bg-slate-900 min-h-screen">
-      {/* Header */}
       <div className="flex justify-between items-center">
         <div>
           <h1 className="text-3xl font-bold text-white">Warehouse Management</h1>
@@ -192,7 +233,7 @@ export function WarehouseDashboard() {
       )}
 
       {/* Stats Cards */}
-      <div className="grid grid-cols-1 md:grid-cols-4 gap-5">
+      <div className="grid grid-cols-1 md:grid-cols-5 gap-5">
         <div className="bg-gradient-to-br from-slate-800 to-slate-800/80 rounded-xl p-5 border border-slate-700">
           <div className="w-12 h-12 rounded-xl bg-cyan-500/20 flex items-center justify-center">
             <Building2 className="w-6 h-6 text-cyan-400" />
@@ -219,174 +260,222 @@ export function WarehouseDashboard() {
           </div>
           <div className="mt-4">
             <h3 className="text-2xl font-bold text-white">{totalStaff}</h3>
-            <p className="text-slate-400 text-sm">Staff Members</p>
+            <p className="text-slate-400 text-sm">Staff</p>
           </div>
         </div>
 
         <div className="bg-gradient-to-br from-slate-800 to-slate-800/80 rounded-xl p-5 border border-slate-700">
           <div className="w-12 h-12 rounded-xl bg-amber-500/20 flex items-center justify-center">
-            <PieChart className="w-6 h-6 text-amber-400" />
+            <Package className="w-6 h-6 text-amber-400" />
           </div>
           <div className="mt-4">
-            <h3 className="text-2xl font-bold text-white">{totalCapacity.toLocaleString()}</h3>
-            <p className="text-slate-400 text-sm">Total Capacity</p>
+            <h3 className="text-2xl font-bold text-white">{totalProducts}</h3>
+            <p className="text-slate-400 text-sm">Unique Products</p>
+          </div>
+        </div>
+
+        <div className="bg-gradient-to-br from-slate-800 to-slate-800/80 rounded-xl p-5 border border-slate-700">
+          <div className="w-12 h-12 rounded-xl bg-blue-500/20 flex items-center justify-center">
+            <PieChart className="w-6 h-6 text-blue-400" />
+          </div>
+          <div className="mt-4">
+            <h3 className="text-2xl font-bold text-white">{totalStockQuantity.toLocaleString()}</h3>
+            <p className="text-slate-400 text-sm">Total Units</p>
           </div>
         </div>
       </div>
 
       {/* Warehouses List */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        {warehouses.map((warehouse) => (
-          <div key={warehouse.id} className="bg-slate-800/50 rounded-xl border border-slate-700 overflow-hidden">
-            {/* Warehouse Header */}
-            <div className="p-5 border-b border-slate-700 bg-slate-800/80">
-              <div className="flex justify-between items-start">
-                <div className="flex-1">
-                  <div className="flex items-center gap-2">
-                    <Building2 className="w-5 h-5 text-cyan-400" />
-                    <h3 className="text-lg font-semibold text-white">{warehouse.name}</h3>
-                    <span className={`px-2 py-0.5 rounded-full text-xs ${warehouse.isActive ? 'bg-green-500/20 text-green-400' : 'bg-red-500/20 text-red-400'}`}>
-                      {warehouse.isActive ? 'Active' : 'Inactive'}
-                    </span>
-                  </div>
-                  {(warehouse.location || warehouse.phone) && (
-                    <div className="flex items-center gap-4 mt-2 text-sm text-slate-400">
-                      {warehouse.location && (
-                        <span className="flex items-center gap-1">
-                          <MapPin className="w-3 h-3" />
-                          {warehouse.location}
-                        </span>
-                      )}
-                      {warehouse.phone && (
-                        <span className="flex items-center gap-1">
-                          <Phone className="w-3 h-3" />
-                          {warehouse.phone}
-                        </span>
-                      )}
+        {warehouses.map((warehouse) => {
+          const stocks = warehouseStocks[warehouse.id] || [];
+          const totalUnits = stocks.reduce((sum, s) => sum + (s.quantity || 0), 0);
+          const lowStockCount = stocks.filter(s => s.isLowStock).length;
+          const outOfStockCount = stocks.filter(s => s.isOutOfStock).length;
+          
+          return (
+            <div key={warehouse.id} className="bg-slate-800/50 rounded-xl border border-slate-700 overflow-hidden">
+              <div className="p-5 border-b border-slate-700 bg-slate-800/80">
+                <div className="flex justify-between items-start">
+                  <div className="flex-1">
+                    <div className="flex items-center gap-2">
+                      <Building2 className="w-5 h-5 text-cyan-400" />
+                      <h3 className="text-lg font-semibold text-white">{warehouse.name}</h3>
+                      <span className={`px-2 py-0.5 rounded-full text-xs ${warehouse.isActive ? 'bg-green-500/20 text-green-400' : 'bg-red-500/20 text-red-400'}`}>
+                        {warehouse.isActive ? 'Active' : 'Inactive'}
+                      </span>
                     </div>
-                  )}
+                    {(warehouse.location || warehouse.phone) && (
+                      <div className="flex items-center gap-4 mt-2 text-sm text-slate-400">
+                        {warehouse.location && (
+                          <span className="flex items-center gap-1">
+                            <MapPin className="w-3 h-3" />
+                            {warehouse.location}
+                          </span>
+                        )}
+                        {warehouse.phone && (
+                          <span className="flex items-center gap-1">
+                            <Phone className="w-3 h-3" />
+                            {warehouse.phone}
+                          </span>
+                        )}
+                      </div>
+                    )}
+                  </div>
+                  <div className="flex gap-2">
+                    <button
+                      onClick={() => {
+                        setEditingWarehouse(warehouse);
+                        setWarehouseForm({
+                          name: warehouse.name,
+                          location: warehouse.location || '',
+                          phone: warehouse.phone || ''
+                        });
+                        setShowWarehouseModal(true);
+                      }}
+                      className="p-2 hover:bg-slate-700 rounded-lg transition"
+                    >
+                      <Edit className="w-4 h-4 text-slate-400" />
+                    </button>
+                    <button
+                      onClick={() => handleDeleteWarehouse(warehouse.id)}
+                      className="p-2 hover:bg-red-500/20 rounded-lg transition"
+                    >
+                      <Trash2 className="w-4 h-4 text-red-400" />
+                    </button>
+                  </div>
                 </div>
-                <div className="flex gap-2">
+              </div>
+
+              <div className="p-5 border-b border-slate-700">
+                <div className="flex flex-col gap-2 mb-3">
+                  <div className="flex items-center gap-2 mb-2">
+                    <Box className="w-4 h-4 text-purple-400" />
+                    <h4 className="font-medium text-white">Zones</h4>
+                    <span className="text-xs text-slate-500">({warehouse.zones?.length || 0})</span>
+                  </div>
                   <button
                     onClick={() => {
-                      setEditingWarehouse(warehouse);
-                      setWarehouseForm({
-                        name: warehouse.name,
-                        location: warehouse.location || '',
-                        phone: warehouse.phone || ''
-                      });
-                      setShowWarehouseModal(true);
+                      setSelectedWarehouse(warehouse);
+                      setZoneForm({ warehouseId: warehouse.id, zoneName: '', description: '', capacity: 0 });
+                      setShowZoneModal(true);
                     }}
-                    className="p-2 hover:bg-slate-700 rounded-lg transition"
+                    className="w-full px-4 py-2 bg-cyan-600 hover:bg-cyan-700 text-white rounded-lg flex items-center justify-center gap-2 transition font-semibold"
                   >
-                    <Edit className="w-4 h-4 text-slate-400" />
+                    <Plus className="w-4 h-4" />
+                    Add Zone
                   </button>
+                </div>
+                {warehouse.zones && warehouse.zones.length > 0 ? (
+                  <div className="space-y-2">
+                    {warehouse.zones.map((zone) => (
+                      <div key={zone.id} className="bg-slate-900/50 rounded-lg p-3 flex justify-between items-center">
+                        <div>
+                          <p className="text-white text-sm font-medium">{zone.zoneName}</p>
+                          {zone.description && (
+                            <p className="text-slate-400 text-xs">{zone.description}</p>
+                          )}
+                          <p className="text-slate-500 text-xs mt-1">Capacity: {zone.capacity.toLocaleString()} units</p>
+                        </div>
+                        <button
+                          onClick={() => warehouseService.deleteZone(zone.id).then(fetchWarehouses)}
+                          className="p-1 hover:bg-red-500/20 rounded transition"
+                        >
+                          <Trash2 className="w-3 h-3 text-red-400" />
+                        </button>
+                      </div>
+                    ))}
+                  </div>
+                ) : (
+                  <p className="text-slate-500 text-sm text-center py-4">No zones defined</p>
+                )}
+              </div>
+
+              <div className="p-5 border-b border-slate-700">
+                {/* Stock Information */}
+                <div className="flex flex-col gap-2 mb-3">
+                  <div className="flex items-center gap-2 mb-2">
+                    <Package className="w-4 h-4 text-amber-400" />
+                    <h4 className="font-medium text-white">Stock Overview</h4>
+                    <span className="text-xs text-slate-500">
+                      ({stocks.length} products)
+                    </span>
+                  </div>
+                  {stocksLoading ? (
+                    <div className="text-center py-4">
+                      <div className="w-6 h-6 border-2 border-cyan-500 border-t-transparent rounded-full animate-spin mx-auto"></div>
+                    </div>
+                  ) : stocks.length > 0 ? (
+                    <div className="grid grid-cols-3 gap-3">
+                      <div className="bg-slate-900/50 rounded-lg p-3 text-center">
+                        <p className="text-xl font-bold text-white">{totalUnits}</p>
+                        <p className="text-xs text-slate-400">Total Units</p>
+                      </div>
+                      <div className="bg-slate-900/50 rounded-lg p-3 text-center">
+                        <p className="text-xl font-bold text-yellow-400">{lowStockCount}</p>
+                        <p className="text-xs text-slate-400">Low Stock</p>
+                      </div>
+                      <div className="bg-slate-900/50 rounded-lg p-3 text-center">
+                        <p className="text-xl font-bold text-red-400">{outOfStockCount}</p>
+                        <p className="text-xs text-slate-400">Out of Stock</p>
+                      </div>
+                    </div>
+                  ) : (
+                    <p className="text-slate-500 text-sm text-center py-4">No products in this warehouse</p>
+                  )}
+                </div>
+              </div>
+
+              <div className="p-5">
+                <div className="flex flex-col gap-2 mb-3">
+                  <div className="flex items-center gap-2 mb-2">
+                    <Users className="w-4 h-4 text-green-400" />
+                    <h4 className="font-medium text-white">Staff</h4>
+                    <span className="text-xs text-slate-500">({warehouse.staff?.length || 0})</span>
+                  </div>
                   <button
-                    onClick={() => handleDeleteWarehouse(warehouse.id)}
-                    className="p-2 hover:bg-red-500/20 rounded-lg transition"
+                    onClick={() => {
+                      setSelectedWarehouse(warehouse);
+                      setStaffForm({ userId: 0, position: '', hireDate: '' });
+                      setShowStaffModal(true);
+                    }}
+                    className="w-full px-4 py-2 bg-green-600 hover:bg-green-700 text-white rounded-lg flex items-center justify-center gap-2 transition font-semibold"
                   >
-                    <Trash2 className="w-4 h-4 text-red-400" />
+                    <Plus className="w-4 h-4" />
+                    Assign Staff
                   </button>
                 </div>
-              </div>
-            </div>
-
-            {/* Zones Section */}
-            <div className="p-5 border-b border-slate-700">
-              <div className="flex justify-between items-center mb-3">
-                <div className="flex items-center gap-2">
-                  <Box className="w-4 h-4 text-purple-400" />
-                  <h4 className="font-medium text-white">Zones</h4>
-                  <span className="text-xs text-slate-500">({warehouse.zones?.length || 0})</span>
-                </div>
-                <button
-                  onClick={() => {
-                    setSelectedWarehouse(warehouse);
-                    setZoneForm({ warehouseId: warehouse.id, zoneName: '', description: '', capacity: 0 });
-                    setShowZoneModal(true);
-                  }}
-                  className="text-xs text-cyan-400 hover:text-cyan-300 flex items-center gap-1"
-                >
-                  <Plus className="w-3 h-3" />
-                  Add Zone
-                </button>
-              </div>
-              {warehouse.zones && warehouse.zones.length > 0 ? (
-                <div className="space-y-2">
-                  {warehouse.zones.map((zone) => (
-                    <div key={zone.id} className="bg-slate-900/50 rounded-lg p-3 flex justify-between items-center">
-                      <div>
-                        <p className="text-white text-sm font-medium">{zone.zoneName}</p>
-                        {zone.description && (
-                          <p className="text-slate-400 text-xs">{zone.description}</p>
-                        )}
-                        <p className="text-slate-500 text-xs mt-1">Capacity: {zone.capacity.toLocaleString()} units</p>
+                {warehouse.staff && warehouse.staff.length > 0 ? (
+                  <div className="space-y-2">
+                    {warehouse.staff.map((staff) => (
+                      <div key={staff.id} className="bg-slate-900/50 rounded-lg p-3 flex justify-between items-center">
+                        <div>
+                          <p className="text-white text-sm font-medium">User ID: {staff.userId}</p>
+                          {staff.position && (
+                            <p className="text-slate-400 text-xs">{staff.position}</p>
+                          )}
+                          {staff.hireDate && (
+                            <p className="text-slate-500 text-xs">Hired: {new Date(staff.hireDate).toLocaleDateString()}</p>
+                          )}
+                        </div>
+                        <button
+                          onClick={() => handleRemoveStaff(staff.id)}
+                          className="p-1 hover:bg-red-500/20 rounded transition"
+                        >
+                          <Trash2 className="w-3 h-3 text-red-400" />
+                        </button>
                       </div>
-                      <button
-                        onClick={() => warehouseService.deleteZone(zone.id).then(fetchWarehouses)}
-                        className="p-1 hover:bg-red-500/20 rounded transition"
-                      >
-                        <Trash2 className="w-3 h-3 text-red-400" />
-                      </button>
-                    </div>
-                  ))}
-                </div>
-              ) : (
-                <p className="text-slate-500 text-sm text-center py-4">No zones defined</p>
-              )}
-            </div>
-
-            {/* Staff Section */}
-            <div className="p-5">
-              <div className="flex justify-between items-center mb-3">
-                <div className="flex items-center gap-2">
-                  <Users className="w-4 h-4 text-green-400" />
-                  <h4 className="font-medium text-white">Staff</h4>
-                  <span className="text-xs text-slate-500">({warehouse.staff?.length || 0})</span>
-                </div>
-                <button
-                  onClick={() => {
-                    setSelectedWarehouse(warehouse);
-                    setStaffForm({ userId: 0, position: '', hireDate: '' });
-                    setShowStaffModal(true);
-                  }}
-                  className="text-xs text-cyan-400 hover:text-cyan-300 flex items-center gap-1"
-                >
-                  <Plus className="w-3 h-3" />
-                  Assign Staff
-                </button>
+                    ))}
+                  </div>
+                ) : (
+                  <p className="text-slate-500 text-sm text-center py-4">No staff assigned</p>
+                )}
               </div>
-              {warehouse.staff && warehouse.staff.length > 0 ? (
-                <div className="space-y-2">
-                  {warehouse.staff.map((staff) => (
-                    <div key={staff.id} className="bg-slate-900/50 rounded-lg p-3 flex justify-between items-center">
-                      <div>
-                        <p className="text-white text-sm font-medium">User ID: {staff.userId}</p>
-                        {staff.position && (
-                          <p className="text-slate-400 text-xs">{staff.position}</p>
-                        )}
-                        {staff.hireDate && (
-                          <p className="text-slate-500 text-xs">Hired: {new Date(staff.hireDate).toLocaleDateString()}</p>
-                        )}
-                      </div>
-                      <button
-                        onClick={() => handleRemoveStaff(staff.id)}
-                        className="p-1 hover:bg-red-500/20 rounded transition"
-                      >
-                        <Trash2 className="w-3 h-3 text-red-400" />
-                      </button>
-                    </div>
-                  ))}
-                </div>
-              ) : (
-                <p className="text-slate-500 text-sm text-center py-4">No staff assigned</p>
-              )}
             </div>
-          </div>
-        ))}
+          );
+        })}
       </div>
 
-      {/* Warehouse Modal */}
       {showWarehouseModal && (
         <div className="fixed inset-0 bg-black/70 flex items-center justify-center z-50">
           <div className="bg-slate-800 rounded-xl w-full max-w-md p-6 border border-slate-700">
@@ -434,7 +523,6 @@ export function WarehouseDashboard() {
         </div>
       )}
 
-      {/* Zone Modal */}
       {showZoneModal && (
         <div className="fixed inset-0 bg-black/70 flex items-center justify-center z-50">
           <div className="bg-slate-800 rounded-xl w-full max-w-md p-6 border border-slate-700">
@@ -480,7 +568,7 @@ export function WarehouseDashboard() {
         </div>
       )}
 
-      {/* Staff Modal */}
+  
       {showStaffModal && (
         <div className="fixed inset-0 bg-black/70 flex items-center justify-center z-50">
           <div className="bg-slate-800 rounded-xl w-full max-w-md p-6 border border-slate-700">

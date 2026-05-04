@@ -32,7 +32,7 @@ export function UsersPage() {
     lastName: '',
     email: '',
     password: '',
-    roleId: 3
+    roleId: 0
   });
   const [editUser, setEditUser] = useState({
     id: 0,
@@ -83,17 +83,18 @@ export function UsersPage() {
         lastName: newUser.lastName
       });
       
-      if (newUser.roleId !== 3) {
+      if (newUser.roleId > 0) {
         await api.post(`/api/auth/${user.id}/roles/${newUser.roleId}`);
       }
       
       await loadUsers();
       setShowModal(false);
-      setNewUser({ firstName: '', lastName: '', email: '', password: '', roleId: 3 });
+      setNewUser({ firstName: '', lastName: '', email: '', password: '', roleId: 0 });
       alert('User created successfully');
     } catch (error) {
       console.error('Failed to create user:', error);
-      alert('Failed to create user');
+      const message = error instanceof Error ? error.message : 'Failed to create user';
+      alert(message);
     }
   };
 
@@ -163,6 +164,7 @@ export function UsersPage() {
       case 'Manager': return 'bg-blue-500/20 text-blue-400';
       case 'Driver': return 'bg-green-500/20 text-green-400';
       case 'WarehouseStaff': return 'bg-orange-500/20 text-orange-400';
+      case 'Supplier': return 'bg-amber-500/20 text-amber-400';
       default: return 'bg-slate-500/20 text-slate-400';
     }
   };
@@ -201,7 +203,7 @@ export function UsersPage() {
                 <th className="text-left py-3 text-slate-400">Status</th>
                 <th className="text-left py-3 text-slate-400">Created At</th>
                 <th className="text-left py-3 text-slate-400">Actions</th>
-               </tr>
+              </tr>
             </thead>
             <tbody>
               {users.map((user) => (
@@ -231,13 +233,13 @@ export function UsersPage() {
                         + Add Role
                       </button>
                     </div>
-                  </td>
+                   </td>
                   <td className="py-3">
                     <span className={`rounded-full px-2 py-1 text-xs ${user.isActive ? 'bg-green-500/20 text-green-400' : 'bg-red-500/20 text-red-400'}`}>
                       {user.isActive ? 'Active' : 'Inactive'}
                     </span>
-                  </td>
-                  <td className="py-3 text-slate-400">{new Date(user.createdAt).toLocaleDateString()}</td>
+                   </td>
+                  <td className="py-3 text-slate-400">{new Date(user.createdAt).toLocaleDateString()} </td>
                   <td className="py-3">
                     <button 
                       onClick={() => {
@@ -260,11 +262,11 @@ export function UsersPage() {
                     >
                       Delete
                     </button>
-                  </td>
-                </tr>
+                   </td>
+                 </tr>
               ))}
             </tbody>
-          </table>
+           </table>
         </div>
       </div>
 

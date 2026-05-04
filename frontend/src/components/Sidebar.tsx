@@ -4,25 +4,15 @@ import { useAuth } from '../hooks/useAuth';
 export function Sidebar() {
   const location = useLocation();
   const { user } = useAuth();
-  const userRole = user?.roles?.[0] || 'User';
-
-  const navItems = [
-    { label: 'Dashboard', icon: '📊', path: getDashboardPath(userRole), roles: ['Admin', 'Manager', 'User', 'Driver', 'WarehouseStaff', 'Warehouse'] },
-    { label: 'Tracking', icon: '🚚', path: '/tracking', roles: ['Admin', 'Manager', 'User', 'Driver'] },
-    { label: 'Orders', icon: '📦', path: '/orders', roles: ['Admin', 'Manager', 'User'] },
-    { label: 'Products', icon: '🏷️', path: '/products', roles: ['Admin', 'Manager', 'WarehouseStaff', 'Warehouse'] },
-    { label: 'Inventory', icon: '📦', path: '/inventory', roles: ['Admin', 'Manager', 'WarehouseStaff', 'Warehouse'] },
-    { label: 'Shipments', icon: '✈️', path: '/shipments', roles: ['Admin', 'Manager', 'Driver'] },
-    { label: 'Reports', icon: '📈', path: '/reports', roles: ['Admin', 'Manager'] },
-    { label: 'Users', icon: '👥', path: '/admin/users', roles: ['Admin'] },
-    { label: 'Roles', icon: '🔑', path: '/admin/roles', roles: ['Admin'] },
-  ];
+  const rolePriority = ['Admin', 'Manager', 'Supplier', 'Driver', 'WarehouseStaff', 'Warehouse', 'User'];
+  const userRole = user?.roles?.find((role) => rolePriority.includes(role)) || 'User';
 
   function getDashboardPath(role: string): string {
     switch (role) {
       case 'Admin': return '/admin';
       case 'Manager': return '/manager';
       case 'Driver': return '/driver';
+      case 'Supplier': return '/supplier';
       case 'WarehouseStaff':
       case 'Warehouse':
         return '/warehouse';
@@ -30,20 +20,47 @@ export function Sidebar() {
     }
   }
 
+  const navItems = [
+    { label: 'Dashboard', icon: '📊', path: getDashboardPath(userRole), roles: ['Admin', 'Manager', 'User', 'Driver', 'WarehouseStaff', 'Warehouse', 'Supplier'] },
+    { label: 'Create Order', icon: '🛒', path: '/create-order', roles: ['User'] },
+    { label: 'My Orders', icon: '📋', path: '/my-orders', roles: ['User'] },
+    { label: 'Track Shipment', icon: '📍', path: '/track-shipment', roles: ['User'] },
+    { label: 'Products', icon: '🏷️', path: '/products', roles: ['Admin', 'Manager', 'WarehouseStaff', 'Warehouse', 'Supplier'] },
+    { label: 'Tracking', icon: '🚚', path: '/tracking', roles: ['Admin', 'Manager', 'User', 'Driver'] },
+    { label: 'Orders', icon: '📦', path: '/orders', roles: ['Admin', 'Manager'] },
+    { label: 'Warehouses', icon: '🏭', path: '/warehouses', roles: ['Admin', 'Manager'] },
+    { label: 'Inventory', icon: '📦', path: '/inventory', roles: ['Admin', 'Manager', 'WarehouseStaff', 'Warehouse'] },
+    { label: 'Suppliers', icon: '🛒', path: '/suppliers', roles: ['Admin', 'Manager', 'WarehouseStaff', 'Warehouse'] },
+    { label: 'Supplier Dashboard', icon: '🧑‍💼', path: '/supplier', roles: ['Supplier'] },
+    { label: 'Shipments', icon: '✈️', path: '/shipments', roles: ['Admin', 'Manager', 'Driver'] },
+    { label: 'Reports', icon: '📈', path: '/reports', roles: ['Admin', 'Manager'] },
+    { label: 'Users', icon: '👥', path: '/admin/users', roles: ['Admin'] },
+    { label: 'Roles', icon: '🔑', path: '/admin/roles', roles: ['Admin'] },
+  ];
+
   const filteredNavItems = navItems.filter(item => 
     !item.roles || item.roles.includes(userRole)
   );
 
   const isActive = (path: string) => {
     if (path === getDashboardPath(userRole)) {
-      return location.pathname === '/admin' || location.pathname === '/manager' || location.pathname === '/driver' || location.pathname === '/warehouse' || location.pathname === '/dashboard';
+      return location.pathname === '/admin' || 
+             location.pathname === '/manager' || 
+             location.pathname === '/driver' || 
+             location.pathname === '/warehouse' || 
+             location.pathname === '/dashboard' || 
+             location.pathname === '/supplier';
     }
     return location.pathname === path;
   };
 
   return (
-    <aside className="w-64 border-r border-slate-700 bg-slate-800 p-6">
-      <nav className="space-y-2">
+    <aside className="w-64 border-r border-slate-700 bg-slate-800 p-6 flex flex-col h-screen">
+      <div className="mb-8">
+        <h1 className="text-xl font-bold text-white">LogiTrack</h1>
+        <p className="text-xs text-slate-400 mt-1">Supply Chain Management</p>
+      </div>
+      <nav className="space-y-2 flex-1">
         {filteredNavItems.map((item) => {
           const active = isActive(item.path);
           return (
@@ -62,6 +79,21 @@ export function Sidebar() {
           );
         })}
       </nav>
+      
+      {/* User Info Footer */}
+      <div className="mt-8 pt-4 border-t border-slate-700">
+        <div className="flex items-center gap-3">
+          <div className="w-8 h-8 rounded-full bg-cyan-500/20 flex items-center justify-center">
+            <span className="text-cyan-400 text-sm">
+              {user?.firstName?.charAt(0) || user?.email?.charAt(0) || 'U'}
+            </span>
+          </div>
+          <div className="flex-1">
+            <p className="text-white text-sm font-medium">{user?.firstName || user?.email?.split('@')[0]}</p>
+            <p className="text-slate-400 text-xs">{userRole}</p>
+          </div>
+        </div>
+      </div>
     </aside>
   );
 }

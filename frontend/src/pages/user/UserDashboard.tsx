@@ -1,13 +1,18 @@
+
 import { useState, useEffect } from 'react';
 import { useAuth } from '../../hooks/useAuth';
 import { orderService, Order } from '../../services/orderService';
 import { shipmentService, Shipment } from '../../services/shipmentService';
+import { InvoiceModal } from '../../components/InvoiceModal';
 
 export function UserDashboard() {
   const { user } = useAuth();
   const [orders, setOrders] = useState<Order[]>([]);
   const [shipments, setShipments] = useState<Shipment[]>([]);
   const [loading, setLoading] = useState(true);
+  const [selectedOrder, setSelectedOrder] = useState<Order | null>(null);
+  const [showInvoice, setShowInvoice] = useState(false);
+
   const [stats, setStats] = useState({
     totalOrders: 0,
     delivered: 0,
@@ -22,7 +27,6 @@ export function UserDashboard() {
 
   const loadData = async () => {
     if (!user?.id) return;
-
     setLoading(true);
     try {
       const ordersData = await orderService.getByUser(user.id);
@@ -38,7 +42,9 @@ export function UserDashboard() {
       const inTransit = ordersData.filter((o) => o.status === 'Shipped' || o.status === 'In Transit').length;
       const totalSpent = ordersData.reduce((sum, o) => sum + o.totalAmount, 0);
       const activeShipments = shipmentsData.filter((s) =>
-        s.status?.toLowerCase().includes('in transit') || s.status?.toLowerCase().includes('shipped') || s.status?.toLowerCase().includes('route')
+        s.status?.toLowerCase().includes('in transit') || 
+        s.status?.toLowerCase().includes('shipped') || 
+        s.status?.toLowerCase().includes('route')
       ).length;
 
       setStats({
@@ -55,13 +61,6 @@ export function UserDashboard() {
     }
   };
 
-  const statItems = [
-    { label: 'Orders Placed', value: stats.totalOrders.toString(), icon: '📋', color: 'from-cyan-400 to-blue-500' },
-    { label: 'Delivered', value: stats.delivered.toString(), icon: '✅', color: 'from-green-400 to-emerald-500' },
-    { label: 'In Transit', value: stats.inTransit.toString(), icon: '🚚', color: 'from-yellow-400 to-orange-500' },
-    { label: 'Total Spent', value: `$${(stats.totalSpent / 1000).toFixed(1)}K`, icon: '💰', color: 'from-purple-400 to-pink-500' },
-  ];
-
   const getStatusColor = (status: string) => {
     switch (status) {
       case 'Delivered': return 'bg-green-500/20 text-green-400';
@@ -73,9 +72,14 @@ export function UserDashboard() {
     }
   };
 
+  const viewInvoice = (order: Order) => {
+    setSelectedOrder(order);
+    setShowInvoice(true);
+  };
+
   if (loading) {
     return (
-      <div className="flex h-screen items-center justify-center">
+      <div className="flex items-center justify-center h-full">
         <div className="text-center">
           <div className="w-16 h-16 border-4 border-cyan-500 border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
           <p className="text-slate-400">Loading your dashboard...</p>
@@ -85,81 +89,105 @@ export function UserDashboard() {
   }
 
   return (
-    <div className="flex flex-col gap-8 p-6">
+    <div className="flex flex-col gap-8 p-6 bg-slate-900 min-h-screen">
       <div>
-        <h1 className="text-3xl font-bold text-white mb-2">My Dashboard</h1>
-        <p className="text-slate-400">Welcome back, {user?.firstName}! Track your orders and shipments</p>
+        <h1 className="text-3xl font-bold text-white mb-2">Dashboard</h1>
+        <p className="text-slate-400">Welcome back, {user?.firstName || user?.email?.split('@')[0]}!</p>
       </div>
 
+      {/* Stats Cards */}
       <div className="grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-4">
-        {statItems.map((stat) => (
-          <div key={stat.label} className="rounded-2xl border border-slate-700 bg-slate-800/50 p-6 backdrop-blur">
-            <div className="flex items-center justify-between">
+        <div className="rounded-2xl border border-slate-700 bg-slate-800/50 p-6">
+          <div className="flex items-center justify-between">
+            <div>
+              <p className="text-sm text-slate-400">Orders Placed</p>
+              <p className="text-3xl font-bold text-white mt-2">{stats.totalOrders}</p>
+            </div>
+            <div className="bg-gradient-to-br from-cyan-400 to-blue-500 rounded-xl p-3 text-2xl">📋</div>
+          </div>
+        </div>
+        <div className="rounded-2xl border border-slate-700 bg-slate-800/50 p-6">
+          <div className="flex items-center justify-between">
+            <div>
+              <p className="text-sm text-slate-400">Delivered</p>
+              <p className="text-3xl font-bold text-white mt-2">{stats.delivered}</p>
+            </div>
+            <div className="bg-gradient-to-br from-green-400 to-emerald-500 rounded-xl p-3 text-2xl">✅</div>
+          </div>
+        </div>
+        <div className="rounded-2xl border border-slate-700 bg-slate-800/50 p-6">
+          <div className="flex items-center justify-between">
+            <div>
+              <p className="text-sm text-slate-400">In Transit</p>
+              <p className="text-3xl font-bold text-white mt-2">{stats.inTransit}</p>
+            </div>
+            <div className="bg-gradient-to-br from-yellow-400 to-orange-500 rounded-xl p-3 text-2xl">🚚</div>
+          </div>
+        </div>
+        <div className="rounded-2xl border border-slate-700 bg-slate-800/50 p-6">
+          <div className="flex items-center justify-between">
+            <div>
+              <p className="text-sm text-slate-400">Total Spent</p>
+              <p className="text-3xl font-bold text-white mt-2">${stats.totalSpent.toLocaleString()}</p>
+            </div>
+            <div className="bg-gradient-to-br from-purple-400 to-pink-500 rounded-xl p-3 text-2xl">💰</div>
+          </div>
+        </div>
+      </div>
+
+      {/* Recent Orders Section */}
+      <div className="rounded-2xl border border-slate-700 bg-slate-800/50 p-6 backdrop-blur">
+        <div className="flex justify-between items-center mb-4">
+          <h2 className="text-xl font-bold text-white">Recent Orders</h2>
+          <button 
+            onClick={() => window.location.href = '/orders'}
+            className="text-cyan-400 text-sm hover:text-cyan-300 transition"
+          >
+            View All →
+          </button>
+        </div>
+        <div className="space-y-3">
+          {orders.slice(0, 5).map((order) => (
+            <div key={order.id} className="flex justify-between items-center p-3 rounded-lg bg-slate-700/30 hover:bg-slate-700/50 transition">
               <div>
-                <p className="text-sm text-slate-400">{stat.label}</p>
-                <p className="text-3xl font-bold text-white mt-2">{stat.value}</p>
+                <p className="text-white font-medium">{order.orderNumber}</p>
+                <p className="text-xs text-slate-400">
+                  {new Date(order.orderDate).toLocaleDateString()} • {order.items?.length || 0} items
+                </p>
               </div>
-              <div className={`bg-gradient-to-br ${stat.color} rounded-xl p-3 text-2xl`}>
-                {stat.icon}
+              <div className="text-right flex items-center gap-3">
+                <p className="text-white font-semibold">${order.totalAmount.toFixed(2)}</p>
+                <span className={`text-xs px-2 py-1 rounded-full ${getStatusColor(order.status)}`}>
+                  {order.status}
+                </span>
+                <button
+                  onClick={() => viewInvoice(order)}
+                  className="px-3 py-1 bg-cyan-500/10 text-cyan-400 rounded-md hover:bg-cyan-500/20 transition border border-cyan-500/30 text-sm"
+                >
+                  Invoice
+                </button>
               </div>
             </div>
-          </div>
-        ))}
-      </div>
-
-      <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
-        <div className="rounded-2xl border border-slate-700 bg-slate-800/50 p-6 backdrop-blur">
-          <div className="flex justify-between items-center mb-4">
-            <h2 className="text-xl font-bold text-white">Recent Orders</h2>
-            <button className="text-cyan-400 text-sm hover:text-cyan-300">View All →</button>
-          </div>
-          <div className="space-y-3">
-            {orders.slice(0, 5).map((order) => (
-              <div key={order.id} className="flex justify-between items-center p-3 rounded-lg bg-slate-700/30">
-                <div>
-                  <p className="text-white font-medium">{order.orderNumber}</p>
-                  <p className="text-xs text-slate-400">{new Date(order.orderDate).toLocaleDateString()} • {order.items?.length || 0} items</p>
-                </div>
-                <div className="text-right">
-                  <p className="text-white font-semibold">${order.totalAmount.toLocaleString()}</p>
-                  <span className={`text-xs ${getStatusColor(order.status)}`}>{order.status}</span>
-                </div>
-              </div>
-            ))}
-            {orders.length === 0 && (
-              <p className="text-slate-400 text-center py-4">No orders yet. Start placing orders to see them here.</p>
-            )}
-          </div>
-        </div>
-
-        <div className="space-y-6">
-          <div className="rounded-2xl border border-slate-700 bg-slate-800/50 p-6 backdrop-blur">
-            <h2 className="text-xl font-bold text-white mb-4">Active Shipments</h2>
-            <div className="space-y-3">
-              {shipments.filter(s => s.status === 'In Transit' || s.status === 'Shipped').slice(0, 3).map((shipment) => (
-                <div key={shipment.id} className="p-3 rounded-lg bg-slate-700/30">
-                  <div className="flex justify-between items-center mb-2">
-                    <p className="text-white font-medium text-sm">{shipment.trackingNumber}</p>
-                    <span className={`text-xs ${getStatusColor(shipment.status)}`}>{shipment.status}</span>
-                  </div>
-                  <p className="text-xs text-slate-400">Est. Delivery: {new Date(shipment.estimatedDeliveryDate).toLocaleDateString()}</p>
-                </div>
-              ))}
-              {shipments.filter(s => s.status === 'In Transit' || s.status === 'Shipped').length === 0 && (
-                <p className="text-slate-400 text-center py-4 text-sm">No active shipments</p>
-              )}
+          ))}
+          {orders.length === 0 && (
+            <div className="text-center py-8">
+              <div className="text-5xl mb-3">📦</div>
+              <p className="text-slate-400">No orders yet</p>
+              <p className="text-slate-500 text-sm mt-1">Click "Create Order" to get started</p>
             </div>
-          </div>
-
-          <div className="rounded-2xl border border-slate-700 bg-slate-800/50 p-6 backdrop-blur">
-            <h2 className="text-xl font-bold text-white mb-4">Quick Actions</h2>
-            <div className="grid grid-cols-2 gap-3">
-              <button className="rounded-lg bg-cyan-500/20 p-3 text-cyan-400 hover:bg-cyan-500/30 text-sm transition">Create Order</button>
-              <button className="rounded-lg bg-purple-500/20 p-3 text-purple-400 hover:bg-purple-500/30 text-sm transition">Track Order</button>
-            </div>
-          </div>
+          )}
         </div>
       </div>
+
+      {showInvoice && selectedOrder && (
+        <InvoiceModal
+          order={selectedOrder}
+          onClose={() => {
+            setShowInvoice(false);
+            setSelectedOrder(null);
+          }}
+        />
+      )}
     </div>
   );
 }

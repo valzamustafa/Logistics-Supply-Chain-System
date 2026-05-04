@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { shipmentService, Shipment } from '../services/shipmentService';
-import { MapPin, Calendar, AlertCircle } from 'lucide-react';
+import { Truck, MapPin, Calendar, User, AlertCircle } from 'lucide-react';
 
 export function TrackingPage() {
   const [shipments, setShipments] = useState<Shipment[]>([]);
@@ -126,8 +126,10 @@ export function TrackingPage() {
           </div>
         </div>
 
+       
         {selectedShipment && (
           <div className="lg:col-span-2 space-y-6">
+            {/* Main Info Card */}
             <div className="rounded-2xl border border-slate-700 bg-slate-800/50 p-6 backdrop-blur">
               <div className="flex justify-between items-start mb-6">
                 <div>
@@ -188,6 +190,7 @@ export function TrackingPage() {
               </div>
             </div>
 
+     
             <div className="rounded-2xl border border-slate-700 bg-slate-800/50 p-6 backdrop-blur">
               <div className="space-y-3">
                 <div className="flex items-start gap-3">

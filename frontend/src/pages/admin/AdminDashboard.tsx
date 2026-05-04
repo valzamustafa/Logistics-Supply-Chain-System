@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+﻿import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../../hooks/useAuth';
 import { shipmentService, Shipment, CreateShipmentDto } from '../../services/shipmentService';
@@ -8,6 +8,7 @@ import { productService, Product } from '../../services/productService';
 import { userService, User } from '../../services/userService';
 import { inventoryService } from '../../services/inventoryService';
 import { warehouseService } from '../../services/warehouseService';
+import { reportService } from '../../services/reportService';
 import * as signalR from '@microsoft/signalr';
 
 export function AdminDashboard() {
@@ -48,6 +49,9 @@ export function AdminDashboard() {
     items: [] as { productId: number; quantity: number }[]
   });
   const [hubConnection, setHubConnection] = useState<signalR.HubConnection | null>(null);
+
+  const candidateDriverUsers = users.filter((user) => !drivers.some((driver) => driver.userId === user.id));
+  const selectedDriverUser = users.find((user) => user.id === newDriver.userId) ?? null;
 
   useEffect(() => {
     loadAllData();
@@ -254,6 +258,7 @@ export function AdminDashboard() {
 
   return (
     <div className="p-6 space-y-6 bg-slate-950 min-h-screen">
+      {/* Header */}
       <div className="flex flex-col gap-4 xl:flex-row xl:items-center xl:justify-between">
         <div>
           <h1 className="text-3xl font-bold text-white">Admin Dashboard</h1>
@@ -281,6 +286,7 @@ export function AdminDashboard() {
         </div>
       </div>
 
+      {/* Stats Cards */}
       <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-7">
         <StatCard label="Shipments" value={stats.totalShipments} icon="📦" />
         <StatCard label="Active" value={stats.activeShipments} icon="🚚" />
@@ -291,6 +297,7 @@ export function AdminDashboard() {
         <StatCard label="Users" value={stats.totalUsers} icon="👥" />
       </div>
 
+      {/* Main Content */}
       <div className="grid gap-6 lg:grid-cols-3">
         <div className="lg:col-span-1 space-y-4">
           <div className="rounded-3xl border border-slate-700 bg-slate-900/80 p-5">
@@ -331,6 +338,7 @@ export function AdminDashboard() {
           </div>
         </div>
 
+        {/* Shipment Details */}
         <div className="lg:col-span-2 space-y-6">
           {selectedShipment ? (
             <>
@@ -383,6 +391,7 @@ export function AdminDashboard() {
                 </div>
               </div>
 
+              {/* Live Tracking Map  */}
               <div className="rounded-3xl border border-slate-700 bg-slate-900/80 p-6">
                 <div className="flex items-center justify-between mb-4">
                   <h3 className="text-lg font-semibold text-white">Live Tracking</h3>
@@ -431,7 +440,7 @@ export function AdminDashboard() {
         </div>
       </div>
 
-      {/* Create Shipment Modal */}
+      {/* Shipment Modal */}
       {showCreateShipmentModal && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50" onClick={() => setShowCreateShipmentModal(false)}>
           <div className="w-full max-w-2xl max-h-[90vh] overflow-y-auto rounded-3xl border border-slate-700 bg-slate-900 p-6" onClick={(e) => e.stopPropagation()}>
@@ -578,13 +587,26 @@ export function AdminDashboard() {
           <div className="w-full max-w-md rounded-3xl border border-slate-700 bg-slate-900 p-6" onClick={(e) => e.stopPropagation()}>
             <h2 className="text-xl font-semibold text-white mb-4">Add New Driver</h2>
             <div className="space-y-4">
-              <input
-                type="number"
-                placeholder="User ID *"
-                value={newDriver.userId || ''}
-                onChange={(e) => setNewDriver({ ...newDriver, userId: parseInt(e.target.value, 10) || 0 })}
-                className="w-full rounded-2xl border border-slate-700 bg-slate-800 px-4 py-3 text-white"
-              />
+              <div>
+                <label className="block text-sm text-slate-300 mb-2">User *</label>
+                <select
+                  value={newDriver.userId || ''}
+                  onChange={(e) => setNewDriver({ ...newDriver, userId: Number(e.target.value) || 0 })}
+                  className="w-full rounded-2xl border border-slate-700 bg-slate-800 px-4 py-3 text-white"
+                >
+                  <option value="">Select existing user</option>
+                  {candidateDriverUsers.map((user) => (
+                    <option key={user.id} value={user.id}>
+                      {user.firstName} {user.lastName} ({user.email})
+                    </option>
+                  ))}
+                </select>
+                {selectedDriverUser && !selectedDriverUser.roles.includes('Driver') && (
+                  <p className="mt-2 text-xs text-yellow-300">
+                    Selected user does not have the Driver role assigned. Assign the role in Users if needed.
+                  </p>
+                )}
+              </div>
               <input
                 type="text"
                 placeholder="License Number *"
@@ -672,6 +694,7 @@ export function AdminDashboard() {
     </div>
   );
 }
+
 
 function StatCard({ label, value, icon }: { label: string; value: number; icon: string }) {
   return (
