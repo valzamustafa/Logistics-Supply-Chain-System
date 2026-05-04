@@ -53,7 +53,7 @@ namespace ShipmentService.Controllers
             if (driver == null)
                 return NotFound(new { message = "Driver profile not found" });
 
-            // Get user details from Auth Service (you can enhance this)
+        
             var profile = new
             {
                 driver.Id,
@@ -61,7 +61,7 @@ namespace ShipmentService.Controllers
                 driver.LicenseNumber,
                 driver.PhoneNumber,
                 driver.IsAvailable,
-                FirstName = "Driver", // This would come from Auth Service
+                FirstName = "Driver", 
                 LastName = "User",
                 Email = $"driver{driver.UserId}@logjistika.com"
             };
@@ -96,10 +96,10 @@ namespace ShipmentService.Controllers
             var today = DateTime.UtcNow.Date;
             var todaysDeliveries = shipmentsList.Count(s => s.EstimatedDeliveryDate.Date == today);
             
-            // Calculate total distance (using items count as proxy or actual distance if available)
+      
             var totalDistance = shipmentsList.Sum(s => s.Distance ?? 0);
             
-            // Calculate on-time rate
+      
             var onTimeRate = shipmentsList.Count > 0 ? (int)Math.Round((double)completed / shipmentsList.Count * 100) : 0;
 
             return Ok(new DriverStatsDto
@@ -179,4 +179,3 @@ namespace ShipmentService.Controllers
         public string Description { get; set; } = string.Empty;
     }
 }
-

@@ -11,6 +11,12 @@ namespace OrderService.DTOs
         public decimal? TaxAmount { get; set; }
         public decimal? ShippingCost { get; set; }
         public string Status { get; set; } = string.Empty;
+        
+   
+        public int? WarehouseId { get; set; }
+        public string? ProcessingStatus { get; set; }
+        public int? ShipmentId { get; set; }
+        
         public string? ShippingAddress { get; set; }
         public string? BillingAddress { get; set; }
         public DateTime? ShippedAt { get; set; }

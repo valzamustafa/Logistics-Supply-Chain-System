@@ -19,6 +19,7 @@ namespace AuthService
                     new Role { Name = "Manager", Description = "Manager with operational access" },
                     new Role { Name = "Driver", Description = "Driver for shipment delivery" },
                     new Role { Name = "WarehouseStaff", Description = "Warehouse staff for inventory management" },
+                    new Role { Name = "Supplier", Description = "Supplier role for vendor dashboard and order management" },
                     new Role { Name = "User", Description = "Regular user" }
                 };
                 
@@ -26,7 +27,7 @@ namespace AuthService
                 await context.SaveChangesAsync();
             }
 
-          
+            
             if (!await context.Users.AnyAsync())
             {
                 var roles = await context.Roles.ToListAsync();
@@ -48,7 +49,7 @@ namespace AuthService
                         IsActive = true,
                         CreatedAt = DateTime.UtcNow
                     },
-                  
+               
                     new User
                     {
                         FirstName = "John",
@@ -58,7 +59,7 @@ namespace AuthService
                         IsActive = true,
                         CreatedAt = DateTime.UtcNow
                     },
-                 
+                   
                     new User
                     {
                         FirstName = "Mike",
@@ -78,7 +79,7 @@ namespace AuthService
                         IsActive = true,
                         CreatedAt = DateTime.UtcNow
                     },
-                 
+                    
                     new User
                     {
                         FirstName = "Robert",
@@ -88,7 +89,7 @@ namespace AuthService
                         IsActive = true,
                         CreatedAt = DateTime.UtcNow
                     },
-                    // Regular User
+                 
                     new User
                     {
                         FirstName = "Jane",
@@ -103,7 +104,7 @@ namespace AuthService
                 context.Users.AddRange(users);
                 await context.SaveChangesAsync();
 
-            
+               
                 var createdUsers = context.Users.ToList();
                 var userRoles = new List<UserRole>();
 

@@ -12,6 +12,7 @@ namespace ReportService.Services.Interfaces
         Task<ReportSummaryDto> GetReportSummaryAsync();
         Task<bool> DeleteReportAsync(int id);
 
+   
         Task<IEnumerable<ReportDto>> GetAllAsync();
         Task<ReportDto?> GetByIdAsync(int id);
         Task<IEnumerable<ReportDto>> GetByTypeAsync(string type);

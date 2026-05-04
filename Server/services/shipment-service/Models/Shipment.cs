@@ -20,8 +20,11 @@ public class Shipment
     [Required]
     public string Status { get; set; } = "Pending";
     
-    public int Priority { get; set; } = 1; // 1=Low, 2=Medium, 3=High
-    
+    public int Priority { get; set; } = 1; 
+    public string? CurrentLocation { get; set; }
+public DateTime? LastLocationUpdate { get; set; }
+public double? CustomerRating { get; set; }
+public string? CustomerFeedback { get; set; }
     [Required]
     public DateTime EstimatedDeliveryDate { get; set; }
     

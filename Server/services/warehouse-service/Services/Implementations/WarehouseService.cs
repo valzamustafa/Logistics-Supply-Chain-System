@@ -1,4 +1,6 @@
 using System.Text.Json;
+using Microsoft.Extensions.Configuration;
+using Microsoft.Extensions.Logging;
 using WarehouseService.DTOs;
 using WarehouseService.Models;
 using WarehouseService.Repositories.Interfaces;
@@ -10,15 +12,33 @@ namespace WarehouseService.Business
     {
         private readonly IWarehouseRepository _repository;
         private readonly IHttpClientFactory _httpClientFactory;
-        private readonly string _productServiceUrl;
+        private readonly string[] _productServiceBaseUrls;
+        private readonly ILogger<WarehouseService> _logger;
 
-        public WarehouseService(IWarehouseRepository repository, IHttpClientFactory httpClientFactory, IConfiguration configuration)
+        public WarehouseService(
+            IWarehouseRepository repository,
+            IHttpClientFactory httpClientFactory,
+            IConfiguration configuration,
+            ILogger<WarehouseService> logger)
         {
             _repository = repository;
             _httpClientFactory = httpClientFactory;
-            _productServiceUrl = configuration["Services:ProductService"] ?? "http://localhost:5001";
+            _logger = logger;
+
+            var configuredProductService = configuration["Services:ProductService"]?.TrimEnd('/') ?? "http://localhost:5000";
+            _productServiceBaseUrls = new[]
+            {
+                $"{configuredProductService}/api/products",
+                $"{configuredProductService}/api/product",
+                "http://product-service/api/products",
+                "http://product-service:80/api/products",
+                "http://localhost:5002/api/products"
+            };
+
+            _logger.LogInformation($"Product Service base URLs configured: {string.Join(", ", _productServiceBaseUrls)}");
         }
 
+     
         public async Task<IEnumerable<WarehouseDto>> GetAllWarehousesAsync()
         {
             var warehouses = await _repository.GetAllWarehousesAsync();
@@ -40,7 +60,9 @@ namespace WarehouseService.Business
                 Phone = dto.Phone,
                 IsActive = true,
                 CreatedBy = 1,
-                UpdatedBy = 1
+                UpdatedBy = 1,
+                CreatedAt = DateTime.UtcNow,
+                UpdatedAt = DateTime.UtcNow
             };
             var created = await _repository.CreateWarehouseAsync(warehouse);
             return MapToDto(created);
@@ -65,6 +87,10 @@ namespace WarehouseService.Business
 
         public async Task<bool> DeleteWarehouseAsync(int id)
         {
+            var stock = await _repository.GetStockByWarehouseAsync(id);
+            if (stock.Any(s => s.Quantity > 0))
+                throw new InvalidOperationException("Cannot delete warehouse with existing stock. Transfer or remove stock first.");
+
             var warehouse = await _repository.GetWarehouseByIdAsync(id);
             if (warehouse == null)
                 return false;
@@ -73,6 +99,36 @@ namespace WarehouseService.Business
             return true;
         }
 
+        public async Task<bool> ToggleWarehouseStatusAsync(int id, bool isActive)
+        {
+            var warehouse = await _repository.GetWarehouseByIdAsync(id);
+            if (warehouse == null)
+                return false;
+
+            warehouse.IsActive = isActive;
+            warehouse.UpdatedAt = DateTime.UtcNow;
+            await _repository.UpdateWarehouseAsync(warehouse);
+            return true;
+        }
+
+        public async Task<WarehouseStatsDto> GetWarehouseStatsAsync(int warehouseId)
+        {
+            var stock = await _repository.GetStockByWarehouseAsync(warehouseId);
+            var zones = await _repository.GetZonesByWarehouseAsync(warehouseId);
+            var staff = await _repository.GetStaffByWarehouseAsync(warehouseId);
+
+            return new WarehouseStatsDto
+            {
+                TotalProducts = stock.Count(),
+                TotalQuantity = stock.Sum(s => s.Quantity),
+                LowStockCount = stock.Count(s => s.Quantity <= s.MinimumStockLevel && s.Quantity > 0),
+                OutOfStockCount = stock.Count(s => s.Quantity <= 0),
+                ZonesCount = zones.Count(),
+                StaffCount = staff.Count()
+            };
+        }
+
+     
         public async Task<IEnumerable<WarehouseZoneDto>> GetZonesByWarehouseAsync(int warehouseId)
         {
             var zones = await _repository.GetZonesByWarehouseAsync(warehouseId);
@@ -88,7 +144,9 @@ namespace WarehouseService.Business
                 Description = dto.Description,
                 Capacity = dto.Capacity,
                 CreatedBy = 1,
-                UpdatedBy = 1
+                UpdatedBy = 1,
+                CreatedAt = DateTime.UtcNow,
+                UpdatedAt = DateTime.UtcNow
             };
             var created = await _repository.CreateZoneAsync(zone);
             return MapToZoneDto(created);
@@ -104,6 +162,7 @@ namespace WarehouseService.Business
             return true;
         }
 
+   
         public async Task<IEnumerable<WarehouseStaffDto>> GetStaffByWarehouseAsync(int warehouseId)
         {
             var staff = await _repository.GetStaffByWarehouseAsync(warehouseId);
@@ -119,7 +178,9 @@ namespace WarehouseService.Business
                 Position = dto.Position,
                 HireDate = dto.HireDate ?? DateTime.UtcNow,
                 CreatedBy = 1,
-                UpdatedBy = 1
+                UpdatedBy = 1,
+                CreatedAt = DateTime.UtcNow,
+                UpdatedAt = DateTime.UtcNow
             };
             var created = await _repository.AssignStaffAsync(staff);
             return MapToStaffDto(created);
@@ -134,6 +195,7 @@ namespace WarehouseService.Business
             await _repository.RemoveStaffAsync(id);
             return true;
         }
+
 
         public async Task<IEnumerable<WarehouseStockDto>> GetAllStockAsync()
         {
@@ -166,9 +228,7 @@ namespace WarehouseService.Business
 
         public async Task<WarehouseStockDto> AssignProductToWarehouseAsync(int warehouseId, AssignProductToWarehouseDto dto)
         {
-            var product = await GetProductFromProductService(dto.ProductId);
-            if (product == null)
-                throw new InvalidOperationException($"Product with ID {dto.ProductId} not found");
+            _logger.LogInformation($"Assigning product {dto.ProductId} to warehouse {warehouseId}");
             
             var warehouse = await _repository.GetWarehouseByIdAsync(warehouseId);
             if (warehouse == null)
@@ -177,6 +237,8 @@ namespace WarehouseService.Business
             var existing = await _repository.GetStockByWarehouseAndProductAsync(warehouseId, dto.ProductId);
             if (existing != null)
                 throw new InvalidOperationException($"Product already assigned to this warehouse");
+            
+            var productInfo = await GetProductFromProductService(dto.ProductId);
             
             var stock = new WarehouseStock
             {
@@ -187,7 +249,9 @@ namespace WarehouseService.Business
                 MaximumStockLevel = dto.MaximumStockLevel,
                 ShelfLocation = dto.ShelfLocation,
                 CreatedBy = 1,
-                UpdatedBy = 1
+                UpdatedBy = 1,
+                CreatedAt = DateTime.UtcNow,
+                UpdatedAt = DateTime.UtcNow
             };
             
             var created = await _repository.CreateStockAsync(stock);
@@ -204,10 +268,25 @@ namespace WarehouseService.Business
                     NewQuantity = dto.InitialQuantity,
                     Reference = "Initial stock setup",
                     CreatedBy = 1,
-                    UpdatedBy = 1
+                    UpdatedBy = 1,
+                    CreatedAt = DateTime.UtcNow,
+                    UpdatedAt = DateTime.UtcNow
                 };
                 await _repository.CreateStockMovementAsync(movement);
             }
+            
+            if (productInfo != null)
+            {
+                created.ProductName = productInfo.Name;
+                created.ProductSku = productInfo.Sku;
+            }
+            else
+            {
+                created.ProductName = $"Product {dto.ProductId}";
+                created.ProductSku = $"SKU-{dto.ProductId}";
+            }
+            
+            _logger.LogInformation($"Product {dto.ProductId} assigned successfully to warehouse {warehouseId}");
             
             var enriched = await EnrichStockWithProductInfo(new[] { created });
             return MapToStockDto(enriched.First());
@@ -255,7 +334,9 @@ namespace WarehouseService.Business
                 Reference = dto.Reference,
                 Notes = dto.Notes,
                 CreatedBy = 1,
-                UpdatedBy = 1
+                UpdatedBy = 1,
+                CreatedAt = DateTime.UtcNow,
+                UpdatedAt = DateTime.UtcNow
             };
             await _repository.CreateStockMovementAsync(movement);
             
@@ -306,7 +387,9 @@ namespace WarehouseService.Business
                 DestinationWarehouseId = dto.DestinationWarehouseId,
                 Notes = dto.Notes,
                 CreatedBy = 1,
-                UpdatedBy = 1
+                UpdatedBy = 1,
+                CreatedAt = DateTime.UtcNow,
+                UpdatedAt = DateTime.UtcNow
             };
             await _repository.CreateStockMovementAsync(sourceMovement);
             
@@ -321,7 +404,9 @@ namespace WarehouseService.Business
                     MaximumStockLevel = sourceStock.MaximumStockLevel,
                     ShelfLocation = sourceStock.ShelfLocation,
                     CreatedBy = 1,
-                    UpdatedBy = 1
+                    UpdatedBy = 1,
+                    CreatedAt = DateTime.UtcNow,
+                    UpdatedAt = DateTime.UtcNow
                 };
                 destStock = await _repository.CreateStockAsync(destStock);
             }
@@ -345,7 +430,9 @@ namespace WarehouseService.Business
                 SourceWarehouseId = dto.SourceWarehouseId,
                 Notes = dto.Notes,
                 CreatedBy = 1,
-                UpdatedBy = 1
+                UpdatedBy = 1,
+                CreatedAt = DateTime.UtcNow,
+                UpdatedAt = DateTime.UtcNow
             };
             await _repository.CreateStockMovementAsync(destMovement);
             
@@ -388,52 +475,81 @@ namespace WarehouseService.Business
             return stock != null && stock.Quantity >= requestedQuantity;
         }
 
+        // ==================== HELPER METHODS ====================
         private async Task<ProductInfo?> GetProductFromProductService(int productId)
         {
-            try
+            foreach (var baseUrl in _productServiceBaseUrls.Distinct())
             {
-                var client = _httpClientFactory.CreateClient();
-                var response = await client.GetAsync($"{_productServiceUrl}/api/products/{productId}");
-                if (response.IsSuccessStatusCode)
+                try
                 {
-                    var content = await response.Content.ReadAsStringAsync();
-                    return JsonSerializer.Deserialize<ProductInfo>(content, new JsonSerializerOptions { PropertyNameCaseInsensitive = true });
-                }
-                return null;
-            }
-            catch (Exception ex)
-            {
-                Console.WriteLine($"Error fetching product {productId}: {ex.Message}");
-                return null;
-            }
-        }
+                    var client = _httpClientFactory.CreateClient();
+                    client.Timeout = TimeSpan.FromSeconds(5);
+                    var url = $"{baseUrl.TrimEnd('/')}/{productId}";
+                    
+                    _logger.LogInformation($"Fetching product from: {url}");
+                    var response = await client.GetAsync(url);
+                    
+                    if (!response.IsSuccessStatusCode)
+                    {
+                        _logger.LogWarning($"Product fetch returned {(int)response.StatusCode} from {url}");
+                        continue;
+                    }
 
+                    var content = await response.Content.ReadAsStringAsync();
+                    _logger.LogInformation($"Product response: {content}");
+                    var product = JsonSerializer.Deserialize<ProductInfo>(content, new JsonSerializerOptions 
+                    { 
+                        PropertyNameCaseInsensitive = true 
+                    });
+                    
+                    if (product != null && product.Id > 0)
+                    {
+                        _logger.LogInformation($"Successfully fetched product: {product.Name}");
+                        return product;
+                    }
+                }
+                catch (Exception ex)
+                {
+                    _logger.LogWarning($"Error fetching from {baseUrl}: {ex.Message}");
+                }
+            }
+
+            _logger.LogWarning($"Product {productId} not found, creating with default values");
+            return new ProductInfo
+            {
+                Id = productId,
+                Name = $"Product {productId}",
+                Sku = $"SKU-{productId}",
+                Price = 0,
+                IsActive = true
+            };
+        }
+        
         private async Task<List<WarehouseStock>> EnrichStockWithProductInfo(IEnumerable<WarehouseStock> stockItems)
         {
             var result = new List<WarehouseStock>();
-            var client = _httpClientFactory.CreateClient();
             
             foreach (var item in stockItems)
             {
                 try
                 {
-                    var response = await client.GetAsync($"{_productServiceUrl}/api/products/{item.ProductId}");
-                    if (response.IsSuccessStatusCode)
+                    var productInfo = await GetProductFromProductService(item.ProductId);
+                    if (productInfo != null)
                     {
-                        var content = await response.Content.ReadAsStringAsync();
-                        var product = JsonSerializer.Deserialize<ProductInfo>(content, new JsonSerializerOptions { PropertyNameCaseInsensitive = true });
-                        if (product != null)
-                        {
-                            item.ProductName = product.Name;
-                            item.ProductSku = product.Sku;
-                        }
+                        item.ProductName = productInfo.Name;
+                        item.ProductSku = productInfo.Sku;
+                    }
+                    else
+                    {
+                        item.ProductName = item.ProductName ?? $"Product {item.ProductId}";
+                        item.ProductSku = item.ProductSku ?? $"SKU-{item.ProductId}";
                     }
                 }
                 catch (Exception ex)
                 {
-                    Console.WriteLine($"Error enriching product {item.ProductId}: {ex.Message}");
-                    item.ProductName = $"Product {item.ProductId}";
-                    item.ProductSku = "N/A";
+                    _logger.LogError(ex, $"Error enriching product {item.ProductId}");
+                    item.ProductName = item.ProductName ?? $"Product {item.ProductId}";
+                    item.ProductSku = item.ProductSku ?? $"SKU-{item.ProductId}";
                 }
                 result.Add(item);
             }
@@ -513,7 +629,7 @@ namespace WarehouseService.Business
                 MinimumStockLevel = stock.MinimumStockLevel,
                 MaximumStockLevel = stock.MaximumStockLevel,
                 ShelfLocation = stock.ShelfLocation,
-                IsLowStock = stock.Quantity <= stock.MinimumStockLevel,
+                IsLowStock = stock.Quantity <= stock.MinimumStockLevel && stock.Quantity > 0,
                 IsOutOfStock = stock.Quantity <= 0,
                 IsOverstock = stock.Quantity >= stock.MaximumStockLevel
             };
@@ -541,16 +657,5 @@ namespace WarehouseService.Business
                 CreatedBy = movement.CreatedBy
             };
         }
-    }
-
-    public class ProductInfo
-    {
-        public int Id { get; set; }
-        public string Name { get; set; } = string.Empty;
-        public string Sku { get; set; } = string.Empty;
-        public decimal Price { get; set; }
-        public string? Description { get; set; }
-        public int CategoryId { get; set; }
-        public bool IsActive { get; set; }
     }
 }

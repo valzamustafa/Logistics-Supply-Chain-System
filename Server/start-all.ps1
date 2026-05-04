@@ -56,7 +56,7 @@ $services = @(
     @{Name="Notification Service"; Path="services\notification-service"; Port=5009; Command="dotnet run --urls=http://localhost:5009"},
     @{Name="Tracking Service"; Path="services\tracking-services"; Port=5010; Command="dotnet run --urls=http://localhost:5010"},
     @{Name="API Gateway"; Path="api-gateway"; Port=5000; Command="dotnet run --urls=http://localhost:5000"},
-  
+    @{Name="Frontend"; Path="..\frontend"; Port=5173; Command="npm.cmd run dev"}
 )
 
 foreach ($service in $services) {
@@ -78,5 +78,5 @@ foreach ($service in $services) {
 Write-Host "========================================" -ForegroundColor Cyan
 Write-Host "All services launched (or attempted)." -ForegroundColor Green
 Write-Host "API Gateway: http://localhost:5000" -ForegroundColor Yellow
+Write-Host "Frontend: http://localhost:5173" -ForegroundColor Yellow
 Write-Host "========================================" -ForegroundColor Cyan
-

@@ -44,5 +44,74 @@ namespace InventoryService.Controllers
             var result = await _inventoryService.UpdateStockAsync(request);
             return Ok(result);
         }
+
+        [HttpGet("low-stock-alerts")]
+        public async Task<IActionResult> GetLowStockAlerts()
+        {
+            var alerts = await _inventoryService.GetLowStockAlertsAsync();
+            return Ok(alerts);
+        }
+
+        [HttpGet("availability")]
+        public async Task<IActionResult> CheckAvailability([FromQuery] int productId, [FromQuery] int warehouseId, [FromQuery] int quantity)
+        {
+            var isAvailable = await _inventoryService.CheckStockAvailabilityAsync(productId, warehouseId, quantity);
+            return Ok(new { isAvailable });
+        }
+
+       
+        [HttpPost("reserve")]
+        public async Task<IActionResult> ReserveStock([FromBody] StockOperationRequest request)
+        {
+            var result = await _inventoryService.ReserveStockAsync(
+                request.ProductId, request.WarehouseId, request.Quantity, 
+                request.ReferenceType, request.ReferenceId);
+            return Ok(new { success = result });
+        }
+
+       
+        [HttpPost("release")]
+        public async Task<IActionResult> ReleaseStock([FromBody] StockOperationRequest request)
+        {
+            var result = await _inventoryService.ReleaseStockAsync(
+                request.ProductId, request.WarehouseId, request.Quantity,
+                request.ReferenceType, request.ReferenceId);
+            return Ok(new { success = result });
+        }
+
+      
+        [HttpPost("deduct")]
+        public async Task<IActionResult> DeductStock([FromBody] StockDeductRequest request)
+        {
+            var result = await _inventoryService.DeductStockAsync(
+                request.ProductId, request.WarehouseId, request.Quantity,
+                request.ReferenceType, request.ReferenceId, request.Notes);
+            return Ok(new { success = result });
+        }
+
+
+        [HttpPost("restore")]
+        public async Task<IActionResult> RestoreStock([FromBody] StockDeductRequest request)
+        {
+            var result = await _inventoryService.RestoreStockAsync(
+                request.ProductId, request.WarehouseId, request.Quantity,
+                request.ReferenceType, request.ReferenceId, request.Notes);
+            return Ok(new { success = result });
+        }
+    }
+
+   
+    public class StockOperationRequest
+    {
+        public int ProductId { get; set; }
+        public int WarehouseId { get; set; }
+        public int Quantity { get; set; }
+        public string ReferenceType { get; set; } = string.Empty;
+        public int ReferenceId { get; set; }
+    }
+
+    public class StockDeductRequest : StockOperationRequest
+    {
+        public string? Notes { get; set; }
     }
 }

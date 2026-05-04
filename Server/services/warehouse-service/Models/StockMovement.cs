@@ -22,11 +22,11 @@ namespace WarehouseService.Models
         public int NewQuantity { get; set; }
         
         [MaxLength(500)]
-        public string? Reference { get; set; } 
+        public string? Reference { get; set; }
         
-        public int? SourceWarehouseId { get; set; } 
+        public int? SourceWarehouseId { get; set; }
         
-        public int? DestinationWarehouseId { get; set; }
+        public int? DestinationWarehouseId { get; set; } 
         
         [MaxLength(1000)]
         public string? Notes { get; set; }
@@ -34,7 +34,7 @@ namespace WarehouseService.Models
         [ForeignKey(nameof(WarehouseStockId))]
         public virtual WarehouseStock WarehouseStock { get; set; } = null!;
         
-     
+
         [NotMapped]
         public string? SourceWarehouseName { get; set; }
         

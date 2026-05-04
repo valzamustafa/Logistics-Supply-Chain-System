@@ -22,10 +22,36 @@
       "UpstreamHttpMethod": [ "GET", "POST", "PUT", "DELETE", "OPTIONS" ]
     },
     {
+      "DownstreamPathTemplate": "/api/orders/{id}/invoice",
+      "DownstreamScheme": "http",
+      "DownstreamHostAndPorts": [{ "Host": "order-service", "Port": 80 }],
+      "UpstreamPathTemplate": "/api/orders/{id}/invoice",
+      "UpstreamHttpMethod": [ "GET" ]
+    },
+    {
       "DownstreamPathTemplate": "/api/inventory/{everything}",
       "DownstreamScheme": "http",
       "DownstreamHostAndPorts": [{ "Host": "inventory-service", "Port": 80 }],
       "UpstreamPathTemplate": "/api/inventory/{everything}",
+      "UpstreamHttpMethod": [ "GET", "POST", "PUT", "DELETE", "OPTIONS" ]
+    },
+    {
+  "DownstreamPathTemplate": "/api/purchaseorders/{everything}",
+  "DownstreamScheme": "http",
+  "DownstreamHostAndPorts": [
+    {
+      "Host": "supplier-service",
+      "Port": 80
+    }
+  ],
+  "UpstreamPathTemplate": "/api/purchaseorders/{everything}",
+  "UpstreamHttpMethod": [ "Get", "Post", "Put", "Delete" ]
+},
+    {
+      "DownstreamPathTemplate": "/api/shipments",
+      "DownstreamScheme": "http",
+      "DownstreamHostAndPorts": [{ "Host": "shipment-service", "Port": 80 }],
+      "UpstreamPathTemplate": "/api/shipments",
       "UpstreamHttpMethod": [ "GET", "POST", "PUT", "DELETE", "OPTIONS" ]
     },
     {

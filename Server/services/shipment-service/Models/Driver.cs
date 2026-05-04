@@ -3,6 +3,7 @@ using System.ComponentModel.DataAnnotations;
 namespace ShipmentService.Models;
 
 public class Driver
+
 {
     [Key]
     public int Id { get; set; }

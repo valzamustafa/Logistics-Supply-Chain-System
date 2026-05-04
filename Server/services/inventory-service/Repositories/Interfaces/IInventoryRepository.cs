@@ -13,4 +13,3 @@ namespace InventoryService.Repositories.Interfaces
         Task<Inventory> UpdateAsync(Inventory inventory);
     }
 }
-

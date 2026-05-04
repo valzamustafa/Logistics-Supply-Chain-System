@@ -17,8 +17,18 @@ namespace SupplierService.Models
         [MaxLength(20)]
         public string? Phone { get; set; }
         
+        [MaxLength(50)]
+        public string? VatNumber { get; set; }
+        
         [MaxLength(500)]
         public string? Address { get; set; }
+        
+        [MaxLength(100)]
+        public string? PaymentTerms { get; set; }
+        
+        public decimal CreditLimit { get; set; }
+        
+        public bool IsApproved { get; set; } = true;
         
         public bool IsActive { get; set; } = true;
         

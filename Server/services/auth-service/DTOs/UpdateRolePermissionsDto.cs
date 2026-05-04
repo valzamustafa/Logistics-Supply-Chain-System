@@ -5,4 +5,3 @@ namespace AuthService.DTOs
         public List<string> Permissions { get; set; } = new List<string>();
     }
 }
-

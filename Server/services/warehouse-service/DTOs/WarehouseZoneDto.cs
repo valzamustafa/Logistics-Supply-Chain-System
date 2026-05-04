@@ -1,4 +1,3 @@
-
    namespace WarehouseService.DTOs
 {
       public class WarehouseZoneDto
