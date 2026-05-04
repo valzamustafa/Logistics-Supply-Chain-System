@@ -57,6 +57,7 @@ services:
       - Jwt__Key=YourSuperSecretKeyForJWTThatIsAtLeast32CharactersLong123!
       - Jwt__Issuer=Logjistika
       - Jwt__Audience=LogjistikaClients
+      - SupplierServiceUrl=http://supplier-service:80
     ports:
       - "5001:80"
     networks:
@@ -95,6 +96,7 @@ services:
       - Jwt__Key=YourSuperSecretKeyForJWTThatIsAtLeast32CharactersLong123!
       - Jwt__Issuer=Logjistika
       - Jwt__Audience=LogjistikaClients
+      - Services__InventoryService=http://inventory-service:80
     ports:
       - "5002:80"
     networks:

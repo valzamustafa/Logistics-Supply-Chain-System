@@ -44,6 +44,7 @@ public class VehicleRepository : IVehicleRepository
         return vehicle;
     }
     
+    
     public async Task DeleteAsync(int id)
     {
         var vehicle = await _context.Vehicles.FindAsync(id);

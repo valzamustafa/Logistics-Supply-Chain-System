@@ -1,5 +1,4 @@
-using Microsoft.EntityFrameworkCore;
-using Microsoft.EntityFrameworkCore;
+﻿using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Diagnostics;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.IdentityModel.Tokens;
@@ -92,6 +91,12 @@ builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
 
 builder.Services.AddAuthorization();
 
+builder.Services.AddHttpClient("SupplierService", client =>
+{
+    var supplierServiceUrl = builder.Configuration["SupplierServiceUrl"] ?? "http://supplier-service:80";
+    client.BaseAddress = new Uri(supplierServiceUrl);
+});
+
 var app = builder.Build();
 
 app.UseCors("AllowFrontend");
@@ -102,7 +107,6 @@ if (app.Environment.IsDevelopment())
     app.UseSwaggerUI();
 }
 
-app.UseHttpsRedirection();
 app.UseAuthentication();
 app.UseAuthorization();
 app.MapControllers();
@@ -110,16 +114,9 @@ app.MapControllers();
 using (var scope = app.Services.CreateScope())
 {
     var dbContext = scope.ServiceProvider.GetRequiredService<AuthDbContext>();
-    var pendingMigrations = await dbContext.Database.GetPendingMigrationsAsync();
-
-    if (pendingMigrations.Any())
-    {
-        await dbContext.Database.MigrateAsync();
-    }
-    else
-    {
-        await dbContext.Database.EnsureCreatedAsync();
-    }
+    
+    
+    await dbContext.Database.EnsureCreatedAsync();
 
     await AuthDbSeeder.SeedDataAsync(dbContext);
 }

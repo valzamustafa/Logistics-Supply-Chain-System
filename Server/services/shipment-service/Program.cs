@@ -6,6 +6,7 @@ using ShipmentService.Repositories;
 using ShipmentService.Repositories.Interfaces;
 using ShipmentService.Services;
 using ShipmentService.Services.Interfaces;
+using System.Security.Claims;
 using System.Text;
 
 var builder = WebApplication.CreateBuilder(args);
@@ -20,7 +21,7 @@ builder.Services.AddControllers()
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();
 
-// Database Context
+
 var connectionString = builder.Configuration.GetConnectionString("DefaultConnection");
 if (string.IsNullOrEmpty(connectionString))
 {
@@ -29,7 +30,7 @@ if (string.IsNullOrEmpty(connectionString))
 builder.Services.AddDbContext<ShipmentDbContext>(options =>
     options.UseSqlServer(connectionString));
 
-// CORS Configuration
+
 builder.Services.AddCors(options =>
 {
     options.AddPolicy("AllowFrontend", policy =>
@@ -41,7 +42,7 @@ builder.Services.AddCors(options =>
     });
 });
 
-// JWT Configuration
+
 var jwtKey = builder.Configuration["Jwt:Key"];
 var jwtIssuer = builder.Configuration["Jwt:Issuer"];
 var jwtAudience = builder.Configuration["Jwt:Audience"];
@@ -62,7 +63,9 @@ builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
             ValidateIssuerSigningKey = true,
             ValidIssuer = jwtIssuer ?? "Logjistika",
             ValidAudience = jwtAudience ?? "LogjistikaClients",
-            IssuerSigningKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(jwtKey))
+            IssuerSigningKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(jwtKey)),
+            NameClaimType = ClaimTypes.NameIdentifier,
+            RoleClaimType = ClaimTypes.Role
         };
     });
 
@@ -72,7 +75,11 @@ builder.Services.AddScoped<IShipmentService, ShipmentServices>();
 builder.Services.AddScoped<IDriverRepository, DriverRepository>();
 builder.Services.AddScoped<IVehicleRepository, VehicleRepository>();
 
+
+builder.Services.AddHttpClient();
+
 var app = builder.Build();
+
 
 if (app.Environment.IsDevelopment())
 {
@@ -80,11 +87,11 @@ if (app.Environment.IsDevelopment())
     app.UseSwaggerUI();
 }
 
-app.UseHttpsRedirection();
 app.UseCors("AllowFrontend");
 app.UseAuthentication();
 app.UseAuthorization();
 app.MapControllers();
+
 
 using (var scope = app.Services.CreateScope())
 {

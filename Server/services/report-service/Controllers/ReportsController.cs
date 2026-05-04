@@ -20,14 +20,14 @@ public class ReportsController : ControllerBase
     [HttpGet]
     public async Task<IActionResult> GetAll()
     {
-        var reports = await _reportService.GetAllReportsAsync();
+        var reports = await _reportService.GetAllAsync();
         return Ok(reports);
     }
 
     [HttpGet("{id}")]
     public async Task<IActionResult> GetById(int id)
     {
-        var report = await _reportService.GetReportByIdAsync(id);
+        var report = await _reportService.GetByIdAsync(id);
         if (report == null)
             return NotFound();
         return Ok(report);
@@ -36,7 +36,7 @@ public class ReportsController : ControllerBase
     [HttpGet("type/{type}")]
     public async Task<IActionResult> GetByType(string type)
     {
-        var reports = await _reportService.GetReportsByTypeAsync(type);
+        var reports = await _reportService.GetByTypeAsync(type);
         return Ok(reports);
     }
 
@@ -63,7 +63,7 @@ public class ReportsController : ControllerBase
     [Authorize(Roles = "Admin")]
     public async Task<IActionResult> Delete(int id)
     {
-        var deleted = await _reportService.DeleteReportAsync(id);
+        var deleted = await _reportService.DeleteAsync(id);
         if (!deleted)
             return NotFound();
         return NoContent();
@@ -73,7 +73,7 @@ public class ReportsController : ControllerBase
     [Authorize(Roles = "Admin,Manager")]
     public async Task<IActionResult> GetSummary()
     {
-        var summary = await _reportService.GetReportSummaryAsync();
+        var summary = await _reportService.GetSummaryAsync();
         return Ok(summary);
     }
 
@@ -81,11 +81,14 @@ public class ReportsController : ControllerBase
     [Authorize(Roles = "Admin,Manager")]
     public async Task<IActionResult> DownloadPdf(int id)
     {
-        var report = await _reportService.GetReportByIdAsync(id);
+        var report = await _reportService.GetByIdAsync(id);
         if (report == null)
             return NotFound();
 
-       
-        return Ok(new { message = "PDF generation not implemented yet" });
+        var pdfBytes = await _reportService.GeneratePdfAsync(report);
+        
+        
+        var fileName = $"{report.Type}_{report.Name}_{DateTime.Now:yyyyMMdd}.pdf";
+        return File(pdfBytes, "application/pdf", fileName);
     }
 }

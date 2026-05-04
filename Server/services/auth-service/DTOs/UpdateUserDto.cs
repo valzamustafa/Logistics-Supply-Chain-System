@@ -1,4 +1,3 @@
-
 using System.ComponentModel.DataAnnotations;
 
 namespace AuthService.DTOs
@@ -17,4 +16,3 @@ namespace AuthService.DTOs
         public bool IsActive { get; set; } = true;
     }
 }
-

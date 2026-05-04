@@ -1,3 +1,5 @@
+using MongoDB.Driver;
+
 namespace TrackingService.Data
 {
     public class MongoDbContext
@@ -16,7 +18,7 @@ namespace TrackingService.Data
             return _database;
         }
 
-      
+       
         public IMongoCollection<T> GetCollection<T>(string name)
         {
             return _database.GetCollection<T>(name);

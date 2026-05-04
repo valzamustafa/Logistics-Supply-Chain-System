@@ -17,7 +17,5 @@ namespace InventoryService.Models
         public int ReservedQuantity { get; set; }
         
         public int? ReorderLevel { get; set; }
-        
-        
     }
 }

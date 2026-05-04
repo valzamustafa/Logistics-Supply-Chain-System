@@ -5,6 +5,7 @@ var builder = WebApplication.CreateBuilder(args);
 
 builder.Configuration.AddJsonFile("ocelot.json", optional: false, reloadOnChange: true);
 
+
 builder.Services.AddCors(options =>
 {
     options.AddPolicy("AllowSpecificOrigin", policy =>
@@ -22,6 +23,7 @@ builder.Services.AddEndpointsApiExplorer();
 
 var app = builder.Build();
 
+
 app.UseCors("AllowSpecificOrigin");
 
 if (app.Environment.IsDevelopment())
@@ -30,8 +32,6 @@ if (app.Environment.IsDevelopment())
     app.UseSwaggerUI();
 }
 
-app.UseHttpsRedirection();
 await app.UseOcelot();
 
 app.Run();
-

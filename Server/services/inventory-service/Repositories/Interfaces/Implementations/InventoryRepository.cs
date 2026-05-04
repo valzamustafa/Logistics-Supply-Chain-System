@@ -59,7 +59,6 @@ namespace InventoryService.Repositories.Implementations
                     _context.Inventories.Add(inventory);
                 }
 
-              
                 if (movement.Type == "IN")
                     inventory.Quantity += movement.Quantity;
                 else if (movement.Type == "OUT")
@@ -72,6 +71,7 @@ namespace InventoryService.Repositories.Implementations
                 inventory.UpdatedAt = DateTime.UtcNow;
                 inventory.UpdatedBy = movement.UpdatedBy;
 
+                movement.Inventory = inventory;
                 _context.StockMovements.Add(movement);
                 await _context.SaveChangesAsync();
                 await transaction.CommitAsync();
@@ -100,4 +100,3 @@ namespace InventoryService.Repositories.Implementations
         }
     }
 }
-

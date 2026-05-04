@@ -1,4 +1,4 @@
-namespace ReportService.DTOs
+   namespace ReportService.DTOs
 {
     public class GenerateReportDto
     {

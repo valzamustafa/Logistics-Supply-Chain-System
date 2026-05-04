@@ -1,5 +1,3 @@
-using System.ComponentModel.DataAnnotations;
-
 namespace AuthService.DTOs
 {
     public class RefreshTokenResponseDto

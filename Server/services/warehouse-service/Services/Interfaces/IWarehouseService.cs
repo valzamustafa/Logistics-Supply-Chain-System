@@ -1,27 +1,30 @@
+// WarehouseService/Services/Interfaces/IWarehouseService.cs
 using WarehouseService.DTOs;
+using WarehouseService.Models;
 
 namespace WarehouseService.Services.Interfaces
 {
     public interface IWarehouseService
     {
-   
+
         Task<IEnumerable<WarehouseDto>> GetAllWarehousesAsync();
         Task<WarehouseDto?> GetWarehouseByIdAsync(int id);
         Task<WarehouseDto> CreateWarehouseAsync(CreateWarehouseDto dto);
         Task<WarehouseDto> UpdateWarehouseAsync(int id, UpdateWarehouseDto dto);
         Task<bool> DeleteWarehouseAsync(int id);
+        Task<bool> ToggleWarehouseStatusAsync(int id, bool isActive);
         
-   
+
         Task<IEnumerable<WarehouseZoneDto>> GetZonesByWarehouseAsync(int warehouseId);
         Task<WarehouseZoneDto> CreateZoneAsync(CreateWarehouseZoneDto dto);
         Task<bool> DeleteZoneAsync(int id);
         
-      
+
         Task<IEnumerable<WarehouseStaffDto>> GetStaffByWarehouseAsync(int warehouseId);
         Task<WarehouseStaffDto> AssignStaffAsync(int warehouseId, AssignStaffDto dto);
         Task<bool> RemoveStaffAsync(int id);
 
-     
+   
         Task<IEnumerable<WarehouseStockDto>> GetAllStockAsync();
         Task<WarehouseStockDto?> GetStockByIdAsync(int id);
         Task<IEnumerable<WarehouseStockDto>> GetStockByWarehouseAsync(int warehouseId);
@@ -33,6 +36,8 @@ namespace WarehouseService.Services.Interfaces
         Task<IEnumerable<StockMovementDto>> GetStockMovementsAsync(int warehouseId, int productId, int? limit = null);
         Task<IEnumerable<LowStockAlertDto>> GetLowStockAlertsAsync(int? warehouseId = null);
         Task<bool> IsProductAvailableAsync(int warehouseId, int productId, int requestedQuantity);
+        
+     
+        Task<WarehouseStatsDto> GetWarehouseStatsAsync(int warehouseId);
     }
 }
-

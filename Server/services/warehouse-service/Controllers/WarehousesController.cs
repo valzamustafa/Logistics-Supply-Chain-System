@@ -6,24 +6,158 @@ namespace WarehouseService.Controllers
 {
     [ApiController]
     [Route("api/[controller]")]
-    public class WarehouseStockController : ControllerBase
+    public class WarehousesController : ControllerBase
     {
         private readonly IWarehouseService _warehouseService;
 
-        public WarehouseStockController(IWarehouseService warehouseService)
+        public WarehousesController(IWarehouseService warehouseService)
         {
             _warehouseService = warehouseService;
         }
 
-      
+  
         [HttpGet]
+        public async Task<IActionResult> GetAll()
+        {
+            var warehouses = await _warehouseService.GetAllWarehousesAsync();
+            return Ok(warehouses);
+        }
+
+
+        [HttpGet("{id}")]
+        public async Task<IActionResult> GetById(int id)
+        {
+            var warehouse = await _warehouseService.GetWarehouseByIdAsync(id);
+            if (warehouse == null)
+                return NotFound(new { message = $"Warehouse {id} not found" });
+            return Ok(warehouse);
+        }
+
+        
+        [HttpPost]
+        public async Task<IActionResult> Create([FromBody] CreateWarehouseDto dto)
+        {
+            try
+            {
+                var warehouse = await _warehouseService.CreateWarehouseAsync(dto);
+                return CreatedAtAction(nameof(GetById), new { id = warehouse.Id }, warehouse);
+            }
+            catch (Exception ex)
+            {
+                return BadRequest(new { message = ex.Message });
+            }
+        }
+
+   
+        [HttpPut("{id}")]
+        public async Task<IActionResult> Update(int id, [FromBody] UpdateWarehouseDto dto)
+        {
+            try
+            {
+                var warehouse = await _warehouseService.UpdateWarehouseAsync(id, dto);
+                return Ok(warehouse);
+            }
+            catch (Exception ex)
+            {
+                return NotFound(new { message = ex.Message });
+            }
+        }
+
+        [HttpDelete("{id}")]
+        public async Task<IActionResult> Delete(int id)
+        {
+            try
+            {
+                var result = await _warehouseService.DeleteWarehouseAsync(id);
+                return result ? Ok(new { message = "Warehouse deleted" }) : NotFound();
+            }
+            catch (Exception ex)
+            {
+                return BadRequest(new { message = ex.Message });
+            }
+        }
+
+   
+        [HttpPut("{id}/toggle-status")]
+        public async Task<IActionResult> ToggleStatus(int id, [FromBody] ToggleStatusRequest request)
+        {
+            try
+            {
+                var result = await _warehouseService.ToggleWarehouseStatusAsync(id, request.IsActive);
+                return Ok(new { success = result });
+            }
+            catch (Exception ex)
+            {
+                return BadRequest(new { message = ex.Message });
+            }
+        }
+
+    
+        [HttpGet("{id}/stats")]
+        public async Task<IActionResult> GetStats(int id)
+        {
+            try
+            {
+                var stats = await _warehouseService.GetWarehouseStatsAsync(id);
+                return Ok(stats);
+            }
+            catch (Exception ex)
+            {
+                return NotFound(new { message = ex.Message });
+            }
+        }
+
+   
+        [HttpGet("{warehouseId}/inventory/{productId}")]
+        public async Task<IActionResult> GetProductInventory(int warehouseId, int productId)
+        {
+            try
+            {
+                var stock = await _warehouseService.GetStockByWarehouseAsync(warehouseId);
+                var productStock = stock.FirstOrDefault(s => s.ProductId == productId);
+                
+                if (productStock == null)
+                    return NotFound(new { message = $"Product {productId} not found in warehouse {warehouseId}" });
+                
+                return Ok(new 
+                { 
+                    ProductId = productId, 
+                    WarehouseId = warehouseId,
+                    AvailableQuantity = productStock.Quantity,
+                    ReservedQuantity = 0
+                });
+            }
+            catch (Exception ex)
+            {
+                return BadRequest(new { message = ex.Message });
+            }
+        }
+
+
+        [HttpGet("{warehouseId}/check-availability")]
+        public async Task<IActionResult> CheckAvailability(int warehouseId, [FromQuery] int productId, [FromQuery] int quantity)
+        {
+            try
+            {
+                var isAvailable = await _warehouseService.IsProductAvailableAsync(warehouseId, productId, quantity);
+                return Ok(new { isAvailable });
+            }
+            catch (Exception ex)
+            {
+                return BadRequest(new { message = ex.Message });
+            }
+        }
+
+
+        [HttpGet("stock")]
         public async Task<IActionResult> GetAllStock()
         {
             var stock = await _warehouseService.GetAllStockAsync();
             return Ok(stock);
         }
 
-        [HttpGet("{id}")]
+
+        [HttpGet("stock/{id}")]
         public async Task<IActionResult> GetStockById(int id)
         {
             var stock = await _warehouseService.GetStockByIdAsync(id);
@@ -32,8 +166,8 @@ namespace WarehouseService.Controllers
             return Ok(stock);
         }
 
-        
-        [HttpGet("warehouse/{warehouseId}")]
+      
+        [HttpGet("{warehouseId}/stock")]
         public async Task<IActionResult> GetStockByWarehouse(int warehouseId)
         {
             var stock = await _warehouseService.GetStockByWarehouseAsync(warehouseId);
@@ -41,15 +175,14 @@ namespace WarehouseService.Controllers
         }
 
       
-        [HttpGet("product/{productId}")]
+        [HttpGet("product/{productId}/stock")]
         public async Task<IActionResult> GetStockByProduct(int productId)
         {
             var stock = await _warehouseService.GetStockByProductAsync(productId);
             return Ok(stock);
         }
 
-     
-        [HttpGet("warehouse/{warehouseId}/product/{productId}")]
+        [HttpGet("{warehouseId}/product/{productId}")]
         public async Task<IActionResult> GetStockByWarehouseAndProduct(int warehouseId, int productId)
         {
             var stock = await _warehouseService.GetStockByWarehouseAsync(warehouseId);
@@ -60,13 +193,13 @@ namespace WarehouseService.Controllers
         }
 
       
-        [HttpPost("warehouse/{warehouseId}/assign")]
+        [HttpPost("{warehouseId}/assign")]
         public async Task<IActionResult> AssignProductToWarehouse(int warehouseId, [FromBody] AssignProductToWarehouseDto dto)
         {
             try
             {
                 var result = await _warehouseService.AssignProductToWarehouseAsync(warehouseId, dto);
-                return Ok(new { message = "Product assigned successfully", data = result });
+                return Ok(result);
             }
             catch (InvalidOperationException ex)
             {
@@ -78,8 +211,8 @@ namespace WarehouseService.Controllers
             }
         }
 
-  
-        [HttpPut("warehouse/{warehouseId}/product/{productId}/stock")]
+      
+        [HttpPut("{warehouseId}/product/{productId}/stock")]
         public async Task<IActionResult> UpdateStock(int warehouseId, int productId, [FromBody] UpdateStockDto dto)
         {
             try
@@ -97,7 +230,7 @@ namespace WarehouseService.Controllers
             }
         }
 
-  
+ 
         [HttpPost("transfer")]
         public async Task<IActionResult> TransferStock([FromBody] TransferStockDto dto)
         {
@@ -116,8 +249,8 @@ namespace WarehouseService.Controllers
             }
         }
 
-   
-        [HttpGet("warehouse/{warehouseId}/product/{productId}/movements")]
+
+        [HttpGet("{warehouseId}/product/{productId}/movements")]
         public async Task<IActionResult> GetStockMovements(int warehouseId, int productId, [FromQuery] int? limit = null)
         {
             try
@@ -147,42 +280,17 @@ namespace WarehouseService.Controllers
         }
 
 
-        [HttpGet("warehouse/{warehouseId}/product/{productId}/availability")]
-        public async Task<IActionResult> CheckAvailability(int warehouseId, int productId, [FromQuery] int quantity)
-        {
-            try
-            {
-                var isAvailable = await _warehouseService.IsProductAvailableAsync(warehouseId, productId, quantity);
-                return Ok(new 
-                { 
-                    warehouseId, 
-                    productId, 
-                    requestedQuantity = quantity, 
-                    isAvailable,
-                    message = isAvailable ? "Product is available" : "Insufficient stock"
-                });
-            }
-            catch (Exception ex)
-            {
-                return StatusCode(500, new { message = "An error occurred", error = ex.Message });
-            }
-        }
-
-
-        [HttpDelete("warehouse/{warehouseId}/product/{productId}")]
+        [HttpDelete("{warehouseId}/product/{productId}")]
         public async Task<IActionResult> RemoveProductFromWarehouse(int warehouseId, int productId)
         {
             try
             {
-                var removed = await _warehouseService.RemoveProductFromWarehouseAsync(warehouseId, productId);
-                if (!removed)
-                    return NotFound(new { message = $"Product {productId} not found in warehouse {warehouseId}" });
-                
-                return NoContent();
+                var result = await _warehouseService.RemoveProductFromWarehouseAsync(warehouseId, productId);
+                return result ? Ok(new { message = "Product removed from warehouse" }) : NotFound();
             }
             catch (Exception ex)
             {
-                return StatusCode(500, new { message = "An error occurred", error = ex.Message });
+                return BadRequest(new { message = ex.Message });
             }
         }
 
@@ -218,7 +326,7 @@ namespace WarehouseService.Controllers
             });
         }
 
-
+      
         [HttpGet("summary")]
         public async Task<IActionResult> GetStockSummary()
         {
@@ -253,14 +361,13 @@ namespace WarehouseService.Controllers
             }
         }
 
-
+  
         [HttpGet("value-report")]
         public async Task<IActionResult> GetStockValueReport()
         {
             try
             {
                 var allStock = await _warehouseService.GetAllStockAsync();
-                
                 
                 var report = new
                 {
@@ -295,132 +402,8 @@ namespace WarehouseService.Controllers
         }
     }
 
-    [ApiController]
-    [Route("api/[controller]")]
-    public class WarehousesController : ControllerBase
+    public class ToggleStatusRequest
     {
-        private readonly IWarehouseService _warehouseService;
-
-        public WarehousesController(IWarehouseService warehouseService)
-        {
-            _warehouseService = warehouseService;
-        }
-
-        [HttpGet]
-        public async Task<IActionResult> GetAllWarehouses()
-        {
-            var warehouses = await _warehouseService.GetAllWarehousesAsync();
-            return Ok(warehouses);
-        }
-
-        [HttpGet("{id}")]
-        public async Task<IActionResult> GetWarehouseById(int id)
-        {
-            var warehouse = await _warehouseService.GetWarehouseByIdAsync(id);
-            if (warehouse == null)
-                return NotFound(new { message = $"Warehouse with ID {id} not found" });
-            return Ok(warehouse);
-        }
-
-        [HttpPost]
-        public async Task<IActionResult> CreateWarehouse([FromBody] CreateWarehouseDto dto)
-        {
-            try
-            {
-                var warehouse = await _warehouseService.CreateWarehouseAsync(dto);
-                return CreatedAtAction(nameof(GetWarehouseById), new { id = warehouse.Id }, warehouse);
-            }
-            catch (Exception ex)
-            {
-                return BadRequest(new { message = "Failed to create warehouse", error = ex.Message });
-            }
-        }
-
-        [HttpPut("{id}")]
-        public async Task<IActionResult> UpdateWarehouse(int id, [FromBody] UpdateWarehouseDto dto)
-        {
-            try
-            {
-                var updated = await _warehouseService.UpdateWarehouseAsync(id, dto);
-                return Ok(updated);
-            }
-            catch (KeyNotFoundException)
-            {
-                return NotFound(new { message = $"Warehouse with ID {id} not found" });
-            }
-            catch (Exception ex)
-            {
-                return BadRequest(new { message = "Failed to update warehouse", error = ex.Message });
-            }
-        }
-
-        [HttpDelete("{id}")]
-        public async Task<IActionResult> DeleteWarehouse(int id)
-        {
-            var deleted = await _warehouseService.DeleteWarehouseAsync(id);
-            if (!deleted)
-                return NotFound(new { message = $"Warehouse with ID {id} not found" });
-            return NoContent();
-        }
-
-        [HttpGet("{warehouseId}/zones")]
-        public async Task<IActionResult> GetZonesByWarehouse(int warehouseId)
-        {
-            var zones = await _warehouseService.GetZonesByWarehouseAsync(warehouseId);
-            return Ok(zones);
-        }
-
-        [HttpPost("zones")]
-        public async Task<IActionResult> CreateZone([FromBody] CreateWarehouseZoneDto dto)
-        {
-            try
-            {
-                var zone = await _warehouseService.CreateZoneAsync(dto);
-                return CreatedAtAction(nameof(GetZonesByWarehouse), new { warehouseId = zone.WarehouseId }, zone);
-            }
-            catch (Exception ex)
-            {
-                return BadRequest(new { message = "Failed to create zone", error = ex.Message });
-            }
-        }
-
-        [HttpDelete("zones/{id}")]
-        public async Task<IActionResult> DeleteZone(int id)
-        {
-            var deleted = await _warehouseService.DeleteZoneAsync(id);
-            if (!deleted)
-                return NotFound(new { message = $"Zone with ID {id} not found" });
-            return NoContent();
-        }
-
-        [HttpGet("{warehouseId}/staff")]
-        public async Task<IActionResult> GetStaffByWarehouse(int warehouseId)
-        {
-            var staff = await _warehouseService.GetStaffByWarehouseAsync(warehouseId);
-            return Ok(staff);
-        }
-
-        [HttpPost("{warehouseId}/staff")]
-        public async Task<IActionResult> AssignStaff(int warehouseId, [FromBody] AssignStaffDto dto)
-        {
-            try
-            {
-                var staff = await _warehouseService.AssignStaffAsync(warehouseId, dto);
-                return CreatedAtAction(nameof(GetStaffByWarehouse), new { warehouseId }, staff);
-            }
-            catch (Exception ex)
-            {
-                return BadRequest(new { message = "Failed to assign staff", error = ex.Message });
-            }
-        }
-
-        [HttpDelete("staff/{id}")]
-        public async Task<IActionResult> RemoveStaff(int id)
-        {
-            var deleted = await _warehouseService.RemoveStaffAsync(id);
-            if (!deleted)
-                return NotFound(new { message = $"Staff member with ID {id} not found" });
-            return NoContent();
-        }
+        public bool IsActive { get; set; }
     }
 }

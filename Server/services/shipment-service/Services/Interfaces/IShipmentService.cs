@@ -10,8 +10,10 @@ public interface IShipmentService
     Task<IEnumerable<Shipment>> GetByOrderIdAsync(int orderId);
     Task<IEnumerable<Shipment>> GetByDriverIdAsync(int driverId);
     Task<Shipment> CreateAsync(CreateShipmentDto dto);
+    Task<Shipment> AssignDriverAsync(int id, int driverId);
     Task<Shipment> UpdateStatusAsync(int id, string status);
     Task<Shipment?> StartDeliveryAsync(int id);
+    Task<Shipment> UpdateLocationAsync(int id, double lat, double lng);
     Task<Shipment> ReorderShipmentAsync(int id, int newPriority);
     Task<Shipment?> CompleteDeliveryAsync(int id, string? proof);
 }

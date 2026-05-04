@@ -71,7 +71,6 @@ if (app.Environment.IsDevelopment())
     app.UseSwaggerUI();
 }
 
-app.UseHttpsRedirection();
 app.UseCors("AllowFrontend");
 app.UseAuthentication();
 app.UseAuthorization();
@@ -80,7 +79,9 @@ app.MapControllers();
 using (var scope = app.Services.CreateScope())
 {
     var dbContext = scope.ServiceProvider.GetRequiredService<ProductDbContext>();
-    await dbContext.Database.MigrateAsync();
+    
+ 
+    await dbContext.Database.EnsureCreatedAsync();
 
     if (!dbContext.Categories.Any())
     {

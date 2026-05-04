@@ -6,4 +6,3 @@
         public string? Location { get; set; }
     }
 }
-

@@ -79,6 +79,16 @@ namespace AuthService.Data
                 new Role
                 {
                     Id = 5,
+                    Name = "Supplier",
+                    Description = "Supplier role for vendor-level dashboard and order management",
+                    CreatedBy = 1,
+                    UpdatedBy = 1,
+                    CreatedAt = new DateTime(2024, 1, 1, 0, 0, 0, DateTimeKind.Utc),
+                    UpdatedAt = new DateTime(2024, 1, 1, 0, 0, 0, DateTimeKind.Utc)
+                },
+                new Role
+                {
+                    Id = 6,
                     Name = "User",
                     Description = "General user role for company users",
                     CreatedBy = 1,

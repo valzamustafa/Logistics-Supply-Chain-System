@@ -284,7 +284,7 @@ namespace authservice.Migrations
                             Id = 1,
                             CreatedAt = new DateTime(2024, 1, 1, 0, 0, 0, 0, DateTimeKind.Utc),
                             CreatedBy = 1,
-                            Description = "Full access",
+                            Description = "Administrator role for the logistics system",
                             Name = "Admin",
                             UpdatedAt = new DateTime(2024, 1, 1, 0, 0, 0, 0, DateTimeKind.Utc),
                             UpdatedBy = 1
@@ -294,7 +294,7 @@ namespace authservice.Migrations
                             Id = 2,
                             CreatedAt = new DateTime(2024, 1, 1, 0, 0, 0, 0, DateTimeKind.Utc),
                             CreatedBy = 1,
-                            Description = "Manage operations",
+                            Description = "Manager role for logistics operations",
                             Name = "Manager",
                             UpdatedAt = new DateTime(2024, 1, 1, 0, 0, 0, 0, DateTimeKind.Utc),
                             UpdatedBy = 1
@@ -304,7 +304,37 @@ namespace authservice.Migrations
                             Id = 3,
                             CreatedAt = new DateTime(2024, 1, 1, 0, 0, 0, 0, DateTimeKind.Utc),
                             CreatedBy = 1,
-                            Description = "Regular user",
+                            Description = "Driver role for transportation and delivery",
+                            Name = "Driver",
+                            UpdatedAt = new DateTime(2024, 1, 1, 0, 0, 0, 0, DateTimeKind.Utc),
+                            UpdatedBy = 1
+                        },
+                        new
+                        {
+                            Id = 4,
+                            CreatedAt = new DateTime(2024, 1, 1, 0, 0, 0, 0, DateTimeKind.Utc),
+                            CreatedBy = 1,
+                            Description = "Warehouse staff role for inventory and warehouse management",
+                            Name = "WarehouseStaff",
+                            UpdatedAt = new DateTime(2024, 1, 1, 0, 0, 0, 0, DateTimeKind.Utc),
+                            UpdatedBy = 1
+                        },
+                        new
+                        {
+                            Id = 5,
+                            CreatedAt = new DateTime(2024, 1, 1, 0, 0, 0, 0, DateTimeKind.Utc),
+                            CreatedBy = 1,
+                            Description = "Supplier role for vendor-level dashboard and order management",
+                            Name = "Supplier",
+                            UpdatedAt = new DateTime(2024, 1, 1, 0, 0, 0, 0, DateTimeKind.Utc),
+                            UpdatedBy = 1
+                        },
+                        new
+                        {
+                            Id = 6,
+                            CreatedAt = new DateTime(2024, 1, 1, 0, 0, 0, 0, DateTimeKind.Utc),
+                            CreatedBy = 1,
+                            Description = "General user role for company users",
                             Name = "User",
                             UpdatedAt = new DateTime(2024, 1, 1, 0, 0, 0, 0, DateTimeKind.Utc),
                             UpdatedBy = 1
@@ -416,6 +446,21 @@ namespace authservice.Migrations
                         .IsUnique();
 
                     b.ToTable("Users");
+
+                    b.HasData(
+                        new
+                        {
+                            Id = 1,
+                            CreatedAt = new DateTime(2024, 1, 1, 0, 0, 0, 0, DateTimeKind.Utc),
+                            CreatedBy = 1,
+                            Email = "admin@logjistika.com",
+                            FirstName = "Super",
+                            IsActive = true,
+                            LastName = "Admin",
+                            PasswordHash = "$2a$11$pwSXx4Pkpjm1fwEyz8M/2ujBm0yhRPu8XLQ0MrVKhXFd8zqeNe13a",
+                            UpdatedAt = new DateTime(2024, 1, 1, 0, 0, 0, 0, DateTimeKind.Utc),
+                            UpdatedBy = 1
+                        });
                 });
 
             modelBuilder.Entity("AuthService.Models.UserRole", b =>
@@ -443,6 +488,15 @@ namespace authservice.Migrations
                         .IsUnique();
 
                     b.ToTable("UserRoles");
+
+                    b.HasData(
+                        new
+                        {
+                            Id = 1,
+                            AssignedAt = new DateTime(2024, 1, 1, 0, 0, 0, 0, DateTimeKind.Utc),
+                            RoleId = 1,
+                            UserId = 1
+                        });
                 });
 
             modelBuilder.Entity("AuthService.Models.AuditLog", b =>
@@ -468,7 +522,7 @@ namespace authservice.Migrations
             modelBuilder.Entity("AuthService.Models.Notification", b =>
                 {
                     b.HasOne("AuthService.Models.User", "User")
-                        .WithMany("Notifications")
+                        .WithMany()
                         .HasForeignKey("UserId")
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
@@ -539,8 +593,6 @@ namespace authservice.Migrations
 
             modelBuilder.Entity("AuthService.Models.User", b =>
                 {
-                    b.Navigation("Notifications");
-
                     b.Navigation("RefreshTokens");
 
                     b.Navigation("UserRoles");

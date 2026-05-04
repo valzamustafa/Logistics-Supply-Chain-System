@@ -1,4 +1,6 @@
-using System.IdentityModel.Tokens.Jwt;
+﻿using System.IdentityModel.Tokens.Jwt;
+using System.Net;
+using System.Net.Http.Json;
 using System.Security.Claims;
 using System.Security.Cryptography;
 using System.Text;
@@ -17,13 +19,15 @@ namespace AuthService.Services.Implementations
         private readonly IRoleRepository _roleRepository;
         private readonly IUserRoleRepository _userRoleRepository;
         private readonly IConfiguration _configuration;
+        private readonly IHttpClientFactory _httpClientFactory;
 
-        public AuthService(IUserRepository userRepository, IRoleRepository roleRepository, IUserRoleRepository userRoleRepository, IConfiguration configuration)
+        public AuthService(IUserRepository userRepository, IRoleRepository roleRepository, IUserRoleRepository userRoleRepository, IConfiguration configuration, IHttpClientFactory httpClientFactory)
         {
             _userRepository = userRepository;
             _roleRepository = roleRepository;
             _userRoleRepository = userRoleRepository;
             _configuration = configuration;
+            _httpClientFactory = httpClientFactory;
         }
 
         public async Task<UserResponseDto?> RegisterAsync(RegisterDto dto)
@@ -166,6 +170,42 @@ namespace AuthService.Services.Implementations
                 RoleId = roleId,
                 AssignedAt = DateTime.UtcNow
             });
+
+            if (role.Name == "Supplier")
+            {
+                try
+                {
+                    var client = _httpClientFactory.CreateClient("SupplierService");
+                    var email = Uri.EscapeDataString(user.Email);
+                    var response = await client.GetAsync($"/api/suppliers/email/{email}");
+
+                    if (response.StatusCode == HttpStatusCode.NotFound)
+                    {
+                        var createResponse = await client.PostAsJsonAsync("/api/suppliers", new
+                        {
+                            Name = $"{user.FirstName} {user.LastName}",
+                            Email = user.Email,
+                            ContactPerson = $"{user.FirstName} {user.LastName}",
+                            Phone = string.Empty,
+                            Address = string.Empty,
+                            VatNumber = string.Empty,
+                            PaymentTerms = string.Empty,
+                            CreditLimit = 0m,
+                            IsApproved = false
+                        });
+                        createResponse.EnsureSuccessStatusCode();
+                    }
+                    else
+                    {
+                        response.EnsureSuccessStatusCode();
+                    }
+                }
+                catch
+                {
+                 
+                }
+            }
+
             return true;
         }
 
@@ -233,4 +273,3 @@ namespace AuthService.Services.Implementations
         }
     }
 }
-

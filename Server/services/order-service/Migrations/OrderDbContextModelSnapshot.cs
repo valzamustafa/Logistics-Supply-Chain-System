@@ -111,7 +111,6 @@ namespace orderservice.Migrations
                         .HasColumnType("datetime2");
 
                     b.Property<decimal?>("DiscountAmount")
-                        .HasPrecision(18, 2)
                         .HasColumnType("decimal(18,2)");
 
                     b.Property<DateTime>("OrderDate")
@@ -130,7 +129,6 @@ namespace orderservice.Migrations
                         .HasColumnType("nvarchar(500)");
 
                     b.Property<decimal?>("ShippingCost")
-                        .HasPrecision(18, 2)
                         .HasColumnType("decimal(18,2)");
 
                     b.Property<string>("Status")
@@ -139,11 +137,9 @@ namespace orderservice.Migrations
                         .HasColumnType("nvarchar(50)");
 
                     b.Property<decimal?>("TaxAmount")
-                        .HasPrecision(18, 2)
                         .HasColumnType("decimal(18,2)");
 
                     b.Property<decimal>("TotalAmount")
-                        .HasPrecision(18, 2)
                         .HasColumnType("decimal(18,2)");
 
                     b.Property<DateTime>("UpdatedAt")
@@ -178,7 +174,6 @@ namespace orderservice.Migrations
                         .HasColumnType("int");
 
                     b.Property<decimal?>("DiscountPercent")
-                        .HasPrecision(18, 2)
                         .HasColumnType("decimal(18,2)");
 
                     b.Property<int>("OrderId")
@@ -191,7 +186,6 @@ namespace orderservice.Migrations
                         .HasColumnType("int");
 
                     b.Property<decimal>("UnitPrice")
-                        .HasPrecision(18, 2)
                         .HasColumnType("decimal(18,2)");
 
                     b.Property<DateTime>("UpdatedAt")
@@ -216,7 +210,6 @@ namespace orderservice.Migrations
                     SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
 
                     b.Property<decimal>("Amount")
-                        .HasPrecision(18, 2)
                         .HasColumnType("decimal(18,2)");
 
                     b.Property<DateTime?>("CompletedAt")
@@ -267,7 +260,6 @@ namespace orderservice.Migrations
                     SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
 
                     b.Property<decimal>("Amount")
-                        .HasPrecision(18, 2)
                         .HasColumnType("decimal(18,2)");
 
                     b.Property<DateTime>("CreatedAt")

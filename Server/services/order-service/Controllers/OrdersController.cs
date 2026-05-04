@@ -27,8 +27,31 @@ namespace OrderService.Controllers
         {
             var order = await _orderService.GetOrderByIdAsync(id);
             if (order == null)
-                return NotFound();
+                return NotFound(new { message = $"Order with ID {id} not found" });
             return Ok(order);
+        }
+
+        [HttpGet("{id}/invoice")]
+        public async Task<IActionResult> GenerateInvoice(int id)
+        {
+            try
+            {
+                var order = await _orderService.GetOrderByIdAsync(id);
+                if (order == null)
+                    return NotFound(new { message = $"Order with ID {id} not found" });
+
+                var pdfBytes = await _orderService.GenerateInvoicePdfAsync(order);
+                
+                return File(
+                    pdfBytes, 
+                    "application/pdf", 
+                    $"Invoice-{order.OrderNumber}.pdf"
+                );
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, new { message = $"Error generating invoice: {ex.Message}" });
+            }
         }
 
         [HttpGet("user/{userId}")]
@@ -62,7 +85,7 @@ namespace OrderService.Controllers
             }
             catch (InvalidOperationException)
             {
-                return NotFound();
+                return NotFound(new { message = $"Order with ID {id} not found" });
             }
         }
 
@@ -74,5 +97,230 @@ namespace OrderService.Controllers
                 return BadRequest(new { message = "Order cannot be cancelled" });
             return Ok(new { message = "Order cancelled successfully" });
         }
+
+      
+        [HttpPost("{id}/select-warehouse")]
+        public async Task<IActionResult> SelectWarehouse(int id, [FromBody] SelectWarehouseRequest? request)
+        {
+            try
+            {
+                var warehouseId = await _orderService.SelectOptimalWarehouseAsync(id, request?.CustomerAddress);
+                var order = await _orderService.AssignWarehouseAsync(id, warehouseId);
+                return Ok(new { warehouseId, order });
+            }
+            catch (Exception ex)
+            {
+                return BadRequest(new { message = ex.Message });
+            }
+        }
+
+        [HttpPut("{id}/assign-warehouse/{warehouseId}")]
+        public async Task<IActionResult> AssignWarehouse(int id, int warehouseId)
+        {
+            try
+            {
+                var order = await _orderService.AssignWarehouseAsync(id, warehouseId);
+                return Ok(order);
+            }
+            catch (Exception ex)
+            {
+                return BadRequest(new { message = ex.Message });
+            }
+        }
+
+    
+        [HttpGet("{id}/validate-inventory")]
+        public async Task<IActionResult> ValidateInventory(int id)
+        {
+            try
+            {
+                var isValid = await _orderService.ValidateInventoryAsync(id);
+                return Ok(new { valid = isValid });
+            }
+            catch (Exception ex)
+            {
+                return BadRequest(new { message = ex.Message });
+            }
+        }
+
+        [HttpPost("{id}/reserve-inventory")]
+        public async Task<IActionResult> ReserveInventory(int id)
+        {
+            try
+            {
+                var reserved = await _orderService.ReserveInventoryAsync(id);
+                return Ok(new { success = reserved });
+            }
+            catch (Exception ex)
+            {
+                return BadRequest(new { message = ex.Message });
+            }
+        }
+
+    
+        [HttpPost("{id}/start-processing")]
+        public async Task<IActionResult> StartProcessing(int id)
+        {
+            try
+            {
+                var order = await _orderService.StartProcessingAsync(id);
+                return Ok(order);
+            }
+            catch (Exception ex)
+            {
+                return BadRequest(new { message = ex.Message });
+            }
+        }
+
+        [HttpPost("{id}/complete-picking")]
+        public async Task<IActionResult> CompletePicking(int id)
+        {
+            try
+            {
+                var order = await _orderService.CompletePickingAsync(id);
+                return Ok(order);
+            }
+            catch (Exception ex)
+            {
+                return BadRequest(new { message = ex.Message });
+            }
+        }
+
+        [HttpPost("{id}/complete-packing")]
+        public async Task<IActionResult> CompletePacking(int id)
+        {
+            try
+            {
+                var order = await _orderService.CompletePackingAsync(id);
+                return Ok(order);
+            }
+            catch (Exception ex)
+            {
+                return BadRequest(new { message = ex.Message });
+            }
+        }
+
+     
+        [HttpPost("{id}/create-shipment")]
+        public async Task<IActionResult> CreateShipment(int id)
+        {
+            try
+            {
+                var shipmentId = await _orderService.CreateShipmentAsync(id);
+                return Ok(new { shipmentId });
+            }
+            catch (Exception ex)
+            {
+                return BadRequest(new { message = ex.Message });
+            }
+        }
+
+        [HttpPost("{id}/mark-shipped/{shipmentId}")]
+        public async Task<IActionResult> MarkAsShipped(int id, int shipmentId)
+        {
+            try
+            {
+                var order = await _orderService.MarkAsShippedAsync(id, shipmentId);
+                return Ok(order);
+            }
+            catch (Exception ex)
+            {
+                return BadRequest(new { message = ex.Message });
+            }
+        }
+
+    
+        [HttpPost("{id}/confirm-delivery")]
+        public async Task<IActionResult> ConfirmDelivery(int id)
+        {
+            try
+            {
+                var order = await _orderService.ConfirmDeliveryAsync(id);
+                return Ok(order);
+            }
+            catch (Exception ex)
+            {
+                return BadRequest(new { message = ex.Message });
+            }
+        }
+
+        [HttpPost("{id}/delivery-failed")]
+        public async Task<IActionResult> DeliveryFailed(int id, [FromBody] DeliveryFailedRequest request)
+        {
+            try
+            {
+                var order = await _orderService.MarkDeliveryFailedAsync(id, request.Reason);
+                return Ok(order);
+            }
+            catch (Exception ex)
+            {
+                return BadRequest(new { message = ex.Message });
+            }
+        }
+
+    
+        [HttpPost("{id}/process-return")]
+        public async Task<IActionResult> ProcessReturn(int id, [FromBody] ProcessReturnRequest request)
+        {
+            try
+            {
+                var order = await _orderService.ProcessReturnAsync(id, request.ReturnedItems);
+                return Ok(order);
+            }
+            catch (Exception ex)
+            {
+                return BadRequest(new { message = ex.Message });
+            }
+        }
+
+        [HttpPost("{id}/restore-inventory")]
+        public async Task<IActionResult> RestoreInventory(int id, [FromBody] ProcessReturnRequest request)
+        {
+            try
+            {
+                var restored = await _orderService.RestoreInventoryForReturnAsync(id, request.ReturnedItems);
+                return Ok(new { success = restored });
+            }
+            catch (Exception ex)
+            {
+                return BadRequest(new { message = ex.Message });
+            }
+        }
+
+   
+        [HttpGet("{id}/workflow-status")]
+        public async Task<IActionResult> GetWorkflowStatus(int id)
+        {
+            try
+            {
+                var status = await _orderService.GetOrderWorkflowStatusAsync(id);
+                return Ok(new { workflowStatus = status });
+            }
+            catch (Exception ex)
+            {
+                return BadRequest(new { message = ex.Message });
+            }
+        }
+    }
+
+
+    public class UpdateOrderStatusDto
+    {
+        public string Status { get; set; } = string.Empty;
+    }
+
+    public class SelectWarehouseRequest
+    {
+        public string? CustomerAddress { get; set; }
+    }
+
+    public class DeliveryFailedRequest
+    {
+        public string Reason { get; set; } = string.Empty;
+    }
+
+    public class ProcessReturnRequest
+    {
+        public Dictionary<int, int> ReturnedItems { get; set; } = new();
     }
 }
