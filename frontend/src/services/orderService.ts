@@ -27,11 +27,19 @@ export interface OrderItem {
   totalPrice: number;
 }
 
+export interface InvoiceInfo {
+  bankAccount: string;
+  billingName: string;
+  billingEmail: string;
+  billingPhone?: string;
+}
+
 export interface CreateOrderDto {
   userId: number;
   shippingAddress?: string;
   billingAddress?: string;
   items: CreateOrderItemDto[];
+  invoice?: InvoiceInfo;
 }
 
 export interface CreateOrderItemDto {

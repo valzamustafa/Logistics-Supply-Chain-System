@@ -1,8 +1,8 @@
 import { useState, useEffect } from 'react';
 import { useAuth } from '../hooks/useAuth';
-import { orderService, Order, CreateOrderDto } from '../services/orderService';
+import { orderService, Order, CreateOrderDto, CreateOrderItemDto } from '../services/orderService';
 import { productService, Product } from '../services/productService';
-import { Plus, Search, AlertCircle } from 'lucide-react';
+import { Plus, Edit2, Trash2, Search, Filter, AlertCircle } from 'lucide-react';
 
 export function OrdersPage() {
   const { user } = useAuth();
@@ -184,6 +184,7 @@ export function OrdersPage() {
         </table>
       </div>
 
+  
       {showCreateModal && (
         <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
           <div className="bg-slate-800 rounded-lg p-6 w-full max-w-2xl max-h-[90vh] overflow-y-auto">

@@ -24,6 +24,44 @@ async function request<T>(
 
   if (!response.ok) {
     let errorMessage = `HTTP error! status: ${response.status}`;
+    try {
+      const errorData = await response.json();
+      errorMessage = errorData?.message || errorData?.title || errorMessage;
+    } catch {
+      try {
+        const text = await response.text();
+        if (text) errorMessage = text;
+      } catch {
+       
+      }
+    }
+    throw new Error(errorMessage);
+  }
+
+  if (response.status === 204) {
+    return {} as T;
+  }
+
+  return response.json();
+}
+
+async function requestBlob(
+  endpoint: string,
+  options: RequestInit = {}
+): Promise<Blob> {
+  const token = localStorage.getItem('token');
+  const headers: HeadersInit = {
+    ...(token && { 'Authorization': `Bearer ${token}` }),
+    ...options.headers,
+  };
+
+  const response = await fetch(`${API_BASE_URL}${endpoint}`, {
+    ...options,
+    headers,
+  });
+
+  if (!response.ok) {
+    let errorMessage = `HTTP error! status: ${response.status}`;
     const clone = response.clone();
     try {
       const errorData = await response.json();
@@ -38,11 +76,7 @@ async function request<T>(
     throw new Error(errorMessage);
   }
 
-  if (response.status === 204) {
-    return {} as T;
-  }
-
-  return response.json();
+  return response.blob();
 }
 
 export const api = {
@@ -52,4 +86,5 @@ export const api = {
   put: <T>(endpoint: string, data?: any) => 
     request<T>(endpoint, { method: 'PUT', body: data ? JSON.stringify(data) : undefined }),
   delete: <T>(endpoint: string) => request<T>(endpoint, { method: 'DELETE' }),
+  download: (endpoint: string) => requestBlob(endpoint),
 };

@@ -9,6 +9,12 @@ interface ProtectedLayoutProps {
   allowedRoles?: string[];
 }
 
+const rolePriority = ['Admin', 'Manager', 'Supplier', 'Driver', 'WarehouseStaff', 'Warehouse', 'User'];
+
+function getPrimaryRole(roles: string[] = []): string {
+  return roles.find((role) => rolePriority.includes(role)) || 'User';
+}
+
 function getDashboardPath(role: string): string {
   switch (role) {
     case 'Admin':
@@ -17,6 +23,8 @@ function getDashboardPath(role: string): string {
       return '/manager';
     case 'Driver':
       return '/driver';
+    case 'Supplier':
+      return '/supplier';
     case 'WarehouseStaff':
     case 'Warehouse':
       return '/warehouse';
@@ -32,7 +40,8 @@ export function ProtectedLayout({ children, allowedRoles }: ProtectedLayoutProps
   const publicRoutes: string[] = [];
   const userRoles = user?.roles ?? [];
   const hasRoleAccess = !allowedRoles || allowedRoles.length === 0 || userRoles.some(role => allowedRoles.includes(role));
-  const redirectPath = userRoles.length ? getDashboardPath(userRoles[0]) : '/login';
+  const primaryRole = getPrimaryRole(userRoles);
+  const redirectPath = userRoles.length ? getDashboardPath(primaryRole) : '/login';
 
   if (isLoading) {
     return (
@@ -44,6 +53,7 @@ export function ProtectedLayout({ children, allowedRoles }: ProtectedLayoutProps
       </div>
     );
   }
+
 
   if (!isAuthenticated && !publicRoutes.includes(location.pathname)) {
     return <Navigate to="/login" replace />;

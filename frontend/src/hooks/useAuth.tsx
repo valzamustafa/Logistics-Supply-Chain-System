@@ -9,6 +9,9 @@ interface User {
   roles: string[];
   isActive: boolean;
   lastActive?: string;
+  phone?: string;
+  shippingAddress?: string;
+  billingAddress?: string;
 }
 
 interface AuthContextType {
@@ -34,10 +37,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       
       if (storedToken && storedUser) {
         try {
+        
           const userData = await getCurrentUser(storedToken);
           setToken(storedToken);
           setUser(userData);
         } catch (error) {
+       
           console.error('Token validation failed:', error);
           localStorage.removeItem('token');
           localStorage.removeItem('user');
