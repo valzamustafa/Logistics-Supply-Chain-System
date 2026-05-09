@@ -6,12 +6,15 @@ export interface Shipment {
   orderId: number;
   driverId?: number;
   driverName?: string;
+  driverPhone?: string;
   vehicleId?: number;
   vehiclePlate?: string;
   status: string;
   estimatedDeliveryDate: string;
   actualDeliveryDate?: string;
   shippingAddress?: string;
+  currentLocation?: string;
+  lastLocationUpdate?: string;
   priority?: number;
   items: ShipmentItem[];
 }

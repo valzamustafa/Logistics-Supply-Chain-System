@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
-import { productService, Product, Category } from '../../services/productService';
+import { productService, Product } from '../../services/productService';
 import { warehouseStockService, WarehouseStock } from '../../services/warehouseStockService';
-import { useAuth } from '../../hooks/useAuth';
+import { supplierService } from '../../services/supplierService';
 import { Plus, Edit2, Trash2, Package, Building2, TrendingUp, TrendingDown, Eye } from 'lucide-react';
 
 interface ProductWithStock extends Product {
@@ -11,7 +11,6 @@ interface ProductWithStock extends Product {
 }
 
 export function SuppliersProductsPage() {
-  const { user } = useAuth();
   const [products, setProducts] = useState<ProductWithStock[]>([]);
   const [warehouseStocks, setWarehouseStocks] = useState<WarehouseStock[]>([]);
   const [loading, setLoading] = useState(true);
@@ -26,23 +25,35 @@ export function SuppliersProductsPage() {
     price: '',
     cost: '',
     categoryId: '',
-    isActive: true,
+    isActive: false,
   });
 
   const fetchData = async () => {
     try {
       setLoading(true);
-      const [productsData, stocksData] = await Promise.all([
-        productService.getAll(),
+      const dashboardData = await supplierService.getDashboard();
+      if (!dashboardData.supplierId || dashboardData.supplierId <= 0) {
+        setProducts([]);
+        setWarehouseStocks([]);
+        setError('No supplier profile is linked to this account. Ask an admin or manager to register your supplier profile.');
+        return;
+      }
+
+      const [supplierProductsData, productsData, stocksData] = await Promise.all([
+        supplierService.getProductsBySupplier(dashboardData.supplierId),
+        productService.getAll(true),
         warehouseStockService.getAll(),
       ]);
-      
-      const productsWithStock = productsData.map(product => ({
-        ...product,
-        stocks: stocksData.filter(s => s.productId === product.id),
-        totalStock: stocksData.filter(s => s.productId === product.id).reduce((sum, s) => sum + s.quantity, 0),
-        warehousesCount: stocksData.filter(s => s.productId === product.id).length
-      }));
+
+      const supplierProductIds = new Set(supplierProductsData.map((mapping) => mapping.productId));
+      const productsWithStock = productsData
+        .filter((product) => supplierProductIds.has(product.id))
+        .map(product => ({
+          ...product,
+          stocks: stocksData.filter(s => s.productId === product.id),
+          totalStock: stocksData.filter(s => s.productId === product.id).reduce((sum, s) => sum + s.quantity, 0),
+          warehousesCount: stocksData.filter(s => s.productId === product.id).length
+        }));
       
       setProducts(productsWithStock);
       setWarehouseStocks(stocksData);
@@ -66,20 +77,33 @@ export function SuppliersProductsPage() {
     }
 
     try {
-      await productService.create({
+      const dashboardData = await supplierService.getDashboard();
+      if (!dashboardData.supplierId || dashboardData.supplierId <= 0) {
+        setError('No supplier profile is linked to this account. Ask an admin or manager to register your supplier profile before adding products.');
+        return;
+      }
+
+      const createdProduct = await productService.create({
         name: formData.name,
         sku: formData.sku.toUpperCase(),
         description: formData.description || undefined,
         price: parseFloat(formData.price),
         cost: formData.cost ? parseFloat(formData.cost) : undefined,
         categoryId: parseInt(formData.categoryId) || 1,
-        isActive: formData.isActive,
+        isActive: false,
       });
+
+      await supplierService.addSupplierProduct(dashboardData.supplierId, {
+        productId: createdProduct.id,
+        supplierSKU: createdProduct.sku,
+      });
+
       await fetchData();
       setShowProductModal(false);
-      setFormData({ name: '', sku: '', description: '', price: '', cost: '', categoryId: '', isActive: true });
+      setFormData({ name: '', sku: '', description: '', price: '', cost: '', categoryId: '', isActive: false });
     } catch (err) {
-      setError('Failed to create product');
+      console.error(err);
+      setError(err instanceof Error ? err.message : 'Failed to create product');
     }
   };
 
@@ -119,7 +143,7 @@ export function SuppliersProductsPage() {
                 <p className="text-slate-400 text-sm">{product.sku}</p>
               </div>
               <span className={`px-2 py-1 rounded-full text-xs ${product.isActive ? 'bg-green-500/20 text-green-400' : 'bg-red-500/20 text-red-400'}`}>
-                {product.isActive ? 'Active' : 'Inactive'}
+                {product.isActive ? 'Active' : 'Pending approval'}
               </span>
             </div>
             
@@ -149,7 +173,7 @@ export function SuppliersProductsPage() {
         ))}
       </div>
 
-
+      {/* Add Product Modal */}
       {showProductModal && (
         <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
           <div className="bg-slate-800 rounded-xl border border-slate-700 w-96 p-6 space-y-4">
@@ -161,7 +185,9 @@ export function SuppliersProductsPage() {
               <input type="number" placeholder="Price" step="0.01" value={formData.price} onChange={(e) => setFormData({...formData, price: e.target.value})} className="bg-slate-700 border border-slate-600 rounded px-3 py-2 text-white" />
               <input type="number" placeholder="Cost" step="0.01" value={formData.cost} onChange={(e) => setFormData({...formData, cost: e.target.value})} className="bg-slate-700 border border-slate-600 rounded px-3 py-2 text-white" />
             </div>
-            <label className="flex items-center gap-2 text-slate-300"><input type="checkbox" checked={formData.isActive} onChange={(e) => setFormData({...formData, isActive: e.target.checked})} className="w-4 h-4" /> Active</label>
+            <div className="rounded-lg border border-cyan-500/30 bg-cyan-500/10 px-3 py-2 text-sm text-cyan-100">
+              Supplier products are saved as pending approval and stay hidden from other dashboards until activated.
+            </div>
             <div className="flex gap-2 pt-4">
               <button onClick={() => setShowProductModal(false)} className="flex-1 px-4 py-2 bg-slate-700 hover:bg-slate-600 text-white rounded-lg">Cancel</button>
               <button onClick={handleAddProduct} className="flex-1 px-4 py-2 bg-cyan-600 hover:bg-cyan-700 text-white rounded-lg">Create</button>
@@ -169,6 +195,7 @@ export function SuppliersProductsPage() {
           </div>
         </div>
       )}
+
 
       {showStockModal && selectedProduct && (
         <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">

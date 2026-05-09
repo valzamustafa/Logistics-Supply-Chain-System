@@ -99,6 +99,12 @@ export interface CreateSupplierOrderDto {
   items: CreateSupplierOrderItemDto[];
 }
 
+export interface CreateSupplierProductDto {
+  productId: number;
+  supplierSKU?: string;
+  leadTimeDays?: number;
+}
+
 export interface CreatePurchaseOrderDto {
   supplierId: number;
   warehouseId: number;
@@ -112,6 +118,14 @@ export interface CreateEmergencyPurchaseDto {
   quantity: number;
   unitPrice: number;
   reason?: string;
+}
+
+export interface SupplierProductDto {
+  id: number;
+  supplierId: number;
+  productId: number;
+  supplierSKU?: string | null;
+  leadTimeDays?: number | null;
 }
 
 export interface CreatePaymentDto {
@@ -144,9 +158,15 @@ export const supplierService = {
   getDashboard: () => api.get<SupplierDashboardDto>('/api/suppliers/dashboard/me'),
   getPendingRequests: () => api.get<SupplierRequestDto[]>('/api/suppliers/requests/pending'),
   getMyClaims: () => api.get<any>('/api/suppliers/debug/claims'),
+  getProductsBySupplier: (supplierId: number) => api.get<SupplierProductDto[]>(`/api/suppliers/${supplierId}/products`),
+  getAllSupplierProducts: () => api.get<SupplierProductDto[]>('/api/suppliers/all-products'),
+  addSupplierProduct: (supplierId: number, data: CreateSupplierProductDto) => api.post<SupplierProductDto>(`/api/suppliers/${supplierId}/products`, data),
   
   confirmShipment: (orderId: number, data: { actualDeliveryDate?: string | null; notes?: string }) =>
-    api.put(`/api/suppliers/orders/${orderId}/confirm-shipment`, data),
+    api.post<PurchaseOrderDto>(`/api/purchaseorders/${orderId}/confirm-shipment`, data),
+  
+  updatePurchaseOrderStatus: (orderId: number, data: { status: string; notes?: string }) =>
+    api.put<PurchaseOrderDto>(`/api/purchaseorders/${orderId}/status`, data),
   
   getInvoicePdf: async (orderId: number) => {
     const token = localStorage.getItem('token');
@@ -158,13 +178,13 @@ export const supplierService = {
   },
   
 createPayment: (orderId: number, data: CreatePaymentDto) =>
-  api.post<PaymentResponseDto>(`/api/suppliers/orders/${orderId}/payments`, data),
+    api.post<PaymentResponseDto>(`/api/suppliers/orders/${orderId}/payments`, data),
   
   createPurchaseOrder: (data: CreatePurchaseOrderDto) =>
-    api.post<any>('/api/purchaseorders', data),
+    api.post<PurchaseOrderDto>('/api/purchaseorders', data),
   
   createEmergencyPurchase: (data: CreateEmergencyPurchaseDto) =>
     api.post('/api/suppliers/emergency-purchases', data),
   
-  getAllPurchaseOrders: () => api.get<any[]>('/api/purchaseorders'),
+  getAllPurchaseOrders: () => api.get<PurchaseOrderDto[]>('/api/purchaseorders'),
 };

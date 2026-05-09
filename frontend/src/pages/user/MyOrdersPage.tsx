@@ -25,6 +25,7 @@ export function MyOrdersPage() {
       const data = await orderService.getByUser(user!.id);
       setOrders(data);
       
+    
       const shipmentsMap = new Map<number, Shipment>();
       for (const order of data) {
         try {
@@ -111,7 +112,6 @@ export function MyOrdersPage() {
     <div className="p-6">
       <h1 className="text-2xl font-bold text-white mb-6">My Orders</h1>
 
-      {/* Stats Cards */}
       <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-8">
         <div className="bg-slate-800 rounded-lg p-4 border border-slate-700">
           <div className="text-slate-400 text-sm">Total Orders</div>
@@ -137,7 +137,6 @@ export function MyOrdersPage() {
         </div>
       </div>
 
-   
       <div className="bg-slate-800 rounded-lg shadow overflow-hidden border border-slate-700">
         <div className="overflow-x-auto">
           <table className="min-w-full divide-y divide-slate-700">
@@ -216,6 +215,7 @@ export function MyOrdersPage() {
         </div>
       </div>
 
+  
       {showInvoice && selectedOrder && (
         <InvoiceModal
           order={selectedOrder}

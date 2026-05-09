@@ -19,7 +19,8 @@ export function ManagerDashboard() {
   const [selectedWarehouse, setSelectedWarehouse] = useState<number | null>(null);
   const [warehouseStats, setWarehouseStats] = useState<WarehouseStats | null>(null);
   const [searchWarehouse, setSearchWarehouse] = useState('');
- 
+  
+
   const [showWarehouseModal, setShowWarehouseModal] = useState(false);
   const [showZoneModal, setShowZoneModal] = useState(false);
   const [showStaffModal, setShowStaffModal] = useState(false);
@@ -28,6 +29,7 @@ export function ManagerDashboard() {
   const [selectedWarehouseForDetails, setSelectedWarehouseForDetails] = useState<Warehouse | null>(null);
   const [showInventoryModal, setShowInventoryModal] = useState(false);
   const [warehouseInventory, setWarehouseInventory] = useState<any[]>([]);
+  
 
   const [showAddProductModal, setShowAddProductModal] = useState(false);
   const [addProductWarehouseId, setAddProductWarehouseId] = useState<number | null>(null);
@@ -128,7 +130,7 @@ export function ManagerDashboard() {
     setWarehouses(data);
   };
 
-  
+
   const handleCreateWarehouse = async () => {
     if (!warehouseForm.name.trim()) {
       alert('Warehouse name is required');
@@ -200,6 +202,7 @@ export function ManagerDashboard() {
     }
   };
 
+
   const handleCreateZone = async () => {
     if (!selectedWarehouseForDetails) return;
     if (!zoneForm.zoneName.trim()) {
@@ -240,6 +243,7 @@ export function ManagerDashboard() {
       alert('Failed to delete zone');
     }
   };
+
 
   const handleAssignStaff = async () => {
     if (!selectedWarehouseForDetails) return;
@@ -381,6 +385,7 @@ export function ManagerDashboard() {
         </nav>
       </div>
 
+  
       {activeTab === 'overview' && (
         <div className="flex flex-col gap-8">
           <div className="grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-4">
@@ -467,7 +472,7 @@ export function ManagerDashboard() {
         </div>
       )}
 
-   
+  
       {activeTab === 'warehouses' && (
         <div className="rounded-2xl border border-slate-700 bg-slate-800/50 p-6 backdrop-blur">
           <div className="flex flex-col md:flex-row justify-between items-center mb-6 gap-4">
@@ -646,7 +651,7 @@ export function ManagerDashboard() {
         </div>
       )}
 
-      
+      {/* Inventory*/}
       {activeTab === 'inventory' && (
         <div className="rounded-2xl border border-slate-700 bg-slate-800/50 p-6 backdrop-blur">
           <div className="flex justify-between items-center mb-4 flex-wrap gap-4">
@@ -752,7 +757,7 @@ export function ManagerDashboard() {
         </div>
       )}
 
-  
+      {/* Low Stock Alert */}
       {activeTab === 'low-stock' && (
         <div className="rounded-2xl border border-slate-700 bg-slate-800/50 p-6 backdrop-blur">
           <h2 className="text-xl font-bold text-white mb-4">Low Stock Alerts</h2>
@@ -936,7 +941,7 @@ export function ManagerDashboard() {
                 </div>
               )}
 
-              {/* Zones Section */}
+         
               <div>
                 <div className="flex justify-between items-center mb-3">
                   <h3 className="text-lg font-semibold text-white flex items-center gap-2">
@@ -970,7 +975,7 @@ export function ManagerDashboard() {
                 )}
               </div>
 
-              {/* Staff Section */}
+        
               <div>
                 <div className="flex justify-between items-center mb-3">
                   <h3 className="text-lg font-semibold text-white flex items-center gap-2">
@@ -1008,6 +1013,7 @@ export function ManagerDashboard() {
         </div>
       )}
 
+    
       {showInventoryModal && selectedWarehouseForDetails && (
         <div className="fixed inset-0 bg-black/70 flex items-center justify-center z-50 p-4 overflow-y-auto">
           <div className="bg-slate-800 rounded-xl w-full max-w-4xl max-h-[90vh] overflow-y-auto border border-slate-700">
@@ -1144,6 +1150,7 @@ export function ManagerDashboard() {
         </div>
       )}
 
+
       {showStaffModal && (
         <div className="fixed inset-0 bg-black/70 flex items-center justify-center z-50 p-4">
           <div className="bg-slate-800 rounded-xl w-full max-w-md border border-slate-700">
@@ -1173,6 +1180,7 @@ export function ManagerDashboard() {
         </div>
       )}
 
+    
       {showDeleteConfirm && (
         <div className="fixed inset-0 bg-black/70 flex items-center justify-center z-50 p-4">
           <div className="bg-slate-800 rounded-xl w-full max-w-md border border-slate-700">

@@ -197,6 +197,23 @@ export function ShipmentsPage() {
                   </div>
                 )}
 
+                {(shipment.currentLocation || shipment.lastLocationUpdate) && (
+                  <div className="bg-slate-900/50 rounded p-3 mb-4 space-y-2">
+                    {shipment.currentLocation && (
+                      <div>
+                        <p className="text-slate-400 text-sm mb-1">Live Location</p>
+                        <p className="text-white">{shipment.currentLocation}</p>
+                      </div>
+                    )}
+                    {shipment.lastLocationUpdate && (
+                      <div>
+                        <p className="text-slate-400 text-sm mb-1">Last Update</p>
+                        <p className="text-white text-sm">{new Date(shipment.lastLocationUpdate).toLocaleString()}</p>
+                      </div>
+                    )}
+                  </div>
+                )}
+
                 {shipment.items && shipment.items.length > 0 && (
                   <div className="mb-4">
                     <p className="text-slate-400 text-sm mb-2">Items ({shipment.items.length})</p>

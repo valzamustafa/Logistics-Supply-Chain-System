@@ -1,4 +1,6 @@
-const API_BASE_URL = import.meta.env.VITE_API_BASE_URL ?? 'http://localhost:5000';
+import { getLocalStorageItem } from '../utils/localStorage';
+
+export const API_BASE_URL = import.meta.env.VITE_API_BASE_URL ?? 'http://localhost:5000';
 
 export interface ApiResponse<T> {
   data?: T;
@@ -9,17 +11,28 @@ async function request<T>(
   endpoint: string,
   options: RequestInit = {}
 ): Promise<T> {
-  const token = localStorage.getItem('token');
-  
-  const headers: HeadersInit = {
-    'Content-Type': 'application/json',
+  const token = getLocalStorageItem('token');
+  const isForm = options.body instanceof FormData;
+
+  const headers: Record<string, string> = {
     ...(token && { 'Authorization': `Bearer ${token}` }),
-    ...options.headers,
+    ...(options.headers as Record<string, string>),
   };
+
+  if (!isForm) {
+    headers['Content-Type'] = headers['Content-Type'] || 'application/json';
+  }
+
+  const body = options.body instanceof FormData
+    ? options.body
+    : options.body !== undefined && typeof options.body !== 'string'
+      ? JSON.stringify(options.body)
+      : options.body;
 
   const response = await fetch(`${API_BASE_URL}${endpoint}`, {
     ...options,
     headers,
+    body,
   });
 
   if (!response.ok) {
@@ -49,7 +62,7 @@ async function requestBlob(
   endpoint: string,
   options: RequestInit = {}
 ): Promise<Blob> {
-  const token = localStorage.getItem('token');
+  const token = getLocalStorageItem('token');
   const headers: HeadersInit = {
     ...(token && { 'Authorization': `Bearer ${token}` }),
     ...options.headers,
@@ -70,7 +83,7 @@ async function requestBlob(
       try {
         errorMessage = await clone.text() || errorMessage;
       } catch {
-        
+       
       }
     }
     throw new Error(errorMessage);
@@ -82,9 +95,9 @@ async function requestBlob(
 export const api = {
   get: <T>(endpoint: string) => request<T>(endpoint, { method: 'GET' }),
   post: <T>(endpoint: string, data?: any) => 
-    request<T>(endpoint, { method: 'POST', body: data ? JSON.stringify(data) : undefined }),
+    request<T>(endpoint, { method: 'POST', body: data }),
   put: <T>(endpoint: string, data?: any) => 
-    request<T>(endpoint, { method: 'PUT', body: data ? JSON.stringify(data) : undefined }),
+    request<T>(endpoint, { method: 'PUT', body: data }),
   delete: <T>(endpoint: string) => request<T>(endpoint, { method: 'DELETE' }),
   download: (endpoint: string) => requestBlob(endpoint),
 };

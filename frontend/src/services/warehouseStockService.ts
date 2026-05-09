@@ -1,4 +1,3 @@
-
 import { api } from './api';
 import { Product } from './productService';
 
@@ -10,6 +9,7 @@ export interface WarehouseStock {
   productName: string;
   productSku: string;
   quantity: number;
+  availableQuantity?: number;
   minimumStockLevel: number;
   maximumStockLevel: number;
   shelfLocation: string | null;

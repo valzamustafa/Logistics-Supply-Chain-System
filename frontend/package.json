@@ -1,3 +1,4 @@
+
 {
   "name": "logjistika-frontend",
   "private": true,
@@ -10,6 +11,8 @@
   },
   "dependencies": {
     "@microsoft/signalr": "^10.0.0",
+    "@stripe/react-stripe-js": "^2.9.0",
+    "@stripe/stripe-js": "^1.54.2",
     "lucide-react": "^1.8.0",
     "react": "^18.3.1",
     "react-dom": "^18.3.1",
