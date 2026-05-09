@@ -49,6 +49,7 @@ export interface StockMovementRecord {
 }
 
 export const inventoryService = {
+
   getAll: () => api.get<InventoryItem[]>('/api/inventory'),
   
   getById: (productId: number, warehouseId: number) =>
@@ -60,12 +61,15 @@ export const inventoryService = {
   updateStock: (data: UpdateStockRequest) =>
     api.post<InventoryItem>('/api/inventory/stock', data),
   
+
   getLowStockAlerts: () =>
     api.get<LowStockAlertItem[]>('/api/inventory/low-stock-alerts'),
+  
 
   getStockMovements: (productId: number, warehouseId: number) =>
     api.get<StockMovementRecord[]>(`/api/inventory/${productId}/${warehouseId}/movements`),
   
+
   associateProductWarehouse: (productId: number, warehouseId: number, data: {
     initialQuantity: number;
     reorderLevel?: number;

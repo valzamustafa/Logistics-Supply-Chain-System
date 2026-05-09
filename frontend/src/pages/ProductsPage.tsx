@@ -1,6 +1,9 @@
 import { useEffect, useState } from 'react';
 import { Plus, Edit2, Trash2, Search, ChevronDown, AlertCircle, X } from 'lucide-react';
-import { productService, Product, Category } from '../services/productService';
+import { useAuth } from '../hooks/useAuth';
+import { API_BASE_URL } from '../services/api';
+import { productService, Product, ProductImage, Category } from '../services/productService';
+import { supplierService } from '../services/supplierService';
 
 export function ProductsPage() {
   const [products, setProducts] = useState<Product[]>([]);
@@ -11,9 +14,19 @@ export function ProductsPage() {
   const [categories, setCategories] = useState<Category[]>([]);
   const [isEditing, setIsEditing] = useState(false);
   const [editingProduct, setEditingProduct] = useState<Product | null>(null);
+  const [imageFile, setImageFile] = useState<File | null>(null);
+  const [imagePreview, setImagePreview] = useState<string | null>(null);
+  const [existingImage, setExistingImage] = useState<ProductImage | null>(null);
+  const [removeImage, setRemoveImage] = useState(false);
   const [categoryFilter, setCategoryFilter] = useState<number | null>(null);
   const [statusFilter, setStatusFilter] = useState<'all' | 'active' | 'inactive'>('all');
   const [saveError, setSaveError] = useState<string | null>(null);
+
+  const { user, isLoading } = useAuth();
+  const isSupplier = !!user?.roles.includes('Supplier');
+  const showProductImages = !user?.roles.includes('User');
+  const getProductImageSrc = (imageUrl: string) =>
+    imageUrl.startsWith('/') ? `${API_BASE_URL}${imageUrl}` : imageUrl;
 
   const [formData, setFormData] = useState({
     name: '',
@@ -28,8 +41,17 @@ export function ProductsPage() {
   const fetchProducts = async () => {
     try {
       setLoading(true);
-      const data = await productService.getAll();
-      setProducts(data);
+      const allProducts = await productService.getAll();
+      if (user?.roles.includes('Supplier')) {
+        const dashboardData = await supplierService.getDashboard();
+        const supplierMappings = await supplierService.getProductsBySupplier(dashboardData.supplierId);
+        const supplierProductIds = new Set(supplierMappings.map((mapping) => mapping.productId));
+        setProducts(allProducts.filter((product) => supplierProductIds.has(product.id)));
+      } else {
+        const supplierMappings = await supplierService.getAllSupplierProducts();
+        const supplierProductIds = new Set(supplierMappings.map((mapping) => mapping.productId));
+        setProducts(allProducts.filter((product) => !supplierProductIds.has(product.id)));
+      }
       setError(null);
     } catch (err) {
       console.error('Failed to fetch products:', err);
@@ -55,13 +77,19 @@ export function ProductsPage() {
   };
 
   useEffect(() => {
-    fetchProducts();
+    if (!isLoading) {
+      fetchProducts();
+    }
     fetchCategories();
-  }, []);
+  }, [isLoading, user]);
 
   const handleAddClick = () => {
     setIsEditing(false);
     setEditingProduct(null);
+    setImageFile(null);
+    setImagePreview(null);
+    setExistingImage(null);
+    setRemoveImage(false);
     setSaveError(null);
     setFormData({
       name: '',
@@ -78,6 +106,7 @@ export function ProductsPage() {
   const handleEditClick = (product: Product) => {
     setIsEditing(true);
     setEditingProduct(product);
+    setSaveError(null);
     setFormData({
       name: product.name,
       sku: product.sku,
@@ -87,6 +116,11 @@ export function ProductsPage() {
       categoryId: product.categoryId.toString(),
       isActive: product.isActive,
     });
+    const primaryImage = product.images?.find((image) => image.isPrimary) ?? product.images?.[0] ?? null;
+    setExistingImage(primaryImage || null);
+    setImagePreview(primaryImage?.imageUrl ?? null);
+    setImageFile(null);
+    setRemoveImage(false);
     setShowModal(true);
   };
 
@@ -125,10 +159,22 @@ export function ProductsPage() {
         isActive: formData.isActive,
       };
 
+      let savedProduct: Product;
       if (isEditing && editingProduct) {
-        await productService.update(editingProduct.id, payload);
+        savedProduct = await productService.update(editingProduct.id, payload);
       } else {
-        await productService.create(payload);
+        savedProduct = await productService.create(payload);
+      }
+
+      if (removeImage && existingImage) {
+        await productService.deleteImage(savedProduct.id, existingImage.id);
+      }
+
+      if (imageFile) {
+        if (existingImage && !removeImage) {
+          await productService.deleteImage(savedProduct.id, existingImage.id);
+        }
+        await productService.uploadImage(savedProduct.id, imageFile);
       }
 
       await fetchProducts();
@@ -143,6 +189,10 @@ export function ProductsPage() {
         categoryId: categories.length > 0 ? categories[0].id.toString() : '',
         isActive: true,
       });
+      setImageFile(null);
+      setImagePreview(null);
+      setExistingImage(null);
+      setRemoveImage(false);
     } catch (err: any) {
       console.error('Failed to save product:', err);
       setSaveError(err?.message || 'Failed to save product');
@@ -163,7 +213,8 @@ export function ProductsPage() {
   const filteredProducts = products.filter((product) => {
     const matchesSearch = 
       product.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      product.sku.toLowerCase().includes(searchTerm.toLowerCase());
+      product.sku.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      (product.description?.toLowerCase().includes(searchTerm.toLowerCase()) ?? false);
     
     const matchesCategory = categoryFilter === null || product.categoryId === categoryFilter;
     
@@ -188,19 +239,25 @@ export function ProductsPage() {
 
   return (
     <div className="p-6 space-y-6 bg-slate-900 min-h-screen">
-      {/* Header */}
       <div className="flex justify-between items-center">
         <div>
           <h1 className="text-3xl font-bold text-white">Products</h1>
           <p className="text-slate-400 mt-1">Manage product catalog</p>
+          {isSupplier && (
+            <p className="text-sm text-amber-300 mt-2">
+              Supplier product creation is only available from your Supplier dashboard. Manage your products from the supplier section.
+            </p>
+          )}
         </div>
-        <button
-          onClick={handleAddClick}
-          className="px-4 py-2 bg-cyan-600 hover:bg-cyan-700 text-white rounded-lg flex items-center gap-2 transition"
-        >
-          <Plus className="w-4 h-4" />
-          Add Product
-        </button>
+        {!isSupplier && (
+          <button
+            onClick={handleAddClick}
+            className="px-4 py-2 bg-cyan-600 hover:bg-cyan-700 text-white rounded-lg flex items-center gap-2 transition"
+          >
+            <Plus className="w-4 h-4" />
+            Add Product
+          </button>
+        )}
       </div>
 
       {error && (
@@ -216,7 +273,7 @@ export function ProductsPage() {
         </div>
       )}
 
-    
+      {/* Search & Filter Bar */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
         <div className="relative">
           <Search className="absolute left-3 top-3 w-4 h-4 text-slate-400" />
@@ -230,6 +287,17 @@ export function ProductsPage() {
         </div>
 
         <select
+          value={categoryFilter ?? ''}
+          onChange={(e) => setCategoryFilter(e.target.value ? parseInt(e.target.value, 10) : null)}
+          className="bg-slate-800 border border-slate-700 rounded-lg px-4 py-2 text-white focus:border-cyan-500 outline-none"
+        >
+          <option value="">All Categories</option>
+          {categories.map((category) => (
+            <option key={category.id} value={category.id}>{category.name}</option>
+          ))}
+        </select>
+
+        <select
           value={statusFilter}
           onChange={(e) => setStatusFilter(e.target.value as any)}
           className="bg-slate-800 border border-slate-700 rounded-lg px-4 py-2 text-white focus:border-cyan-500 outline-none"
@@ -238,10 +306,6 @@ export function ProductsPage() {
           <option value="active">Active</option>
           <option value="inactive">Inactive</option>
         </select>
-
-        <>
-          <div />
-        </>
       </div>
 
       {/* Products Table */}
@@ -251,6 +315,10 @@ export function ProductsPage() {
             <thead>
               <tr className="bg-slate-800 border-b border-slate-700">
                 <th className="px-6 py-3 text-left text-xs font-semibold text-slate-300">Product</th>
+                {showProductImages && (
+                  <th className="px-6 py-3 text-left text-xs font-semibold text-slate-300">Image</th>
+                )}
+                <th className="px-6 py-3 text-left text-xs font-semibold text-slate-300">Category</th>
                 <th className="px-6 py-3 text-left text-xs font-semibold text-slate-300">SKU</th>
                 <th className="px-6 py-3 text-right text-xs font-semibold text-slate-300">Price</th>
                 <th className="px-6 py-3 text-right text-xs font-semibold text-slate-300">Cost</th>
@@ -261,7 +329,7 @@ export function ProductsPage() {
             <tbody>
               {filteredProducts.length === 0 ? (
                 <tr>
-                  <td colSpan={6} className="px-6 py-8 text-center text-slate-400">
+                  <td colSpan={showProductImages ? 8 : 7} className="px-6 py-8 text-center text-slate-400">
                     No products found
                   </td>
                 </tr>
@@ -276,6 +344,22 @@ export function ProductsPage() {
                         )}
                       </div>
                     </td>
+                    {showProductImages && (
+                      <td className="px-6 py-4">
+                        {product.images && product.images.length > 0 ? (
+                          <img
+                            src={getProductImageSrc(product.images[0].imageUrl)}
+                            alt={product.name}
+                            className="h-12 w-12 rounded-lg object-cover"
+                          />
+                        ) : (
+                          <div className="h-12 w-12 rounded-lg bg-slate-700 flex items-center justify-center text-slate-400 text-sm">
+                            No Image
+                          </div>
+                        )}
+                      </td>
+                    )}
+                    <td className="px-6 py-4 text-slate-300">{product.categoryName || categories.find((category) => category.id === product.categoryId)?.name || 'Uncategorized'}</td>
                     <td className="px-6 py-4 text-slate-300">{product.sku}</td>
                     <td className="px-6 py-4 text-right text-white font-medium">${product.price.toFixed(2)}</td>
                     <td className="px-6 py-4 text-right text-slate-400">${(product.cost || 0).toFixed(2)}</td>
@@ -383,6 +467,44 @@ export function ProductsPage() {
                   <option value="1">General</option>
                 )}
               </select>
+            </div>
+
+            <div className="space-y-3">
+              <label className="block text-sm text-slate-300">Product Image</label>
+              {imagePreview ? (
+                <div className="flex items-center gap-3">
+                  <img
+                    src={imagePreview}
+                    alt="Product preview"
+                    className="h-20 w-20 rounded-xl object-cover border border-slate-600"
+                  />
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setImageFile(null);
+                      setImagePreview(null);
+                      setRemoveImage(true);
+                    }}
+                    className="px-3 py-2 rounded-lg bg-red-500 text-white text-sm hover:bg-red-600 transition"
+                  >
+                    Remove image
+                  </button>
+                </div>
+              ) : (
+                <input
+                  type="file"
+                  accept="image/*"
+                  onChange={(e) => {
+                    const file = e.target.files?.[0] ?? null;
+                    setImageFile(file);
+                    setRemoveImage(false);
+                    if (file) {
+                      setImagePreview(URL.createObjectURL(file));
+                    }
+                  }}
+                  className="w-full bg-slate-700 border border-slate-600 rounded px-3 py-2 text-white focus:border-cyan-500 outline-none"
+                />
+              )}
             </div>
 
             <label className="flex items-center gap-2 text-slate-300">

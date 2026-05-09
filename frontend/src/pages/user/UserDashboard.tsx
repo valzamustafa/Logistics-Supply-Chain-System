@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from 'react';
 import { useAuth } from '../../hooks/useAuth';
 import { orderService, Order } from '../../services/orderService';
@@ -95,7 +94,6 @@ export function UserDashboard() {
         <p className="text-slate-400">Welcome back, {user?.firstName || user?.email?.split('@')[0]}!</p>
       </div>
 
-      {/* Stats Cards */}
       <div className="grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-4">
         <div className="rounded-2xl border border-slate-700 bg-slate-800/50 p-6">
           <div className="flex items-center justify-between">
@@ -135,7 +133,7 @@ export function UserDashboard() {
         </div>
       </div>
 
-      {/* Recent Orders Section */}
+    
       <div className="rounded-2xl border border-slate-700 bg-slate-800/50 p-6 backdrop-blur">
         <div className="flex justify-between items-center mb-4">
           <h2 className="text-xl font-bold text-white">Recent Orders</h2>
@@ -177,6 +175,53 @@ export function UserDashboard() {
             </div>
           )}
         </div>
+      </div>
+
+ 
+      <div className="rounded-2xl border border-slate-700 bg-slate-800/50 p-6 backdrop-blur">
+        <div className="flex items-center justify-between mb-4">
+          <div>
+            <h2 className="text-xl font-bold text-white">Track Your Shipment</h2>
+            <p className="text-slate-400 text-sm">Follow your warehouse driver and shipment status in real time.</p>
+          </div>
+          <button
+            onClick={() => window.location.href = '/track-shipment'}
+            className="text-cyan-400 text-sm hover:text-cyan-300 transition"
+          >
+            Go to Tracking →
+          </button>
+        </div>
+
+        {shipments.length === 0 ? (
+          <div className="rounded-2xl border border-slate-700 bg-slate-900/30 p-6 text-slate-400">
+            No active shipments yet. Your order will appear here once it is assigned to a warehouse and driver.
+          </div>
+        ) : (
+          <div className="grid gap-4 md:grid-cols-2">
+            {shipments.slice(0, 2).map((shipment) => (
+              <div key={shipment.id} className="rounded-2xl border border-slate-700 bg-slate-900/30 p-4">
+                <div className="flex items-center justify-between gap-3 mb-3">
+                  <div>
+                    <p className="text-sm text-slate-400">Shipment</p>
+                    <p className="text-white font-semibold">{shipment.trackingNumber}</p>
+                  </div>
+                  <span className={`rounded-full px-3 py-1 text-xs font-semibold ${getStatusColor(shipment.status || '')}`}>
+                    {shipment.status}
+                  </span>
+                </div>
+                <p className="text-sm text-slate-400 mb-2">Driver: <span className="text-white">{shipment.driverName || 'Pending assignment'}</span></p>
+                <p className="text-sm text-slate-400 mb-2">Order ID: <span className="text-white">{shipment.orderId}</span></p>
+                <p className="text-sm text-slate-400 mb-4">ETA: <span className="text-white">{new Date(shipment.estimatedDeliveryDate).toLocaleDateString()}</span></p>
+                <button
+                  onClick={() => window.location.href = `/track-shipment/${shipment.id}`}
+                  className="w-full rounded-lg bg-cyan-500 px-4 py-2 text-sm font-semibold text-slate-900 hover:bg-cyan-400 transition"
+                >
+                  Track this shipment
+                </button>
+              </div>
+            ))}
+          </div>
+        )}
       </div>
 
       {showInvoice && selectedOrder && (

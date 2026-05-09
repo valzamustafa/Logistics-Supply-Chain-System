@@ -1,3 +1,4 @@
+
 import { useState, useEffect, useRef } from 'react';
 import { useAuth } from '../../hooks/useAuth';
 import { driverService, DriverShipment, DriverStats, DriverSchedule } from '../../services/driverService';
@@ -30,9 +31,11 @@ export function DriverDashboard() {
   const [driverId, setDriverId] = useState<number | null>(null);
   const [trackingLocation, setTrackingLocation] = useState<{ lat: number; lng: number; address: string } | null>(null);
   const [isTrackingLive, setIsTrackingLive] = useState(false);
+  const [trackingError, setTrackingError] = useState<string | null>(null);
   const [isOnline, setIsOnline] = useState(navigator.onLine);
   const [syncStatus, setSyncStatus] = useState<'synced' | 'syncing' | 'offline'>('synced');
   const watchIdRef = useRef<number | null>(null);
+
 
   useEffect(() => {
     const handleOnline = () => {
@@ -56,23 +59,28 @@ export function DriverDashboard() {
 
   const syncOfflineLocations = async () => {
     const offlineLocations = localStorage.getItem('offline_locations');
-    if (offlineLocations && selectedShipmentId) {
+    if (offlineLocations) {
       const locations = JSON.parse(offlineLocations);
       for (const loc of locations) {
+        if (!loc.shipmentId) continue;
         try {
-          await driverService.updateLocation(selectedShipmentId, loc);
+          await driverService.updateLocation(loc.shipmentId, {
+            lat: loc.lat,
+            lng: loc.lng,
+            timestamp: loc.timestamp,
+          });
         } catch (e) {
-          console.error('Failed to sync location:', e);
+          console.error('Failed to sync location for shipment', loc.shipmentId, e);
         }
       }
       localStorage.removeItem('offline_locations');
     }
   };
 
-  const saveLocationOffline = (location: any) => {
+  const saveLocationOffline = (location: any, shipmentId?: string) => {
     const existing = localStorage.getItem('offline_locations');
     const locations = existing ? JSON.parse(existing) : [];
-    locations.push(location);
+    locations.push({ shipmentId: shipmentId ?? selectedShipmentId, ...location });
     localStorage.setItem('offline_locations', JSON.stringify(locations));
   };
 
@@ -98,21 +106,75 @@ export function DriverDashboard() {
         },
         (error) => {
           console.error('Geolocation error:', error);
+          setTrackingError(error.message || 'Unable to read current location');
         }
       );
+    } else {
+      setTrackingError('Geolocation is not supported by this browser.');
     }
   };
 
-  const startLiveTracking = () => {
-    if (!selectedShipmentId) return;
-    
+  const sendTrackedLocation = async (shipmentIdToUse: string, locationData: { lat: number; lng: number; timestamp: string }) => {
+    setTrackingError(null);
+    setTrackingLocation({
+      lat: locationData.lat,
+      lng: locationData.lng,
+      address: 'Live Location'
+    });
+
+    if (!isOnline) {
+      saveLocationOffline(locationData, shipmentIdToUse);
+      setSyncStatus('offline');
+      return;
+    }
+
+    try {
+      setSyncStatus('syncing');
+      await driverService.updateLocation(shipmentIdToUse, locationData);
+      setSyncStatus('synced');
+    } catch (error) {
+      console.error('Failed to update location:', error);
+      saveLocationOffline(locationData, shipmentIdToUse);
+      setSyncStatus('offline');
+    }
+  };
+
+  const startLiveTracking = (shipmentIdParam?: string) => {
+    const shipmentIdToUse = shipmentIdParam || selectedShipmentId;
+    if (!shipmentIdToUse) {
+      setTrackingError('No shipment selected for live tracking.');
+      return;
+    }
+
+    if (!navigator.geolocation) {
+      setTrackingError('Geolocation is not supported by this browser.');
+      return;
+    }
+
+    setTrackingError(null);
     setIsTrackingLive(true);
     setSyncStatus('synced');
-    
+
     if (watchIdRef.current) {
       navigator.geolocation.clearWatch(watchIdRef.current);
     }
-    
+
+    navigator.geolocation.getCurrentPosition(
+      async (position) => {
+        const initialLocation = {
+          lat: position.coords.latitude,
+          lng: position.coords.longitude,
+          timestamp: new Date().toISOString(),
+        };
+        await sendTrackedLocation(shipmentIdToUse, initialLocation);
+      },
+      (error) => {
+        console.error('Geolocation error:', error);
+        setTrackingError(error.message || 'Unable to read current location');
+      },
+      { enableHighAccuracy: true, timeout: 5000 }
+    );
+
     watchIdRef.current = navigator.geolocation.watchPosition(
       async (position) => {
         const locationData = {
@@ -120,29 +182,12 @@ export function DriverDashboard() {
           lng: position.coords.longitude,
           timestamp: new Date().toISOString()
         };
-        
-        setTrackingLocation({
-          lat: position.coords.latitude,
-          lng: position.coords.longitude,
-          address: 'Live Location'
-        });
-        
-        if (isOnline) {
-          try {
-            setSyncStatus('syncing');
-            await driverService.updateLocation(selectedShipmentId!, locationData);
-            setSyncStatus('synced');
-          } catch (error) {
-            console.error('Failed to update location:', error);
-            saveLocationOffline(locationData);
-            setSyncStatus('offline');
-          }
-        } else {
-          saveLocationOffline(locationData);
-          setSyncStatus('offline');
-        }
+        await sendTrackedLocation(shipmentIdToUse, locationData);
       },
-      (error) => console.error('Tracking error:', error),
+      (error) => {
+        console.error('Tracking error:', error);
+        setTrackingError(error.message || 'Live tracking failed.');
+      },
       { enableHighAccuracy: true, timeout: 5000 }
     );
   };
@@ -154,6 +199,18 @@ export function DriverDashboard() {
     }
     setIsTrackingLive(false);
   };
+
+  useEffect(() => {
+    if (selectedShipment?.status === 'In Transit') {
+      if (selectedShipment.id !== selectedShipmentId) {
+        setSelectedShipmentId(selectedShipment.id);
+      }
+
+      if (!isTrackingLive) {
+        startLiveTracking(selectedShipment.id);
+      }
+    }
+  }, [selectedShipment, selectedShipmentId, isTrackingLive]);
 
   const loadAllData = async () => {
     setLoading(true);
@@ -172,6 +229,7 @@ export function DriverDashboard() {
       setProfile(profileData);
       if (shipmentsData.length > 0 && !selectedShipment) {
         setSelectedShipment(shipmentsData[0]);
+        setSelectedShipmentId(shipmentsData[0].id);
       }
     } catch (error) {
       console.error('Failed to load driver data:', error);
@@ -193,12 +251,14 @@ export function DriverDashboard() {
     setUpdating(true);
     try {
       await driverShipmentService.startDelivery(shipmentId);
+      setSelectedShipmentId(shipmentId);
+      
       await driverShipmentService.updateStatus(shipmentId, {
         status: 'In Transit',
         location: trackingLocation ? `${trackingLocation.lat},${trackingLocation.lng}` : 'Warehouse',
         notes: 'Driver started delivery'
       });
-      startLiveTracking();
+      startLiveTracking(shipmentId);
       await loadAllData();
       alert('Delivery started! Live tracking is now active. Supplier has been notified.');
     } catch (error) {
@@ -206,6 +266,36 @@ export function DriverDashboard() {
       alert('Failed to start delivery');
     } finally {
       setUpdating(false);
+    }
+  };
+
+  const sendCurrentLocationNow = async () => {
+    if (!selectedShipmentId || !trackingLocation) {
+      return;
+    }
+
+    const locationData = {
+      lat: trackingLocation.lat,
+      lng: trackingLocation.lng,
+      timestamp: new Date().toISOString(),
+    };
+
+    if (isOnline) {
+      setSyncStatus('syncing');
+      try {
+        await driverService.updateLocation(selectedShipmentId, locationData);
+        setSyncStatus('synced');
+        alert('Current location sent successfully.');
+      } catch (error) {
+        console.error('Failed to send current location:', error);
+        saveLocationOffline(locationData, selectedShipmentId ?? undefined);
+        setSyncStatus('offline');
+        alert('Unable to send location now. It has been queued for sync.');
+      }
+    } else {
+      saveLocationOffline(locationData, selectedShipmentId ?? undefined);
+      setSyncStatus('offline');
+      alert('Offline mode: current location queued to sync when online.');
     }
   };
 
@@ -230,6 +320,7 @@ export function DriverDashboard() {
     setUpdating(true);
     try {
       await driverShipmentService.completeDelivery(shipmentId, deliveryProof);
+     
       await driverShipmentService.updateStatus(shipmentId, {
         status: 'Delivered',
         location: trackingLocation ? `${trackingLocation.lat},${trackingLocation.lng}` : 'Customer Location',
@@ -245,6 +336,29 @@ export function DriverDashboard() {
     } catch (error) {
       console.error('Failed to complete delivery:', error);
       alert('Failed to complete delivery');
+    } finally {
+      setUpdating(false);
+    }
+  };
+
+  const confirmAndStartShipment = async (shipmentId: string) => {
+    setUpdating(true);
+    try {
+    
+      await driverShipmentService.updateStatus(shipmentId, {
+        status: 'In Transit',
+        location: trackingLocation ? `${trackingLocation.lat},${trackingLocation.lng}` : 'Warehouse',
+        notes: 'Driver started delivery'
+      });
+      
+     
+      startLiveTracking(shipmentId);
+      
+      await loadAllData();
+      alert('Shipment confirmed and started! Customer has been notified.');
+    } catch (error) {
+      console.error('Failed to start shipment:', error);
+      alert('Failed to start shipment');
     } finally {
       setUpdating(false);
     }
@@ -268,6 +382,20 @@ export function DriverDashboard() {
     }
   };
 
+  const getDriverRouteUrl = () => {
+    const destination = selectedShipment?.deliveryLocation || selectedShipment?.shippingAddress || selectedShipment?.pickupLocation || '';
+    const origin = trackingLocation ? `${trackingLocation.lat},${trackingLocation.lng}` : '';
+    const encodedDestination = encodeURIComponent(destination);
+
+    if (origin && destination) {
+      return `https://www.google.com/maps/dir/?api=1&origin=${origin}&destination=${encodedDestination}`;
+    }
+    if (destination) {
+      return `https://www.google.com/maps?q=${encodedDestination}`;
+    }
+    return 'https://www.google.com/maps';
+  };
+
   const statsCards = [
     { label: "Today's Deliveries", value: stats.todaysDeliveries.toString(), icon: '🚚', color: 'from-cyan-400 to-blue-500' },
     { label: 'Completed', value: stats.completedDeliveries.toString(), icon: '✅', color: 'from-green-400 to-emerald-500' },
@@ -276,6 +404,7 @@ export function DriverDashboard() {
     { label: 'On-Time Rate', value: `${stats.onTimeRate}%`, icon: '⏱️', color: 'from-blue-400 to-cyan-500' },
     { label: 'Avg Rating', value: `${stats.averageRating} ⭐`, icon: '⭐', color: 'from-yellow-400 to-amber-500' },
   ];
+
 
   const availableShipments = shipments.filter(s => 
     isAvailable ? true : s.driverId === driverId
@@ -294,12 +423,14 @@ export function DriverDashboard() {
 
   return (
     <div className="flex flex-col gap-8 p-6 bg-slate-900 min-h-screen">
+     
       <div className="flex justify-between items-center">
         <div>
           <h1 className="text-3xl font-bold text-white mb-2">Driver Dashboard</h1>
           <p className="text-slate-400">Welcome back, {profile?.firstName || user?.firstName} {profile?.lastName || user?.lastName}</p>
         </div>
         <div className="flex items-center gap-4">
+       
           <div className={`flex items-center gap-2 px-3 py-1 rounded-full text-xs ${
             isOnline ? 'bg-green-500/20 text-green-400' : 'bg-red-500/20 text-red-400'
           }`}>
@@ -336,7 +467,7 @@ export function DriverDashboard() {
         </div>
       </div>
 
-      {/* Stats Cards  */}
+   
       <div className="grid grid-cols-1 gap-4 md:grid-cols-3 lg:grid-cols-6">
         {statsCards.map((stat) => (
           <div key={stat.label} className="rounded-2xl border border-slate-700 bg-slate-800/50 p-4 backdrop-blur">
@@ -365,7 +496,10 @@ export function DriverDashboard() {
             {shipments.map((shipment) => (
               <div
                 key={shipment.id}
-                onClick={() => setSelectedShipment(shipment)}
+                onClick={() => {
+                  setSelectedShipment(shipment);
+                  setSelectedShipmentId(shipment.id);
+                }}
                 className={`cursor-pointer rounded-xl border p-4 transition ${
                   selectedShipment?.id === shipment.id
                     ? 'border-cyan-500 bg-slate-700/50'
@@ -465,7 +599,7 @@ export function DriverDashboard() {
                 </div>
               </div>
 
-              <div className="flex gap-3 mt-6">
+              <div className="flex flex-col gap-3 mt-6 lg:flex-row">
                 {selectedShipment.status === 'Pending' && (
                   <button
                     onClick={() => startDelivery(selectedShipment.id)}
@@ -474,6 +608,15 @@ export function DriverDashboard() {
                   >
                     <Truck className="w-4 h-4" />
                     {updating ? 'Processing...' : 'Start Delivery'}
+                  </button>
+                )}
+                {selectedShipment.status === 'In Transit' && !isTrackingLive && (
+                  <button
+                    onClick={() => startLiveTracking(selectedShipment.id)}
+                    className="flex-1 rounded-lg bg-cyan-500 px-4 py-2 text-white font-medium hover:bg-cyan-400 transition flex items-center justify-center gap-2"
+                  >
+                    <RefreshCw className="w-4 h-4" />
+                    Start GPS Tracking
                   </button>
                 )}
                 {selectedShipment.status === 'In Transit' && (
@@ -489,10 +632,36 @@ export function DriverDashboard() {
                     {updating ? 'Processing...' : 'Complete Delivery'}
                   </button>
                 )}
-                <button className="flex-1 rounded-lg bg-slate-700 px-4 py-2 text-white font-medium hover:bg-slate-600 transition flex items-center justify-center gap-2">
+                <a
+                  href={getDriverRouteUrl()}
+                  target="_blank"
+                  rel="noreferrer"
+                  className="flex-1 rounded-lg bg-slate-700 px-4 py-2 text-white font-medium hover:bg-slate-600 transition flex items-center justify-center gap-2"
+                >
                   <Navigation className="w-4 h-4" />
                   View Route
-                </button>
+                </a>
+                {selectedShipment.status === 'In Transit' && (
+                  <button
+                    onClick={sendCurrentLocationNow}
+                    disabled={!trackingLocation || updating}
+                    className="flex-1 rounded-lg bg-cyan-500 px-4 py-2 text-white font-medium hover:bg-cyan-400 transition disabled:opacity-50 flex items-center justify-center gap-2"
+                  >
+                    <RefreshCw className="w-4 h-4" />
+                    Send Current Location
+                  </button>
+                )}
+              </div>
+              <div className="mt-3 flex flex-col gap-2 text-sm">
+                <div className="flex flex-wrap items-center gap-3">
+                  <span className={`rounded-full px-3 py-1 ${syncStatus === 'synced' ? 'bg-emerald-500/10 text-emerald-300' : syncStatus === 'syncing' ? 'bg-blue-500/10 text-blue-300' : 'bg-yellow-500/10 text-amber-300'}`}>
+                    {syncStatus === 'synced' ? 'Location synced' : syncStatus === 'syncing' ? 'Sending location...' : 'Offline queue'}
+                  </span>
+                  <span className="text-slate-400">Network: {isOnline ? 'Online' : 'Offline'}</span>
+                </div>
+                {trackingError && (
+                  <p className="text-amber-300 text-sm">GPS issue: {trackingError}</p>
+                )}
               </div>
 
               {selectedShipment.items && selectedShipment.items.length > 0 && (
@@ -541,7 +710,7 @@ export function DriverDashboard() {
         </div>
       </div>
 
-      {/* Delivery Proof Modal */}
+
       {showProofModal && (
         <div className="fixed inset-0 bg-black/70 flex items-center justify-center z-50" onClick={() => setShowProofModal(false)}>
           <div className="bg-slate-800 rounded-2xl p-6 w-[450px] border border-slate-700" onClick={(e) => e.stopPropagation()}>
@@ -580,7 +749,7 @@ export function DriverDashboard() {
         </div>
       )}
 
-      {/* Profile Modal */}
+     
       {showProfileModal && profile && (
         <div className="fixed inset-0 bg-black/70 flex items-center justify-center z-50" onClick={() => setShowProfileModal(false)}>
           <div className="bg-slate-800 rounded-2xl p-6 w-[450px] border border-slate-700" onClick={(e) => e.stopPropagation()}>

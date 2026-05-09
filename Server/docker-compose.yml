@@ -5,6 +5,7 @@ networks:
 volumes:
   mssql-data:
   mongodb-data:
+  product-service-wwwroot:
 
 services:
   mssql:
@@ -79,6 +80,8 @@ services:
       - Jwt__Audience=LogjistikaClients
     ports:
       - "5005:80"
+    volumes:
+      - product-service-wwwroot:/app/wwwroot
     networks:
       - logistics-network
     restart: unless-stopped
@@ -97,6 +100,10 @@ services:
       - Jwt__Issuer=Logjistika
       - Jwt__Audience=LogjistikaClients
       - Services__InventoryService=http://inventory-service:80
+      - Services__WarehouseService=http://warehouse-service:80
+      - Services__ShipmentService=http://shipment-service:80
+      - Stripe__SecretKey=${STRIPE_SECRET_KEY}
+      - Stripe__PublishableKey=${STRIPE_PUBLISHABLE_KEY}
     ports:
       - "5002:80"
     networks:

@@ -10,6 +10,7 @@ import { UserDashboard } from './pages/user/UserDashboard';
 import { CreateOrderPage } from './pages/user/CreateOrderPage';
 import { MyOrdersPage } from './pages/user/MyOrdersPage';
 import { SupplierDashboard } from './pages/supplier/SupplierDashboard';
+import { SuppliersProductsPage } from './pages/supplier/SuppliersProductsPage';
 import { TrackingPage } from './pages/TrackingPage';
 import { OrdersPage } from './pages/OrdersPage';
 import { ProductsPage } from './pages/ProductsPage';
@@ -27,8 +28,10 @@ import { CartProvider } from './hooks/useCart';
 function AppContent() {
   const { user, isLoading } = useAuth();
   
+
   const rolePriority = ['Admin', 'Manager', 'Supplier', 'Driver', 'WarehouseStaff', 'Warehouse', 'User'];
   const userRole = user?.roles?.find((role) => rolePriority.includes(role)) || 'User';
+
 
   if (isLoading) {
     return (
@@ -57,11 +60,11 @@ function AppContent() {
 
   return (
     <Routes>
-      {/* Public Routes  */}
+
       <Route path="/login" element={<LoginPage />} />
       <Route path="/register" element={<RegisterPage />} />
       
-      {/* Dashboard Routes  */}
+   
       <Route path="/admin" element={<ProtectedLayout allowedRoles={['Admin']}><AdminDashboard /></ProtectedLayout>} />
       <Route path="/manager" element={<ProtectedLayout allowedRoles={['Manager']}><ManagerDashboard /></ProtectedLayout>} />
       <Route path="/driver" element={<ProtectedLayout allowedRoles={['Driver']}><DriverDashboard /></ProtectedLayout>} />
@@ -69,30 +72,32 @@ function AppContent() {
       <Route path="/warehouse" element={<ProtectedLayout allowedRoles={['WarehouseStaff', 'Warehouse']}><WarehouseDashboard /></ProtectedLayout>} />
       <Route path="/dashboard" element={<ProtectedLayout allowedRoles={['User']}><UserDashboard /></ProtectedLayout>} />
       
-      {/* User Specific Routes */}
+  
       <Route path="/create-order" element={<ProtectedLayout allowedRoles={['User']}><CreateOrderPage /></ProtectedLayout>} />
       <Route path="/my-orders" element={<ProtectedLayout allowedRoles={['User']}><MyOrdersPage /></ProtectedLayout>} />
       <Route path="/track-shipment/:id?" element={<ProtectedLayout allowedRoles={['User']}><TrackShipment /></ProtectedLayout>} />
       
-      {/* Feature Routes*/}
+     
       <Route path="/tracking" element={<ProtectedLayout allowedRoles={['Admin', 'Manager', 'User', 'Driver']}><TrackingPage /></ProtectedLayout>} />
       <Route path="/orders" element={<ProtectedLayout allowedRoles={['Admin', 'Manager']}><OrdersPage /></ProtectedLayout>} />
       <Route path="/products" element={<ProtectedLayout allowedRoles={['Admin', 'Manager', 'User', 'WarehouseStaff', 'Warehouse', 'Supplier']}><ProductsPage /></ProtectedLayout>} />
+      <Route path="/supplier/products" element={<ProtectedLayout allowedRoles={['Supplier']}><SuppliersProductsPage /></ProtectedLayout>} />
       <Route path="/inventory" element={<ProtectedLayout allowedRoles={['Admin', 'Manager', 'WarehouseStaff', 'Warehouse']}><InventoryPage /></ProtectedLayout>} />
       <Route path="/shipments" element={<ProtectedLayout allowedRoles={['Admin', 'Manager', 'Driver']}><ShipmentsPage /></ProtectedLayout>} />
       <Route path="/reports" element={<ProtectedLayout allowedRoles={['Admin', 'Manager']}><ReportsPage /></ProtectedLayout>} />
       <Route path="/suppliers" element={<ProtectedLayout allowedRoles={['Admin', 'Manager', 'WarehouseStaff', 'Warehouse']}><SuppliersPage /></ProtectedLayout>} />
       
-      {/* Admin Only Routes */}
+
       <Route path="/admin/users" element={<ProtectedLayout allowedRoles={['Admin']}><UsersPage /></ProtectedLayout>} />
       <Route path="/admin/roles" element={<ProtectedLayout allowedRoles={['Admin']}><RolesPage /></ProtectedLayout>} />
       
-      {/* Manager Only Routes */}
+   
       <Route path="/warehouses" element={<ProtectedLayout allowedRoles={['Admin', 'Manager']}><WarehouseManagement /></ProtectedLayout>} />
+      
       
       <Route path="/" element={<Navigate to={getDashboardPath()} replace />} />
       
-
+    
       <Route path="*" element={<Navigate to={getDashboardPath()} replace />} />
     </Routes>
   );

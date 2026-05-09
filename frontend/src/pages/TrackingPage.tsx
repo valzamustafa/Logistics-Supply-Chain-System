@@ -1,25 +1,80 @@
 import { useState, useEffect } from 'react';
+import { useAuth } from '../hooks/useAuth';
 import { shipmentService, Shipment } from '../services/shipmentService';
-import { Truck, MapPin, Calendar, User, AlertCircle } from 'lucide-react';
+import { orderService } from '../services/orderService';
+import { driverService } from '../services/driverService';
+import { Truck, MapPin, Calendar, User, AlertCircle, RefreshCcw } from 'lucide-react';
+
+interface LiveTrackingInfo {
+  trackingNumber?: string;
+  currentLocation?: string;
+  lastLocationUpdate?: string;
+  status?: string;
+  driverName?: string;
+  driverPhone?: string;
+}
 
 export function TrackingPage() {
+  const { user } = useAuth();
   const [shipments, setShipments] = useState<Shipment[]>([]);
   const [selectedShipment, setSelectedShipment] = useState<Shipment | null>(null);
+  const [liveTracking, setLiveTracking] = useState<LiveTrackingInfo | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [searchTerm, setSearchTerm] = useState('');
 
   useEffect(() => {
     loadShipments();
-  }, []);
+  }, [user?.roles]);
+
+  useEffect(() => {
+    if (!selectedShipment) {
+      setLiveTracking(null);
+      return;
+    }
+
+    let intervalId: number | undefined;
+
+    refreshLiveTracking();
+    intervalId = window.setInterval(refreshLiveTracking, 8000);
+
+    return () => {
+      if (intervalId) window.clearInterval(intervalId);
+    };
+  }, [selectedShipment]);
 
   const loadShipments = async () => {
     setLoading(true);
+    setError(null);
+
+    const rolePriority = ['Admin', 'Manager', 'Supplier', 'Driver', 'WarehouseStaff', 'Warehouse', 'User'];
+    const userRole = user?.roles?.find((role) => rolePriority.includes(role)) || 'User';
+
     try {
-      const data = await shipmentService.getAll();
+      let data: Shipment[] = [];
+
+      if (userRole === 'User' && user?.id) {
+        const orders = await orderService.getByUser(user.id);
+        const shipmentsByOrder = await Promise.all(
+          orders.map(async (order) => {
+            try {
+              return await shipmentService.getByOrderId(order.id);
+            } catch (err) {
+              console.warn(`Failed loading shipment for order ${order.id}:`, err);
+              return [] as Shipment[];
+            }
+          })
+        );
+        data = shipmentsByOrder.flat();
+      } else if (userRole === 'Driver') {
+        const driverShipments = await driverService.getMyShipments();
+        data = driverShipments as unknown as Shipment[];
+      } else {
+        data = await shipmentService.getAll();
+      }
+
       setShipments(data);
       if (data.length > 0) setSelectedShipment(data[0]);
-      setError(null);
     } catch (err) {
       console.error('Failed to load shipments:', err);
       setError('Failed to load shipments. Make sure the backend is running.');
@@ -62,6 +117,28 @@ export function TrackingPage() {
     }
   };
 
+  const getMapQuery = () => {
+    if (liveTracking?.currentLocation) {
+      const coords = liveTracking.currentLocation.split(',').map((value) => value.trim());
+      if (coords.length === 2 && !isNaN(Number(coords[0])) && !isNaN(Number(coords[1]))) {
+        return `${coords[0]},${coords[1]}`;
+      }
+    }
+    return '';
+  };
+
+  const mapUrl = getMapQuery() ? `https://maps.google.com/maps?q=${getMapQuery()}&output=embed` : '';
+
+  const refreshLiveTracking = async () => {
+    if (!selectedShipment) return;
+    try {
+      const data = await shipmentService.getLiveTracking(selectedShipment.id);
+      setLiveTracking(data);
+    } catch (err) {
+      console.error('Failed to refresh live tracking:', err);
+    }
+  };
+
   if (loading) {
     return (
       <div className="flex h-screen items-center justify-center">
@@ -88,6 +165,7 @@ export function TrackingPage() {
       )}
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+       
         <div className="lg:col-span-1">
           <div className="rounded-2xl border border-slate-700 bg-slate-800/50 p-6 backdrop-blur h-full">
             <h2 className="text-xl font-bold text-white mb-4">Shipments</h2>
@@ -126,10 +204,9 @@ export function TrackingPage() {
           </div>
         </div>
 
-       
+        {/* Tracking Details */}
         {selectedShipment && (
           <div className="lg:col-span-2 space-y-6">
-            {/* Main Info Card */}
             <div className="rounded-2xl border border-slate-700 bg-slate-800/50 p-6 backdrop-blur">
               <div className="flex justify-between items-start mb-6">
                 <div>
@@ -161,6 +238,69 @@ export function TrackingPage() {
                   <p className="text-white font-medium">{selectedShipment.items?.length || 0} items</p>
                 </div>
               </div>
+            </div>
+
+       
+            <div className="rounded-2xl border border-slate-700 bg-slate-800/50 p-6 backdrop-blur">
+              <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-4 mb-4">
+                <div>
+                  <h3 className="text-lg font-bold text-white">Live Tracking</h3>
+                  <p className="text-slate-400 text-sm">Latest driver location and shipment status.</p>
+                </div>
+                <button
+                  onClick={refreshLiveTracking}
+                  className="rounded-2xl bg-slate-700 px-4 py-2 text-sm font-semibold text-white hover:bg-slate-600 transition"
+                >
+                  Refresh
+                </button>
+              </div>
+              {liveTracking ? (
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div className="space-y-3">
+                    <div>
+                      <p className="text-slate-400 text-sm">Current Location</p>
+                      <p className="text-white">{liveTracking.currentLocation || 'Waiting for driver update'}</p>
+                    </div>
+                    <div>
+                      <p className="text-slate-400 text-sm">Last Update</p>
+                      <p className="text-white">{liveTracking.lastLocationUpdate ? new Date(liveTracking.lastLocationUpdate).toLocaleString() : 'No updates yet'}</p>
+                    </div>
+                  </div>
+                  <div className="space-y-3">
+                    <div>
+                      <p className="text-slate-400 text-sm">Driver</p>
+                      <p className="text-white">{liveTracking.driverName || 'Not assigned'}</p>
+                    </div>
+                    <div>
+                      <p className="text-slate-400 text-sm">Driver Contact</p>
+                      <p className="text-white">{liveTracking.driverPhone || 'N/A'}</p>
+                    </div>
+                    <div>
+                      <p className="text-slate-400 text-sm">Shipment Status</p>
+                      <p className="text-white">{liveTracking.status || selectedShipment.status}</p>
+                    </div>
+                  </div>
+                </div>
+              ) : (
+                <p className="text-slate-400">Live tracking is loading for this shipment.</p>
+              )}
+
+              {liveTracking?.currentLocation ? (
+                <div className="mt-6 rounded-2xl overflow-hidden border border-slate-700 bg-slate-800/40 h-72">
+                  <iframe
+                    title="Shipment map"
+                    src={mapUrl}
+                    className="w-full h-full border-0"
+                    allowFullScreen
+                  />
+                </div>
+              ) : (
+                <div className="mt-6 rounded-2xl border border-slate-700 bg-slate-800/50 p-6 text-center">
+                  <p className="text-slate-400">Driver live location is not available yet.</p>
+                  <p className="text-slate-500 text-sm mt-2">The driver must send GPS updates for this shipment before the map appears.</p>
+                </div>
+              )}
+
             </div>
 
             <div className="rounded-2xl border border-slate-700 bg-slate-800/50 p-6 backdrop-blur">

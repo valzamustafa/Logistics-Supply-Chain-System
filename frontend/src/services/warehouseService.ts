@@ -1,5 +1,6 @@
-
 import { api } from './api';
+
+
 
 export interface Warehouse {
   id: number;
@@ -77,39 +78,62 @@ export interface WarehouseSummary {
 }
 
 
+
 export const warehouseService = {
-  
+
+
   getAll: () => api.get<Warehouse[]>('/api/warehouses'),
+  
 
   getById: (id: number) => api.get<Warehouse>(`/api/warehouses/${id}`),
+  
+
   create: (data: CreateWarehouseDto) => api.post<Warehouse>('/api/warehouses', data),
+  
+
   update: (id: number, data: UpdateWarehouseDto) => api.put<Warehouse>(`/api/warehouses/${id}`, data),
- 
+
   delete: (id: number) => api.delete<void>(`/api/warehouses/${id}`),
+  
+
   forceDelete: (id: number) => api.delete<void>(`/api/warehouses/${id}/force`),
+
   toggleStatus: (id: number, isActive: boolean) => 
     api.put<ToggleStatusResponse>(`/api/warehouses/${id}/toggle-status`, { isActive }),
   
+
   getStats: (id: number) => api.get<WarehouseStats>(`/api/warehouses/${id}/stats`),
+  
+
   getSummary: () => api.get<WarehouseSummary>('/api/warehouses/summary'),
+
+
   getZones: (warehouseId: number) => api.get<WarehouseZone[]>(`/api/warehouses/${warehouseId}/zones`),
+  
+
   createZone: (data: CreateZoneDto) => api.post<WarehouseZone>('/api/warehouses/zones', data),
+  
+
   updateZone: (id: number, data: Partial<CreateZoneDto>) => 
     api.put<WarehouseZone>(`/api/warehouses/zones/${id}`, data),
   
+
   deleteZone: (id: number) => api.delete<void>(`/api/warehouses/zones/${id}`),
 
+
   getStaff: (warehouseId: number) => api.get<WarehouseStaff[]>(`/api/warehouses/${warehouseId}/staff`),
+  
 
   assignStaff: (warehouseId: number, data: AssignStaffDto) => 
     api.post<WarehouseStaff>(`/api/warehouses/${warehouseId}/staff`, data),
   
+
   updateStaff: (id: number, data: Partial<AssignStaffDto>) => 
     api.put<WarehouseStaff>(`/api/warehouses/staff/${id}`, data),
- 
-  removeStaff: (id: number) => api.delete<void>(`/api/warehouses/staff/${id}`),
+  
 
-  getStaffByUser: (userId: number) => api.get<WarehouseStaff[]>(`/api/warehouses/staff/user/${userId}`),
+  removeStaff: (id: number) => api.delete<void>(`/api/warehouses/staff/${id}`),
+  
 
   bulkAssignProducts: (warehouseId: number, products: Array<{ productId: number; quantity: number }>) => 
     api.post(`/api/warehouses/warehouse/${warehouseId}/bulk-assign`, 

@@ -144,7 +144,7 @@ export function WarehouseStaffDashboard() {
             <div className="space-y-2 mb-4">
               <p className="text-slate-400">Warehouse: {getWarehouseName(item.warehouseId)}</p>
               <p className="text-slate-400">Current Stock: {item.quantity}</p>
-              <p className="text-slate-400">Available: {item.availableQuantity}</p>
+              <p className="text-slate-400">Available: {item.quantity ?? item.availableQuantity}</p>
               <p className="text-slate-400">Reorder Level: {item.reorderLevel || 10}</p>
             </div>
             <button
