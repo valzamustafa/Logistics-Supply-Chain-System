@@ -14,7 +14,7 @@ namespace WarehouseService.Repositories.Implementations
             _context = context;
         }
 
-  
+       
         public async Task<Warehouse?> GetWarehouseByIdAsync(int id)
         {
             return await _context.Warehouses
@@ -147,7 +147,7 @@ namespace WarehouseService.Repositories.Implementations
             return await query.ToListAsync();
         }
 
-        // ==================== ZONES ====================
+    
         public async Task<WarehouseZone?> GetZoneByIdAsync(int id)
         {
             return await _context.WarehouseZones.FindAsync(id);
@@ -184,7 +184,7 @@ namespace WarehouseService.Repositories.Implementations
             }
         }
 
-  
+   
         public async Task<WarehouseStaff?> GetStaffByIdAsync(int id)
         {
             return await _context.WarehouseStaff.FindAsync(id);

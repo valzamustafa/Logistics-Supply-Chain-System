@@ -7,7 +7,7 @@ namespace WarehouseService.DTOs
     {
         public int Quantity { get; set; }
         
-        
+       
         [JsonConverter(typeof(JsonStringEnumConverter))]
         public MovementType Type { get; set; }
         

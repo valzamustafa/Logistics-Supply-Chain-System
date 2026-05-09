@@ -15,7 +15,7 @@ namespace WarehouseService.Controllers
             _warehouseService = warehouseService;
         }
 
-  
+ 
         [HttpGet]
         public async Task<IActionResult> GetAll()
         {
@@ -23,7 +23,7 @@ namespace WarehouseService.Controllers
             return Ok(warehouses);
         }
 
-
+  
         [HttpGet("{id}")]
         public async Task<IActionResult> GetById(int id)
         {
@@ -33,7 +33,7 @@ namespace WarehouseService.Controllers
             return Ok(warehouse);
         }
 
-        
+       
         [HttpPost]
         public async Task<IActionResult> Create([FromBody] CreateWarehouseDto dto)
         {
@@ -48,7 +48,7 @@ namespace WarehouseService.Controllers
             }
         }
 
-   
+        
         [HttpPut("{id}")]
         public async Task<IActionResult> Update(int id, [FromBody] UpdateWarehouseDto dto)
         {
@@ -63,6 +63,7 @@ namespace WarehouseService.Controllers
             }
         }
 
+       
         [HttpDelete("{id}")]
         public async Task<IActionResult> Delete(int id)
         {
@@ -77,7 +78,8 @@ namespace WarehouseService.Controllers
             }
         }
 
-   
+    
+  
         [HttpPut("{id}/toggle-status")]
         public async Task<IActionResult> ToggleStatus(int id, [FromBody] ToggleStatusRequest request)
         {
@@ -92,7 +94,7 @@ namespace WarehouseService.Controllers
             }
         }
 
-    
+  
         [HttpGet("{id}/stats")]
         public async Task<IActionResult> GetStats(int id)
         {
@@ -107,7 +109,7 @@ namespace WarehouseService.Controllers
             }
         }
 
-   
+
         [HttpGet("{warehouseId}/inventory/{productId}")]
         public async Task<IActionResult> GetProductInventory(int warehouseId, int productId)
         {
@@ -133,7 +135,7 @@ namespace WarehouseService.Controllers
             }
         }
 
-
+       
         [HttpGet("{warehouseId}/check-availability")]
         public async Task<IActionResult> CheckAvailability(int warehouseId, [FromQuery] int productId, [FromQuery] int quantity)
         {
@@ -156,7 +158,7 @@ namespace WarehouseService.Controllers
             return Ok(stock);
         }
 
-
+   
         [HttpGet("stock/{id}")]
         public async Task<IActionResult> GetStockById(int id)
         {
@@ -166,7 +168,7 @@ namespace WarehouseService.Controllers
             return Ok(stock);
         }
 
-      
+    
         [HttpGet("{warehouseId}/stock")]
         public async Task<IActionResult> GetStockByWarehouse(int warehouseId)
         {
@@ -174,13 +176,14 @@ namespace WarehouseService.Controllers
             return Ok(stock);
         }
 
-      
+ 
         [HttpGet("product/{productId}/stock")]
         public async Task<IActionResult> GetStockByProduct(int productId)
         {
             var stock = await _warehouseService.GetStockByProductAsync(productId);
             return Ok(stock);
         }
+
 
         [HttpGet("{warehouseId}/product/{productId}")]
         public async Task<IActionResult> GetStockByWarehouseAndProduct(int warehouseId, int productId)
@@ -192,7 +195,7 @@ namespace WarehouseService.Controllers
             return Ok(productStock);
         }
 
-      
+
         [HttpPost("{warehouseId}/assign")]
         public async Task<IActionResult> AssignProductToWarehouse(int warehouseId, [FromBody] AssignProductToWarehouseDto dto)
         {
@@ -211,7 +214,7 @@ namespace WarehouseService.Controllers
             }
         }
 
-      
+
         [HttpPut("{warehouseId}/product/{productId}/stock")]
         public async Task<IActionResult> UpdateStock(int warehouseId, int productId, [FromBody] UpdateStockDto dto)
         {
@@ -264,7 +267,7 @@ namespace WarehouseService.Controllers
             }
         }
 
-   
+
         [HttpGet("low-stock")]
         public async Task<IActionResult> GetLowStockAlerts([FromQuery] int? warehouseId = null)
         {
@@ -279,7 +282,7 @@ namespace WarehouseService.Controllers
             }
         }
 
-
+  
         [HttpDelete("{warehouseId}/product/{productId}")]
         public async Task<IActionResult> RemoveProductFromWarehouse(int warehouseId, int productId)
         {
@@ -294,6 +297,7 @@ namespace WarehouseService.Controllers
             }
         }
 
+       
         [HttpPost("warehouse/{warehouseId}/bulk-assign")]
         public async Task<IActionResult> BulkAssignProducts(int warehouseId, [FromBody] List<AssignProductToWarehouseDto> products)
         {
@@ -326,7 +330,7 @@ namespace WarehouseService.Controllers
             });
         }
 
-      
+    
         [HttpGet("summary")]
         public async Task<IActionResult> GetStockSummary()
         {
@@ -361,7 +365,7 @@ namespace WarehouseService.Controllers
             }
         }
 
-  
+   
         [HttpGet("value-report")]
         public async Task<IActionResult> GetStockValueReport()
         {

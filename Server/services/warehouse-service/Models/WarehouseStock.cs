@@ -20,7 +20,7 @@ namespace WarehouseService.Models
         
         public string? ShelfLocation { get; set; }
         
-     
+       
         [NotMapped]
         public string? ProductName { get; set; }
         

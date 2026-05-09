@@ -304,6 +304,66 @@ namespace SupplierService.Services.Implementations
             return MapToPurchaseOrderDto(purchaseOrder);
         }
 
+        public async Task<IEnumerable<SupplierProductDto>> GetSupplierProductsBySupplierIdAsync(int supplierId)
+        {
+            var supplierProducts = await _repository.GetSupplierProductsBySupplierIdAsync(supplierId);
+            return supplierProducts.Select(sp => new SupplierProductDto
+            {
+                Id = sp.Id,
+                SupplierId = sp.SupplierId,
+                ProductId = sp.ProductId,
+                SupplierSKU = sp.SupplierSKU,
+                LeadTimeDays = sp.LeadTimeDays
+            });
+        }
+
+        public async Task<IEnumerable<SupplierProductDto>> GetAllSupplierProductsAsync()
+        {
+            var supplierProducts = await _repository.GetAllSupplierProductsAsync();
+            return supplierProducts.Select(sp => new SupplierProductDto
+            {
+                Id = sp.Id,
+                SupplierId = sp.SupplierId,
+                ProductId = sp.ProductId,
+                SupplierSKU = sp.SupplierSKU,
+                LeadTimeDays = sp.LeadTimeDays
+            });
+        }
+
+        public async Task<SupplierProductDto> AddSupplierProductAsync(int supplierId, CreateSupplierProductDto dto)
+        {
+            var supplier = await _repository.GetByIdAsync(supplierId);
+            if (supplier == null)
+                throw new InvalidOperationException("Supplier not found");
+
+            var alreadyExists = await _context.SupplierProducts
+                .AnyAsync(sp => sp.SupplierId == supplierId && sp.ProductId == dto.ProductId);
+            if (alreadyExists)
+                throw new InvalidOperationException("Product is already assigned to this supplier");
+
+            var supplierProduct = new SupplierProduct
+            {
+                SupplierId = supplierId,
+                ProductId = dto.ProductId,
+                SupplierSKU = dto.SupplierSKU,
+                LeadTimeDays = dto.LeadTimeDays,
+                CreatedBy = 1,
+                UpdatedBy = 1,
+                CreatedAt = DateTime.UtcNow,
+                UpdatedAt = DateTime.UtcNow
+            };
+
+            var created = await _repository.CreateSupplierProductAsync(supplierProduct);
+            return new SupplierProductDto
+            {
+                Id = created.Id,
+                SupplierId = created.SupplierId,
+                ProductId = created.ProductId,
+                SupplierSKU = created.SupplierSKU,
+                LeadTimeDays = created.LeadTimeDays
+            };
+        }
+
         public async Task<SupplierDto?> GetSupplierByEmailAsync(string email)
         {
             var supplier = await _context.Suppliers
@@ -318,42 +378,19 @@ namespace SupplierService.Services.Implementations
     
     if (supplier == null)
     {
-        return new SupplierDashboardDto
-        {
-            SupplierId = 0,
-            SupplierName = email ?? "Unknown",
-            SupplierEmail = email,
-            Orders = new List<PurchaseOrderDto>()
-        };
+        return null;
     }
 
-
-    var supplierOrders = await _context.SupplierOrders
+    var purchaseOrders = await _context.PurchaseOrders
         .Include(o => o.Items)
         .Where(o => o.SupplierId == supplier.Id)
         .ToListAsync();
 
-    Console.WriteLine($"Found {supplierOrders.Count} supplier orders for supplier {supplier.Id}");
-
-    
-    var orderDtos = supplierOrders.Select(order => new PurchaseOrderDto
-    {
-        Id = order.Id,
-        SupplierId = order.SupplierId,
-        WarehouseId = 0,
-        PONumber = order.OrderNumber,
-        OrderDate = order.OrderDate,
-        Status = order.Status,
-        TotalAmount = order.TotalAmount,
-        Items = order.Items.Select(i => new PurchaseOrderItemDto
-        {
-            Id = i.Id,
-            ProductId = i.ProductId,
-            Quantity = i.Quantity,
-            UnitPrice = i.UnitPrice,
-            TotalPrice = i.TotalPrice
-        }).ToList()
-    }).ToList();
+    var orderDtos = purchaseOrders.Select(MapToPurchaseOrderDto).ToList();
+    var warehouseIds = purchaseOrders
+        .Select(o => o.WarehouseId)
+        .Distinct()
+        .ToList();
 
     return new SupplierDashboardDto
     {
@@ -362,10 +399,36 @@ namespace SupplierService.Services.Implementations
         SupplierEmail = supplier.Email,
         SupplierContactPerson = supplier.ContactPerson,
         SupplierPhone = supplier.Phone,
-        WarehouseIds = new List<int>(),
+        WarehouseIds = warehouseIds,
         Orders = orderDtos
     };
 }
+
+        public async Task<SupplierDto> EnsureSupplierProfileAsync(string email, string name, string? contactPerson = null)
+        {
+            var existingSupplier = await _context.Suppliers
+                .FirstOrDefaultAsync(s => s.Email != null && s.Email.ToLower() == email.ToLower());
+
+            if (existingSupplier != null)
+            {
+                return MapToDto(existingSupplier);
+            }
+
+            var supplier = new CreateSupplierDto
+            {
+                Name = string.IsNullOrWhiteSpace(name) ? email : name,
+                Email = email,
+                ContactPerson = string.IsNullOrWhiteSpace(contactPerson) ? name : contactPerson,
+                Phone = string.Empty,
+                Address = string.Empty,
+                VatNumber = string.Empty,
+                PaymentTerms = string.Empty,
+                CreditLimit = 0m,
+                IsApproved = false
+            };
+
+            return await CreateSupplierAsync(supplier);
+        }
 
         public async Task<SupplierRequestDto> RequestNewSupplierAsync(CreateSupplierRequestDto dto)
         {
@@ -390,13 +453,38 @@ namespace SupplierService.Services.Implementations
             return MapToSupplierRequestDto(request);
         }
 
-        public async Task<IEnumerable<SupplierRequestDto>> GetPendingSupplierRequestsAsync()
+        public async Task<IEnumerable<SupplierRequestDto>> GetPendingSupplierRequestsAsync(string? supplierEmail = null)
         {
             try
             {
-                var requests = await _context.SupplierRequests
-                    .Where(r => r.Status == "Pending")
-                    .ToListAsync();
+                IQueryable<SupplierRequest> query = _context.SupplierRequests
+                    .Where(r => r.Status == "Pending");
+
+                if (!string.IsNullOrEmpty(supplierEmail))
+                {
+                    var supplier = await _context.Suppliers
+                        .FirstOrDefaultAsync(s => s.Email != null && s.Email.ToLower() == supplierEmail.ToLower());
+
+                    if (supplier == null)
+                    {
+                        return Enumerable.Empty<SupplierRequestDto>();
+                    }
+
+                    var assignedWarehouseIds = await _context.SupplierWarehouseAssignments
+                        .Where(a => a.SupplierId == supplier.Id && a.IsActive)
+                        .Select(a => a.WarehouseId)
+                        .Distinct()
+                        .ToListAsync();
+
+                    if (!assignedWarehouseIds.Any())
+                    {
+                        return Enumerable.Empty<SupplierRequestDto>();
+                    }
+
+                    query = query.Where(r => assignedWarehouseIds.Contains(r.WarehouseId));
+                }
+
+                var requests = await query.ToListAsync();
                 return requests.Select(MapToSupplierRequestDto);
             }
             catch (Exception ex)
@@ -542,7 +630,7 @@ public async Task<PaymentResponseDto?> GetPaymentByIdAsync(int id)
         PaymentDate = payment.PaymentDate
     };
 }
-   
+     // SupplierService.cs - Shto këto metoda
 
 public async Task<PurchaseOrderDto?> ConfirmShipmentAsync(int id, ConfirmShipmentRequestDto dto)
 {

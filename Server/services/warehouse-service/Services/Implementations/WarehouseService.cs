@@ -38,7 +38,7 @@ namespace WarehouseService.Business
             _logger.LogInformation($"Product Service base URLs configured: {string.Join(", ", _productServiceBaseUrls)}");
         }
 
-     
+      
         public async Task<IEnumerable<WarehouseDto>> GetAllWarehousesAsync()
         {
             var warehouses = await _repository.GetAllWarehousesAsync();
@@ -128,7 +128,7 @@ namespace WarehouseService.Business
             };
         }
 
-     
+  
         public async Task<IEnumerable<WarehouseZoneDto>> GetZonesByWarehouseAsync(int warehouseId)
         {
             var zones = await _repository.GetZonesByWarehouseAsync(warehouseId);
@@ -162,7 +162,7 @@ namespace WarehouseService.Business
             return true;
         }
 
-   
+      
         public async Task<IEnumerable<WarehouseStaffDto>> GetStaffByWarehouseAsync(int warehouseId)
         {
             var staff = await _repository.GetStaffByWarehouseAsync(warehouseId);
@@ -196,7 +196,7 @@ namespace WarehouseService.Business
             return true;
         }
 
-
+   
         public async Task<IEnumerable<WarehouseStockDto>> GetAllStockAsync()
         {
             var stock = await _repository.GetAllStockAsync();
@@ -475,7 +475,7 @@ namespace WarehouseService.Business
             return stock != null && stock.Quantity >= requestedQuantity;
         }
 
-        // ==================== HELPER METHODS ====================
+     
         private async Task<ProductInfo?> GetProductFromProductService(int productId)
         {
             foreach (var baseUrl in _productServiceBaseUrls.Distinct())
@@ -577,6 +577,7 @@ namespace WarehouseService.Business
             return result;
         }
 
+      
         private WarehouseDto MapToDto(Warehouse warehouse)
         {
             return new WarehouseDto

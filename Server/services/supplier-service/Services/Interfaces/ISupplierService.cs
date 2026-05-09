@@ -22,11 +22,15 @@ namespace SupplierService.Services.Interfaces
         Task<PurchaseOrderDto?> ConfirmShipmentAsync(int id, ShipmentConfirmationDto dto);
         Task<PurchaseOrderDto?> ReceivePurchaseOrderAsync(ReceivePurchaseOrderDto dto);
         
+        Task<IEnumerable<SupplierProductDto>> GetSupplierProductsBySupplierIdAsync(int supplierId);
+        Task<IEnumerable<SupplierProductDto>> GetAllSupplierProductsAsync();
+        Task<SupplierProductDto> AddSupplierProductAsync(int supplierId, CreateSupplierProductDto dto);
         Task<SupplierDto?> GetSupplierByEmailAsync(string email);
         Task<SupplierDashboardDto?> GetSupplierDashboardAsync(string email);
+        Task<SupplierDto> EnsureSupplierProfileAsync(string email, string name, string? contactPerson = null);
 
         Task<SupplierRequestDto> RequestNewSupplierAsync(CreateSupplierRequestDto dto);
-        Task<IEnumerable<SupplierRequestDto>> GetPendingSupplierRequestsAsync();
+        Task<IEnumerable<SupplierRequestDto>> GetPendingSupplierRequestsAsync(string? supplierEmail = null);
 
         Task<SupplierInvitationDto> InviteSupplierAsync(CreateSupplierInvitationDto dto);
         Task<SupplierDto?> RegisterWithInvitationAsync(SupplierRegistrationDto dto);

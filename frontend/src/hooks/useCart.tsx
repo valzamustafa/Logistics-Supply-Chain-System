@@ -1,4 +1,3 @@
-
 import { useState, useEffect, createContext, useContext, ReactNode } from 'react';
 import { useAuth } from './useAuth';
 import { Product } from '../services/productService';
@@ -20,7 +19,7 @@ interface CartContextType {
   getCartTotal: () => number;
   getCartItemCount: () => number;
   getCartItems: () => CartItem[];
-  placeOrder: (bankAccount: string, bankAccountNumber: string) => Promise<Order>;
+  placeOrder: (bankAccount: string, bankAccountNumber: string, paymentMethod?: string, paymentReference?: string, warehouseId?: number) => Promise<Order>;
   isLoading: boolean;
   error: string | null;
 }
@@ -116,7 +115,7 @@ export function CartProvider({ children }: { children: ReactNode }) {
 
   const getCartItems = () => cart;
 
-  const placeOrder = async (bankAccount: string, bankAccountNumber: string): Promise<Order> => {
+  const placeOrder = async (bankAccount: string, bankAccountNumber: string, paymentMethod?: string, paymentReference?: string, warehouseId?: number): Promise<Order> => {
     if (!user) {
       throw new Error('You must be logged in to place an order');
     }
@@ -131,8 +130,11 @@ export function CartProvider({ children }: { children: ReactNode }) {
     try {
       const orderData: CreateOrderDto = {
         userId: user.id,
+        warehouseId,
         shippingAddress: user.shippingAddress || 'No address provided',
         billingAddress: user.billingAddress || 'No address provided',
+        paymentMethod,
+        paymentReference,
         items: cart.map(item => ({
           productId: item.productId,
           quantity: item.quantity,
@@ -148,10 +150,13 @@ export function CartProvider({ children }: { children: ReactNode }) {
       };
 
       const response = await orderService.create(orderData);
+   
       const newOrder = response;
+      
       
       clearCart();
       
+  
       if (user?.id) {
         localStorage.removeItem(`cart_${user.id}`);
       }

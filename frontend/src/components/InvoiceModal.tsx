@@ -1,4 +1,3 @@
-
 import React from 'react';
 import { Order } from '../services/orderService';
 import { useAuth } from '../hooks/useAuth';
@@ -32,7 +31,8 @@ export const InvoiceModal: React.FC<InvoiceModalProps> = ({ order, onClose }) =>
 
       if (response.ok) {
         const blob = await response.blob();
-      
+        
+       
         if (blob.type === 'application/pdf' || blob.type === 'application/octet-stream') {
           const url = window.URL.createObjectURL(blob);
           const a = document.createElement('a');
@@ -47,13 +47,13 @@ export const InvoiceModal: React.FC<InvoiceModalProps> = ({ order, onClose }) =>
           alert('Invalid response format from server');
         }
       } else {
-      
+   
         console.warn('PDF download failed, using HTML print fallback');
         printInvoiceAsPDF();
       }
     } catch (error) {
       console.error('Error downloading invoice:', error);
-     
+
       printInvoiceAsPDF();
     }
   };

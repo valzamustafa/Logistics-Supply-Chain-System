@@ -25,6 +25,6 @@ namespace WarehouseService.Models
         
         public virtual ICollection<WarehouseZone> Zones { get; set; } = new List<WarehouseZone>();
         public virtual ICollection<WarehouseStaff> Staff { get; set; } = new List<WarehouseStaff>();
-        public virtual ICollection<WarehouseStock> Stocks { get; set; } = new List<WarehouseStock>(); // Shto këtë linjë
+        public virtual ICollection<WarehouseStock> Stocks { get; set; } = new List<WarehouseStock>();
     }
 }

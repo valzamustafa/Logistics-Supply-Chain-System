@@ -19,6 +19,9 @@ namespace SupplierService.Repositories.Interfaces
         Task<PurchaseOrder?> GetPurchaseOrderByNumberAsync(string poNumber);
         Task<PurchaseOrder> UpdatePurchaseOrderAsync(PurchaseOrder purchaseOrder);
         Task<IEnumerable<PurchaseOrder>> GetPurchaseOrdersBySupplierIdAsync(int supplierId);
+        Task<IEnumerable<SupplierProduct>> GetSupplierProductsBySupplierIdAsync(int supplierId);
+        Task<IEnumerable<SupplierProduct>> GetAllSupplierProductsAsync();
+        Task<SupplierProduct> CreateSupplierProductAsync(SupplierProduct supplierProduct);
         Task<Supplier?> GetSupplierByEmailAsync(string email);
 
         Task<SupplierRequest> CreateSupplierRequestAsync(SupplierRequest request);
