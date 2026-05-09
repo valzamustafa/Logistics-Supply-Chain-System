@@ -325,7 +325,7 @@ export function AdminDashboard() {
                   <p className="text-slate-400">Warehouse: {item.warehouseId}</p>
                   <p className="text-slate-400">Quantity: {item.quantity}</p>
                   <p className="text-slate-400">Reorder Level: {item.reorderLevel || 10}</p>
-                  <p className="text-slate-400">Available: {item.availableQuantity}</p>
+                  <p className="text-slate-400">Available: {item.quantity ?? item.availableQuantity}</p>
                 </div>
               </div>
             ))}

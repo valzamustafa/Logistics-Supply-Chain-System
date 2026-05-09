@@ -1,5 +1,6 @@
 import { useContext, createContext, useState, useEffect, ReactNode } from 'react';
 import { getCurrentUser } from '../services/authService';
+import { getLocalStorageItem, setLocalStorageItem, removeLocalStorageItem } from '../utils/localStorage';
 
 interface User {
   id: number;
@@ -32,20 +33,20 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   useEffect(() => {
     const initAuth = async () => {
-      const storedToken = localStorage.getItem('token');
-      const storedUser = localStorage.getItem('user');
+      const storedToken = getLocalStorageItem('token');
+      const storedUser = getLocalStorageItem('user');
       
       if (storedToken && storedUser) {
         try {
-        
+       
           const userData = await getCurrentUser(storedToken);
           setToken(storedToken);
           setUser(userData);
         } catch (error) {
-       
+        
           console.error('Token validation failed:', error);
-          localStorage.removeItem('token');
-          localStorage.removeItem('user');
+          removeLocalStorageItem('token');
+          removeLocalStorageItem('user');
         }
       }
       setIsLoading(false);
@@ -57,15 +58,15 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const login = (newToken: string, newUser: User) => {
     setToken(newToken);
     setUser(newUser);
-    localStorage.setItem('token', newToken);
-    localStorage.setItem('user', JSON.stringify(newUser));
+    setLocalStorageItem('token', newToken);
+    setLocalStorageItem('user', JSON.stringify(newUser));
   };
 
   const logout = () => {
     setToken(null);
     setUser(null);
-    localStorage.removeItem('token');
-    localStorage.removeItem('user');
+    removeLocalStorageItem('token');
+    removeLocalStorageItem('user');
     window.location.href = '/login';
   };
 

@@ -118,6 +118,26 @@ namespace SupplierService.Repositories.Implementations
                 .ToListAsync();
         }
 
+        public async Task<IEnumerable<SupplierProduct>> GetSupplierProductsBySupplierIdAsync(int supplierId)
+        {
+            return await _context.SupplierProducts
+                .Where(sp => sp.SupplierId == supplierId)
+                .ToListAsync();
+        }
+
+        public async Task<IEnumerable<SupplierProduct>> GetAllSupplierProductsAsync()
+        {
+            return await _context.SupplierProducts
+                .ToListAsync();
+        }
+
+        public async Task<SupplierProduct> CreateSupplierProductAsync(SupplierProduct supplierProduct)
+        {
+            _context.SupplierProducts.Add(supplierProduct);
+            await _context.SaveChangesAsync();
+            return supplierProduct;
+        }
+
         public async Task<Supplier?> GetSupplierByEmailAsync(string email)
         {
             return await _context.Suppliers

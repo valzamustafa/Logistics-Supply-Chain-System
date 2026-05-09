@@ -4,9 +4,9 @@ namespace WarehouseService.Models
     {
         Inbound = 1,    
         Outbound = 2,   
-        Transfer = 3,  
+        Transfer = 3,   
         TransferIn = 4, 
-        Adjustment = 5, 
-        Restock = 6    
+        Adjustment = 5,
+        Restock = 6   
     }
 }

@@ -1,5 +1,6 @@
 using Microsoft.EntityFrameworkCore;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
+using Microsoft.AspNetCore.Authorization;
 using System.Text;
 using Microsoft.IdentityModel.Tokens;
 using Microsoft.OpenApi.Models;
@@ -63,6 +64,7 @@ builder.Services.AddLogging(logging =>
     logging.AddDebug();
 });
 
+
 builder.Services.AddCors(options =>
 {
     options.AddPolicy("AllowFrontend", policy =>
@@ -78,15 +80,16 @@ builder.Services.AddCors(options =>
     });
 });
 
-var jwtIssuer = builder.Configuration["JwtSettings:Issuer"];
-var jwtAudience = builder.Configuration["JwtSettings:Audience"];
-var jwtKey = builder.Configuration["JwtSettings:SecretKey"];
+
+var jwtIssuer = builder.Configuration["Jwt:Issuer"] ?? builder.Configuration["JwtSettings:Issuer"];
+var jwtAudience = builder.Configuration["Jwt:Audience"] ?? builder.Configuration["JwtSettings:Audience"];
+var jwtKey = builder.Configuration["Jwt:Key"] ?? builder.Configuration["JwtSettings:SecretKey"];
 
 if (string.IsNullOrEmpty(jwtKey))
 {
-    jwtKey = "YourSuperSecretKeyForAuthService123!";
-    jwtIssuer = "AuthService";
-    jwtAudience = "LogisticsSystem";
+    jwtKey = "YourSuperSecretKeyForJWTThatIsAtLeast32CharactersLong123!";
+    jwtIssuer = "Logjistika";
+    jwtAudience = "LogjistikaClients";
 }
 
 Console.WriteLine($"JWT Issuer: {jwtIssuer}");
@@ -128,6 +131,13 @@ builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
         };
     });
 
+builder.Services.AddAuthorization(options =>
+{
+    options.FallbackPolicy = new AuthorizationPolicyBuilder()
+        .RequireAuthenticatedUser()
+        .Build();
+});
+
 var app = builder.Build();
 
 
@@ -145,14 +155,13 @@ app.UseAuthentication();
 app.UseAuthorization();
 app.MapControllers();
 
-
 using (var scope = app.Services.CreateScope())
 {
     var dbContext = scope.ServiceProvider.GetRequiredService<WarehouseDbContext>();
     var logger = scope.ServiceProvider.GetRequiredService<ILogger<Program>>();
     try
     {
-   
+     
         await dbContext.Database.EnsureCreatedAsync();
         logger.LogInformation("Database schema ensured successfully");
     }

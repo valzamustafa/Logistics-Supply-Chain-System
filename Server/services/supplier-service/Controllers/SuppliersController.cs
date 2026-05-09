@@ -8,6 +8,7 @@ namespace SupplierService.Controllers
 {
     [ApiController]
     [Route("api/[controller]")]
+    [Authorize]
     public class SuppliersController : ControllerBase
     {
         private readonly ISupplierService _service;
@@ -17,9 +18,11 @@ namespace SupplierService.Controllers
             _service = service;
         }
 
+        [Authorize(Roles = "Admin,Manager,WarehouseStaff,Warehouse,Supplier")]
         [HttpGet]
         public async Task<IActionResult> GetAll() => Ok(await _service.GetAllSuppliersAsync());
 
+        [Authorize(Roles = "Admin,Manager,WarehouseStaff,Warehouse,Supplier")]
         [HttpGet("{id}")]
         public async Task<IActionResult> GetById(int id)
         {
@@ -27,6 +30,56 @@ namespace SupplierService.Controllers
             return supplier == null ? NotFound() : Ok(supplier);
         }
 
+        [Authorize(Roles = "Admin,Manager,WarehouseStaff,Warehouse,Supplier")]
+        [HttpGet("{id}/products")]
+        public async Task<IActionResult> GetSupplierProducts(int id)
+        {
+            if (id <= 0)
+            {
+                return BadRequest(new { message = "Invalid supplier id." });
+            }
+
+            var products = await _service.GetSupplierProductsBySupplierIdAsync(id);
+            return Ok(products);
+        }
+
+        [Authorize]
+        [HttpGet("products/all")]
+        public async Task<IActionResult> GetAllSupplierProducts()
+        {
+            var products = await _service.GetAllSupplierProductsAsync();
+            return Ok(products);
+        }
+
+        [Authorize]
+        [HttpGet("all-products")]
+        public async Task<IActionResult> GetAllSupplierProductsAlternate()
+        {
+            var products = await _service.GetAllSupplierProductsAsync();
+            return Ok(products);
+        }
+
+        [Authorize(Roles = "Admin,Manager,Supplier")]
+        [HttpPost("{id}/products")]
+        public async Task<IActionResult> AddSupplierProduct(int id, [FromBody] CreateSupplierProductDto dto)
+        {
+            if (id <= 0)
+            {
+                return BadRequest(new { message = "Invalid supplier id." });
+            }
+
+            try
+            {
+                var product = await _service.AddSupplierProductAsync(id, dto);
+                return CreatedAtAction(nameof(GetSupplierProducts), new { id }, product);
+            }
+            catch (InvalidOperationException ex)
+            {
+                return BadRequest(new { message = ex.Message });
+            }
+        }
+
+        [Authorize(Roles = "Admin,Manager,Supplier")]
         [HttpGet("email/{email}")]
         public async Task<IActionResult> GetByEmail(string email)
         {
@@ -34,6 +87,7 @@ namespace SupplierService.Controllers
             return supplier == null ? NotFound() : Ok(supplier);
         }
 
+        [Authorize(Roles = "Admin,Manager")]
         [HttpPost]
         public async Task<IActionResult> Create([FromBody] CreateSupplierDto dto)
         {
@@ -41,6 +95,7 @@ namespace SupplierService.Controllers
             return CreatedAtAction(nameof(GetById), new { id = supplier.Id }, supplier);
         }
 
+        [Authorize(Roles = "Admin,Manager")]
         [HttpPut("{id}")]
         public async Task<IActionResult> Update(int id, [FromBody] CreateSupplierDto dto)
         {
@@ -48,6 +103,7 @@ namespace SupplierService.Controllers
             return Ok(supplier);
         }
 
+        [Authorize(Roles = "Admin,Manager")]
         [HttpDelete("{id}")]
         public async Task<IActionResult> Delete(int id)
         {
@@ -55,9 +111,11 @@ namespace SupplierService.Controllers
             return deleted ? NoContent() : NotFound();
         }
 
+        [Authorize(Roles = "Admin,Manager,WarehouseStaff,Warehouse,Supplier")]
         [HttpGet("orders")]
         public async Task<IActionResult> GetAllOrders() => Ok(await _service.GetAllOrdersAsync());
 
+        [Authorize(Roles = "Admin,Manager,WarehouseStaff,Warehouse,Supplier")]
         [HttpGet("orders/{id}")]
         public async Task<IActionResult> GetOrderById(int id)
         {
@@ -65,6 +123,7 @@ namespace SupplierService.Controllers
             return order == null ? NotFound() : Ok(order);
         }
 
+        [Authorize(Roles = "Admin,Manager,WarehouseStaff,Warehouse")]
         [HttpPost("orders")]
         public async Task<IActionResult> CreateOrder([FromBody] CreateSupplierOrderDto dto)
         {
@@ -72,7 +131,7 @@ namespace SupplierService.Controllers
             return Ok(order);
         }
 
-        //[Authorize(Roles = "Supplier,Admin")]
+        [Authorize(Roles = "Supplier,Admin")]
         [HttpPut("orders/{id}/status")]
         public async Task<IActionResult> UpdateOrderStatus(int id, [FromBody] UpdateOrderStatusDto dto)
         {
@@ -80,6 +139,58 @@ namespace SupplierService.Controllers
             return order == null ? NotFound() : Ok(order);
         }
 
+        [Authorize(Roles = "Admin,Manager,WarehouseStaff,Warehouse")]
+        [HttpPost("orders/{id}/payments")]
+        public async Task<IActionResult> CreatePayment(int id, [FromBody] CreatePaymentDto dto)
+        {
+            try
+            {
+                dto.PurchaseOrderId = id;
+                var payment = await _service.CreatePaymentAsync(dto);
+                return CreatedAtAction(nameof(GetPaymentById), new { id = payment.Id }, payment);
+            }
+            catch (InvalidOperationException ex)
+            {
+                return BadRequest(new { message = ex.Message });
+            }
+        }
+
+        [Authorize(Roles = "Admin,Manager,Supplier,WarehouseStaff,Warehouse")]
+        [HttpGet("orders/{id}/payments")]
+        public async Task<IActionResult> GetPayments(int id)
+        {
+            var payments = await _service.GetPaymentsByPurchaseOrderAsync(id);
+            return Ok(payments);
+        }
+
+        [Authorize(Roles = "Admin,Manager,Supplier,WarehouseStaff,Warehouse")]
+        [HttpGet("orders/{id}/invoice-pdf")]
+        public async Task<IActionResult> GetInvoicePdf(int id)
+        {
+            try
+            {
+                var pdfBytes = await _service.GenerateInvoicePdfAsync(id);
+                return File(pdfBytes, "application/pdf", $"invoice-{id}.pdf");
+            }
+            catch (InvalidOperationException ex)
+            {
+                return NotFound(new { message = ex.Message });
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, new { message = ex.Message });
+            }
+        }
+
+        [Authorize(Roles = "Admin,Manager,Supplier,WarehouseStaff,Warehouse")]
+        [HttpGet("payments/{id}")]
+        public async Task<IActionResult> GetPaymentById(int id)
+        {
+            var payment = await _service.GetPaymentByIdAsync(id);
+            return payment == null ? NotFound() : Ok(payment);
+        }
+
+        [AllowAnonymous]
         [HttpPost("requests")]
         public async Task<IActionResult> RequestSupplier([FromBody] CreateSupplierRequestDto dto)
         {
@@ -87,12 +198,26 @@ namespace SupplierService.Controllers
             return Ok(request);
         }
 
+        [Authorize(Roles = "Admin,Manager,Supplier")]
         [HttpGet("requests/pending")]
         public async Task<IActionResult> GetPendingSupplierRequests()
         {
             try
             {
-                var requests = await _service.GetPendingSupplierRequestsAsync();
+                string? email = null;
+                if (User.IsInRole("Supplier"))
+                {
+                    email = User.FindFirst(ClaimTypes.Email)?.Value
+                        ?? User.FindFirst("email")?.Value
+                        ?? User.FindFirst("http://schemas.xmlsoap.org/ws/2005/05/identity/claims/emailaddress")?.Value;
+
+                    if (string.IsNullOrEmpty(email))
+                    {
+                        return Unauthorized(new { message = "Email claim not found in token" });
+                    }
+                }
+
+                var requests = await _service.GetPendingSupplierRequestsAsync(email);
                 return Ok(requests);
             }
             catch (Exception ex)
@@ -103,6 +228,7 @@ namespace SupplierService.Controllers
             }
         }
 
+        [Authorize(Roles = "Admin,Manager")]
         [HttpPost("invitations")]
         public async Task<IActionResult> InviteSupplier([FromBody] CreateSupplierInvitationDto dto)
         {
@@ -110,6 +236,7 @@ namespace SupplierService.Controllers
             return Ok(invitation);
         }
 
+        [AllowAnonymous]
         [HttpPost("invitations/register")]
         public async Task<IActionResult> RegisterWithInvitation([FromBody] SupplierRegistrationDto dto)
         {
@@ -117,6 +244,7 @@ namespace SupplierService.Controllers
             return supplier == null ? BadRequest("Invalid or expired invitation token") : CreatedAtAction(nameof(GetById), new { id = supplier.Id }, supplier);
         }
 
+        [Authorize(Roles = "Admin,Manager,WarehouseStaff,Warehouse")]
         [HttpPost("emergency-purchases")]
         public async Task<IActionResult> CreateEmergencyPurchase([FromBody] CreateEmergencyPurchaseDto dto)
         {
@@ -124,6 +252,7 @@ namespace SupplierService.Controllers
             return Ok(emergency);
         }
 
+        [Authorize(Roles = "Admin,Manager,WarehouseStaff,Warehouse")]
         [HttpPut("emergency-purchases/{id}/convert")]
         public async Task<IActionResult> ConvertEmergencyPurchase(int id, [FromBody] ConvertEmergencyPurchaseDto dto)
         {
@@ -156,7 +285,27 @@ namespace SupplierService.Controllers
             
             if (dashboard == null)
             {
-                return NotFound(new { message = $"No supplier profile found for email: {email}" });
+                var userName = User.FindFirst(ClaimTypes.Name)?.Value;
+                var firstName = User.FindFirst(ClaimTypes.GivenName)?.Value;
+                var lastName = User.FindFirst(ClaimTypes.Surname)?.Value;
+                var displayName = !string.IsNullOrWhiteSpace(userName)
+                    ? userName
+                    : string.IsNullOrWhiteSpace(firstName) && string.IsNullOrWhiteSpace(lastName)
+                        ? email
+                        : $"{firstName} {lastName}".Trim();
+
+                var supplier = await _service.EnsureSupplierProfileAsync(email, displayName, displayName);
+
+                return Ok(new SupplierDashboardDto
+                {
+                    SupplierId = supplier.Id,
+                    SupplierName = supplier.Name,
+                    SupplierEmail = supplier.Email,
+                    SupplierContactPerson = supplier.ContactPerson,
+                    SupplierPhone = supplier.Phone,
+                    WarehouseIds = new List<int>(),
+                    Orders = new List<PurchaseOrderDto>()
+                });
             }
             
             return Ok(dashboard);

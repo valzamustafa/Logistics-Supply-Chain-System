@@ -1,4 +1,3 @@
-// WarehouseService/Services/Interfaces/IWarehouseService.cs
 using WarehouseService.DTOs;
 using WarehouseService.Models;
 

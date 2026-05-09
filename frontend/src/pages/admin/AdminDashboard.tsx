@@ -11,6 +11,15 @@ import { warehouseService } from '../../services/warehouseService';
 import { reportService } from '../../services/reportService';
 import * as signalR from '@microsoft/signalr';
 
+interface AdminLiveTrackingInfo {
+  trackingNumber?: string;
+  currentLocation?: string;
+  lastLocationUpdate?: string;
+  status?: string;
+  driverName?: string;
+  driverPhone?: string;
+}
+
 export function AdminDashboard() {
   const { user } = useAuth();
   const navigate = useNavigate();
@@ -23,6 +32,7 @@ export function AdminDashboard() {
   const [users, setUsers] = useState<User[]>([]);
   const [inventory, setInventory] = useState<any[]>([]);
   const [warehouses, setWarehouses] = useState<any[]>([]);
+  const [liveTracking, setLiveTracking] = useState<AdminLiveTrackingInfo | null>(null);
   const [stats, setStats] = useState({
     totalShipments: 0,
     activeShipments: 0,
@@ -142,6 +152,39 @@ export function AdminDashboard() {
       setLoading(false);
     }
   };
+
+  const refreshLiveTracking = async (shipmentId: string) => {
+    try {
+      const data = await shipmentService.getLiveTracking(shipmentId);
+      setLiveTracking(data);
+    } catch (error) {
+      console.error('Failed to load live tracking for shipment:', error);
+      setLiveTracking(null);
+    }
+  };
+
+  const getMapQuery = () => {
+    if (liveTracking?.currentLocation) {
+      const coords = liveTracking.currentLocation.split(',').map((value) => value.trim());
+      if (coords.length === 2 && !isNaN(Number(coords[0])) && !isNaN(Number(coords[1]))) {
+        return `${coords[0]},${coords[1]}`;
+      }
+    }
+    return '';
+  };
+
+  const getMapUrl = () => {
+    const query = getMapQuery();
+    return query ? `https://maps.google.com/maps?q=${query}&output=embed` : '';
+  };
+
+  useEffect(() => {
+    if (selectedShipment) {
+      refreshLiveTracking(selectedShipment.id);
+    } else {
+      setLiveTracking(null);
+    }
+  }, [selectedShipment]);
 
   const updateShipmentStatus = async (shipmentId: string, status: string) => {
     try {
@@ -299,6 +342,7 @@ export function AdminDashboard() {
 
       {/* Main Content */}
       <div className="grid gap-6 lg:grid-cols-3">
+        {/* Shipments List */}
         <div className="lg:col-span-1 space-y-4">
           <div className="rounded-3xl border border-slate-700 bg-slate-900/80 p-5">
             <div className="flex items-center justify-between mb-5">
@@ -349,7 +393,13 @@ export function AdminDashboard() {
                     <p className="text-slate-400">Order #{selectedShipment.orderId}</p>
                     <p className="text-sm text-slate-500">Updated {selectedShipment.estimatedDeliveryDate?.slice(0, 10) || 'N/A'}</p>
                   </div>
-                  <div className="flex flex-wrap gap-3">
+                  <div className="flex flex-wrap gap-3 items-center">
+                    <button
+                      onClick={loadAllData}
+                      className="rounded-2xl bg-slate-700 px-4 py-2 text-sm font-semibold text-white hover:bg-slate-600 transition"
+                    >
+                      Refresh
+                    </button>
                     {selectedShipment.status !== 'Delivered' && selectedShipment.status !== 'In Transit' && (
                       <button
                         onClick={() => updateShipmentStatus(selectedShipment.id, 'In Transit')}
@@ -375,6 +425,8 @@ export function AdminDashboard() {
                     rows={[
                       { label: 'Status', value: selectedShipment.status || 'Unknown', badge: getStatusColor(selectedShipment.status) },
                       { label: 'Destination', value: selectedShipment.shippingAddress || 'N/A' },
+                      { label: 'Current Location', value: liveTracking?.currentLocation ?? 'Waiting for live GPS' },
+                      { label: 'Last Update', value: liveTracking?.lastLocationUpdate ? new Date(liveTracking.lastLocationUpdate).toLocaleDateString() : 'Awaiting update' },
                       { label: 'Estimated Delivery', value: selectedShipment.estimatedDeliveryDate ? new Date(selectedShipment.estimatedDeliveryDate).toLocaleDateString() : 'TBD' },
                       { label: 'Actual Delivery', value: selectedShipment.actualDeliveryDate ? new Date(selectedShipment.actualDeliveryDate).toLocaleDateString() : 'Pending' },
                     ]}
@@ -391,20 +443,64 @@ export function AdminDashboard() {
                 </div>
               </div>
 
-              {/* Live Tracking Map  */}
+              {/* Live Tracking Map */}
               <div className="rounded-3xl border border-slate-700 bg-slate-900/80 p-6">
-                <div className="flex items-center justify-between mb-4">
-                  <h3 className="text-lg font-semibold text-white">Live Tracking</h3>
-                  <span className="text-xs text-green-400 flex items-center gap-1">
-                    <span className="w-2 h-2 bg-green-400 rounded-full animate-pulse"></span>
-                    Live
-                  </span>
+                <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between mb-4">
+                  <div>
+                    <h3 className="text-lg font-semibold text-white">Live Tracking</h3>
+                    <p className="text-slate-400 text-sm">Realtime driver location and estimated shipment route.</p>
+                  </div>
+                  <button
+                    onClick={() => selectedShipment && refreshLiveTracking(selectedShipment.id)}
+                    className="rounded-2xl bg-slate-700 px-4 py-2 text-sm font-semibold text-white hover:bg-slate-600 transition"
+                  >
+                    Refresh
+                  </button>
                 </div>
-                <div className="bg-slate-800 rounded-2xl h-64 flex items-center justify-center">
-                  <div className="text-center">
-                    <div className="text-5xl mb-3">🗺️</div>
-                    <p className="text-slate-400">Live GPS tracking will appear here</p>
-                    <p className="text-xs text-slate-500 mt-2">Tracking: {selectedShipment.trackingNumber}</p>
+
+                <div className="grid gap-4 lg:grid-cols-[1.4fr_0.6fr]">
+                  <div className="rounded-2xl overflow-hidden border border-slate-700 bg-slate-800/40 h-72 flex items-center justify-center">
+                    {liveTracking?.currentLocation ? (
+                      <iframe
+                        title="Admin live tracking map"
+                        src={getMapUrl()}
+                        className="w-full h-full border-0"
+                        allowFullScreen
+                      />
+                    ) : (
+                      <div className="text-center px-4">
+                        <p className="text-slate-400">Driver location is not available yet.</p>
+                        <p className="text-slate-500 text-sm mt-2">Wait for the driver to send their live GPS coordinates.</p>
+                      </div>
+                    )}
+                  </div>
+                  <div className="rounded-2xl border border-slate-700 bg-slate-800/50 p-4">
+                    <div className="space-y-4">
+                      <div>
+                        <p className="text-slate-400 text-sm">Current Location</p>
+                        <p className="text-white font-medium">{liveTracking?.currentLocation ?? 'Waiting for live GPS'}</p>
+                      </div>
+                      <div>
+                        <p className="text-slate-400 text-sm">Last Updated</p>
+                        <p className="text-white font-medium">
+                          {liveTracking?.lastLocationUpdate
+                            ? new Date(liveTracking.lastLocationUpdate).toLocaleString()
+                            : 'Awaiting update'}
+                        </p>
+                      </div>
+                      <div>
+                        <p className="text-slate-400 text-sm">Driver</p>
+                        <p className="text-white font-medium">{liveTracking?.driverName || selectedShipment.driverName || 'Unassigned'}</p>
+                      </div>
+                      <div>
+                        <p className="text-slate-400 text-sm">Driver Contact</p>
+                        <p className="text-white font-medium">{liveTracking?.driverPhone || 'N/A'}</p>
+                      </div>
+                      <div>
+                        <p className="text-slate-400 text-sm">Shipment Status</p>
+                        <p className="text-white font-medium">{liveTracking?.status || selectedShipment.status}</p>
+                      </div>
+                    </div>
                   </div>
                 </div>
               </div>
@@ -440,7 +536,7 @@ export function AdminDashboard() {
         </div>
       </div>
 
-      {/* Shipment Modal */}
+      {/* Create Shipment Modal */}
       {showCreateShipmentModal && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50" onClick={() => setShowCreateShipmentModal(false)}>
           <div className="w-full max-w-2xl max-h-[90vh] overflow-y-auto rounded-3xl border border-slate-700 bg-slate-900 p-6" onClick={(e) => e.stopPropagation()}>
@@ -695,7 +791,7 @@ export function AdminDashboard() {
   );
 }
 
-
+// Helper Components
 function StatCard({ label, value, icon }: { label: string; value: number; icon: string }) {
   return (
     <div className="rounded-3xl border border-slate-700 bg-slate-900/80 p-5">
