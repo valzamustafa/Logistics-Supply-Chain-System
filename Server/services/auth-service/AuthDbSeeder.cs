@@ -10,7 +10,7 @@ namespace AuthService
     {
         public static async Task SeedDataAsync(AuthDbContext context)
         {
-           
+            
             if (!await context.Roles.AnyAsync())
             {
                 var roles = new[]
@@ -27,7 +27,7 @@ namespace AuthService
                 await context.SaveChangesAsync();
             }
 
-            
+        
             if (!await context.Users.AnyAsync())
             {
                 var roles = await context.Roles.ToListAsync();
@@ -39,7 +39,7 @@ namespace AuthService
 
                 var users = new[]
                 {
-                  
+                    // Admin
                     new User
                     {
                         FirstName = "Admin",
@@ -49,7 +49,7 @@ namespace AuthService
                         IsActive = true,
                         CreatedAt = DateTime.UtcNow
                     },
-               
+                    // Manager
                     new User
                     {
                         FirstName = "John",
@@ -59,7 +59,7 @@ namespace AuthService
                         IsActive = true,
                         CreatedAt = DateTime.UtcNow
                     },
-                   
+                    // Driver 1
                     new User
                     {
                         FirstName = "Mike",
@@ -69,7 +69,7 @@ namespace AuthService
                         IsActive = true,
                         CreatedAt = DateTime.UtcNow
                     },
-                    
+                    // Driver 2
                     new User
                     {
                         FirstName = "Sarah",
@@ -79,7 +79,7 @@ namespace AuthService
                         IsActive = true,
                         CreatedAt = DateTime.UtcNow
                     },
-                    
+                    // Warehouse Staff
                     new User
                     {
                         FirstName = "Robert",
@@ -89,7 +89,7 @@ namespace AuthService
                         IsActive = true,
                         CreatedAt = DateTime.UtcNow
                     },
-                 
+                    // Regular User
                     new User
                     {
                         FirstName = "Jane",
@@ -104,7 +104,7 @@ namespace AuthService
                 context.Users.AddRange(users);
                 await context.SaveChangesAsync();
 
-               
+                // Assign Roles
                 var createdUsers = context.Users.ToList();
                 var userRoles = new List<UserRole>();
 

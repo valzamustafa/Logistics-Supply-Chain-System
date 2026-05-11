@@ -2,10 +2,16 @@ using OrderService.DTOs;
 using OrderService.Models;
 using OrderService.Repositories.Interfaces;
 using OrderService.Services.Interfaces;
+using System.IdentityModel.Tokens.Jwt;
+using System.Linq;
+using System.Net.Http.Headers;
+using System.Security.Claims;
+using System.Text;
 using System.Text.Json;
+using System.IO;
 using iTextSharp.text;
 using iTextSharp.text.pdf;
-using System.IO;
+using Microsoft.IdentityModel.Tokens;
 
 namespace OrderService.Business
 {
@@ -23,6 +29,96 @@ namespace OrderService.Business
             _orderRepository = orderRepository;
             _httpClientFactory = httpClientFactory;
             _configuration = configuration;
+        }
+
+        private void AddInternalServiceAuthorizationHeader(HttpClient client)
+        {
+            var token = GenerateInternalServiceJwt();
+            if (!string.IsNullOrEmpty(token))
+            {
+                client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", token);
+                client.DefaultRequestHeaders.Add("X-Internal-Request", "true");
+            }
+        }
+
+        private string GenerateInternalServiceJwt()
+        {
+            var jwtKey = _configuration["Jwt:Key"];
+            var jwtIssuer = _configuration["Jwt:Issuer"] ?? "Logjistika";
+            var jwtAudience = _configuration["Jwt:Audience"] ?? "LogjistikaClients";
+
+            if (string.IsNullOrEmpty(jwtKey))
+                jwtKey = "YourSuperSecretKeyForJWTThatIsAtLeast32CharactersLong123!";
+
+            var key = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(jwtKey));
+            var creds = new SigningCredentials(key, SecurityAlgorithms.HmacSha256);
+            var claims = new[]
+            {
+                new Claim(ClaimTypes.NameIdentifier, "internal-order-service"),
+                new Claim(ClaimTypes.Role, "Admin")
+            };
+
+            var token = new JwtSecurityToken(
+                issuer: jwtIssuer,
+                audience: jwtAudience,
+                claims: claims,
+                expires: DateTime.UtcNow.AddMinutes(30),
+                signingCredentials: creds);
+
+            return new JwtSecurityTokenHandler().WriteToken(token);
+        }
+
+        private async Task<bool> TryAutoAssignDriverShipmentAsync(Order order)
+        {
+            try
+            {
+                if (order == null || order.OrderItems == null || !order.OrderItems.Any() || !order.WarehouseId.HasValue)
+                    return false;
+
+                var shipmentServiceUrl = _configuration["Services:ShipmentService"] ?? "http://localhost:5004";
+                var client = _httpClientFactory.CreateClient();
+                AddInternalServiceAuthorizationHeader(client);
+
+                var driversResponse = await client.GetAsync($"{shipmentServiceUrl}/api/drivers/available");
+                if (!driversResponse.IsSuccessStatusCode)
+                    return false;
+
+                var availableDrivers = await driversResponse.Content.ReadFromJsonAsync<List<DriverDto>>();
+                var driver = availableDrivers?.FirstOrDefault();
+                if (driver == null)
+                    return false;
+
+                var shipmentRequest = new
+                {
+                    orderId = order.Id,
+                    warehouseId = order.WarehouseId,
+                    driverId = driver.Id,
+                    estimatedDeliveryDate = DateTime.UtcNow.AddDays(2),
+                    shippingAddress = order.ShippingAddress,
+                    items = order.OrderItems.Select(i => new
+                    {
+                        productId = i.ProductId,
+                        quantity = i.Quantity
+                    }).ToList()
+                };
+
+                var createResponse = await client.PostAsJsonAsync($"{shipmentServiceUrl}/api/shipments", shipmentRequest);
+                return createResponse.IsSuccessStatusCode;
+            }
+            catch
+            {
+                return false;
+            }
+        }
+
+        private class DriverDto
+        {
+            public int Id { get; set; }
+        }
+
+        private class AvailabilityDto
+        {
+            public bool IsAvailable { get; set; }
         }
 
         public async Task<OrderDto?> GetOrderByIdAsync(int id)
@@ -45,46 +141,48 @@ namespace OrderService.Business
 
         public async Task<OrderDto> CreateOrderAsync(CreateOrderRequestDto request)
         {
-         
-            var inventoryServiceUrl = _configuration["Services:InventoryService"] ?? "http://localhost:5003";
+            // Keep order validation in sync with the warehouse stock shown in the UI.
+            var warehouseServiceUrl = _configuration["Services:WarehouseService"] ?? "http://warehouse-service:80";
+            var warehouseId = request.WarehouseId ?? 1;
+            var warehouseClient = _httpClientFactory.CreateClient();
+            AddInternalServiceAuthorizationHeader(warehouseClient);
             
             foreach (var item in request.Items)
             {
                 try
                 {
-                  
-                    var client = _httpClientFactory.CreateClient();
-                    var reserveResponse = await client.PostAsJsonAsync(
-                        $"{inventoryServiceUrl}/api/inventory/stock",
-                        new
-                        {
-                            ProductId = item.ProductId,
-                            WarehouseId = 1,
-                            Quantity = item.Quantity,
-                            Type = "RESERVE",
-                            ReferenceType = "Order",
-                            Notes = $"Reserved for order"
-                        });
+                    var availabilityResponse = await warehouseClient.GetAsync(
+                        $"{warehouseServiceUrl}/api/warehousestock/warehouse/{warehouseId}/product/{item.ProductId}/availability?quantity={item.Quantity}");
 
-                    if (!reserveResponse.IsSuccessStatusCode)
+                    if (!availabilityResponse.IsSuccessStatusCode)
                     {
-                        var errorContent = await reserveResponse.Content.ReadAsStringAsync();
+                        var errorContent = await availabilityResponse.Content.ReadAsStringAsync();
                         throw new InvalidOperationException(
-                            $"Failed to reserve stock for product {item.ProductId}: {errorContent}");
+                            $"Failed to verify stock for product {item.ProductId}: {errorContent}");
                     }
+
+                    var availability = await availabilityResponse.Content.ReadFromJsonAsync<AvailabilityDto>();
+                    if (availability?.IsAvailable != true)
+                        throw new InvalidOperationException($"Insufficient stock for product {item.ProductId} in warehouse {warehouseId}.");
                 }
                 catch (HttpRequestException ex)
                 {
                     throw new InvalidOperationException(
-                        $"Inventory service unavailable. Cannot verify stock for product {item.ProductId}. Error: {ex.Message}");
+                        $"Warehouse service unavailable. Cannot verify stock for product {item.ProductId}. Error: {ex.Message}");
                 }
             }
 
             var order = new Order
             {
                 UserId = request.UserId,
+                WarehouseId = request.WarehouseId,
                 ShippingAddress = request.ShippingAddress,
                 BillingAddress = request.BillingAddress,
+                BankAccount = request.Invoice?.BankAccount,
+                BillingName = request.Invoice?.BillingName,
+                BillingEmail = request.Invoice?.BillingEmail,
+                BillingPhone = request.Invoice?.BillingPhone,
+                Status = request.WarehouseId.HasValue ? "Confirmed" : "Pending",
                 CreatedBy = request.UserId,
                 UpdatedBy = request.UserId
             };
@@ -115,7 +213,47 @@ namespace OrderService.Business
             order.TotalAmount = totalAmount;
             order.OrderItems = orderItems;
 
+            if (!string.IsNullOrWhiteSpace(request.PaymentMethod))
+            {
+                order.Payments.Add(new Payment
+                {
+                    PaymentMethod = request.PaymentMethod,
+                    Amount = totalAmount,
+                    Status = request.PaymentMethod.Equals("Stripe", StringComparison.OrdinalIgnoreCase) ? "Completed" : "Pending",
+                    TransactionId = request.PaymentReference,
+                    CompletedAt = request.PaymentMethod.Equals("Stripe", StringComparison.OrdinalIgnoreCase) ? DateTime.UtcNow : null,
+                    CreatedBy = request.UserId,
+                    UpdatedBy = request.UserId
+                });
+            }
+
             var created = await _orderRepository.CreateAsync(order);
+
+            if (request.WarehouseId.HasValue)
+            {
+                _ = await TryAutoAssignDriverShipmentAsync(created);
+            }
+
+            foreach (var item in request.Items)
+            {
+                var stockResponse = await warehouseClient.PutAsJsonAsync(
+                    $"{warehouseServiceUrl}/api/warehousestock/warehouse/{warehouseId}/product/{item.ProductId}/stock",
+                    new
+                    {
+                        Quantity = item.Quantity,
+                        Type = "Outbound",
+                        Reference = created.OrderNumber,
+                        Notes = $"Stock deducted for order {created.OrderNumber}"
+                    });
+
+                if (!stockResponse.IsSuccessStatusCode)
+                {
+                    var errorContent = await stockResponse.Content.ReadAsStringAsync();
+                    throw new InvalidOperationException(
+                        $"Failed to deduct stock for product {item.ProductId}: {errorContent}");
+                }
+            }
+
             return MapToDto(created);
         }
 
@@ -178,7 +316,7 @@ namespace OrderService.Business
         }
         #region Warehouse Selection
 
-   
+      
         public async Task<int> SelectOptimalWarehouseAsync(int orderId, string? customerAddress = null)
         {
             var order = await _orderRepository.GetByIdAsync(orderId);
@@ -188,7 +326,7 @@ namespace OrderService.Business
             var warehouseServiceUrl = _configuration["Services:WarehouseService"] ?? "http://localhost:5006";
             var client = _httpClientFactory.CreateClient();
 
-            // Get all active warehouses
+           
             var warehousesResponse = await client.GetAsync($"{warehouseServiceUrl}/api/warehouses");
             if (!warehousesResponse.IsSuccessStatusCode)
                 throw new InvalidOperationException("Failed to retrieve warehouses");
@@ -222,7 +360,7 @@ namespace OrderService.Business
                     }
                 }
 
-               
+                
                 if (availableCount > maxAvailability)
                 {
                     maxAvailability = availableCount;
@@ -230,7 +368,7 @@ namespace OrderService.Business
                 }
                 else if (availableCount == maxAvailability && availableCount > 0)
                 {
-          
+                    
                     if (warehouse.Id < bestWarehouseId || bestWarehouseId == 0)
                     {
                         bestWarehouseId = warehouse.Id;
@@ -244,14 +382,14 @@ namespace OrderService.Business
             return bestWarehouseId;
         }
 
-
+       
         public async Task<OrderDto> AssignWarehouseAsync(int orderId, int warehouseId)
         {
             var order = await _orderRepository.GetByIdAsync(orderId);
             if (order == null)
                 throw new InvalidOperationException("Order not found");
 
-      
+           
             var warehouseServiceUrl = _configuration["Services:WarehouseService"] ?? "http://localhost:5006";
             var client = _httpClientFactory.CreateClient();
             
@@ -263,6 +401,7 @@ namespace OrderService.Business
             order.Status = "Confirmed";
             
             var updated = await _orderRepository.UpdateAsync(order);
+            _ = await TryAutoAssignDriverShipmentAsync(updated);
             return MapToDto(updated);
         }
 
@@ -270,7 +409,7 @@ namespace OrderService.Business
 
         #region Inventory Validation & Deduction
 
-
+        
         public async Task<bool> ValidateInventoryAsync(int orderId)
         {
             var order = await _orderRepository.GetByIdAsync(orderId);
@@ -297,7 +436,8 @@ namespace OrderService.Business
             return true;
         }
 
-              public async Task<bool> ReserveInventoryAsync(int orderId)
+       
+        public async Task<bool> ReserveInventoryAsync(int orderId)
         {
             var order = await _orderRepository.GetByIdAsync(orderId);
             if (order == null)
@@ -322,7 +462,7 @@ namespace OrderService.Business
 
                 if (!response.IsSuccessStatusCode)
                 {
-   
+                   
                     await ReleaseInventoryAsync(orderId);
                     return false;
                 }
@@ -331,6 +471,7 @@ namespace OrderService.Business
             return true;
         }
 
+        
         public async Task<bool> DeductInventoryAsync(int orderId)
         {
             var order = await _orderRepository.GetByIdAsync(orderId);
@@ -362,7 +503,7 @@ namespace OrderService.Business
             return true;
         }
 
-    
+       
         public async Task<bool> ReleaseInventoryAsync(int orderId)
         {
             var order = await _orderRepository.GetByIdAsync(orderId);
@@ -390,7 +531,7 @@ namespace OrderService.Business
                 }
                 catch
                 {
-                
+                    
                 }
             }
 
@@ -401,7 +542,7 @@ namespace OrderService.Business
 
         #region Order Processing (Fulfillment)
 
-    
+        
         public async Task<OrderDto> StartProcessingAsync(int orderId)
         {
             var order = await _orderRepository.GetByIdAsync(orderId);
@@ -411,7 +552,7 @@ namespace OrderService.Business
             if (order.Status != "Pending" && order.Status != "Confirmed")
                 throw new InvalidOperationException($"Cannot start processing for order in status: {order.Status}");
 
-         
+            
             if (!await ValidateInventoryAsync(orderId))
                 throw new InvalidOperationException("Insufficient inventory");
 
@@ -425,7 +566,7 @@ namespace OrderService.Business
             return MapToDto(updated);
         }
 
-     
+        
         public async Task<OrderDto> UpdateProcessingStatusAsync(int orderId, string processingStatus)
         {
             var order = await _orderRepository.GetByIdAsync(orderId);
@@ -435,7 +576,7 @@ namespace OrderService.Business
             if (order.Status != "Processing")
                 throw new InvalidOperationException("Order is not in processing state");
 
-          
+           
             order.Status = processingStatus switch
             {
                 "Picking" => "Processing_Picking",
@@ -449,13 +590,13 @@ namespace OrderService.Business
             return MapToDto(updated);
         }
 
-   
+       
         public async Task<OrderDto> CompletePickingAsync(int orderId)
         {
             return await UpdateProcessingStatusAsync(orderId, "Picking");
         }
 
-        
+       
         public async Task<OrderDto> CompletePackingAsync(int orderId)
         {
             return await UpdateProcessingStatusAsync(orderId, "Packed");
@@ -465,18 +606,19 @@ namespace OrderService.Business
 
         #region Shipment Creation
 
-    
+      
         public async Task<int> CreateShipmentAsync(int orderId)
         {
             var order = await _orderRepository.GetByIdAsync(orderId);
             if (order == null)
                 throw new InvalidOperationException("Order not found");
 
-            if (order.Status != "Processing_Packed" && order.Status != "Processing")
-                throw new InvalidOperationException("Order must be processed before creating shipment");
+            if (order.Status != "Confirmed" && order.Status != "Processing_Packed" && order.Status != "Processing")
+                throw new InvalidOperationException("Order must be confirmed or processed before creating shipment");
 
             var shipmentServiceUrl = _configuration["Services:ShipmentService"] ?? "http://localhost:5004";
             var client = _httpClientFactory.CreateClient();
+            AddInternalServiceAuthorizationHeader(client);
 
             var shipmentRequest = new
             {
@@ -501,7 +643,7 @@ namespace OrderService.Business
             return result?.Id ?? 0;
         }
 
-    
+       
         public async Task<OrderDto> MarkAsShippedAsync(int orderId, int shipmentId)
         {
             var order = await _orderRepository.GetByIdAsync(orderId);
@@ -520,7 +662,7 @@ namespace OrderService.Business
 
         #region Delivery
 
-    
+       
         public async Task<OrderDto> ConfirmDeliveryAsync(int orderId)
         {
             var order = await _orderRepository.GetByIdAsync(orderId);
@@ -538,7 +680,7 @@ namespace OrderService.Business
             return MapToDto(updated);
         }
 
-     
+      
         public async Task<OrderDto> MarkDeliveryFailedAsync(int orderId, string reason)
         {
             var order = await _orderRepository.GetByIdAsync(orderId);
@@ -556,7 +698,7 @@ namespace OrderService.Business
 
         #region Returns & Adjustments
 
-      
+        
         public async Task<OrderDto> ProcessReturnAsync(int orderId, Dictionary<int, int> returnedItems)
         {
             var order = await _orderRepository.GetByIdAsync(orderId);
@@ -573,6 +715,7 @@ namespace OrderService.Business
             return MapToDto(updated);
         }
 
+       
         public async Task<bool> RestoreInventoryForReturnAsync(int orderId, Dictionary<int, int> returnedItems)
         {
             var order = await _orderRepository.GetByIdAsync(orderId);
@@ -608,7 +751,7 @@ namespace OrderService.Business
 
         #region Workflow Status
 
-   
+       
         public async Task<string> GetOrderWorkflowStatusAsync(int orderId)
         {
             var order = await _orderRepository.GetByIdAsync(orderId);
@@ -635,9 +778,9 @@ namespace OrderService.Business
 
         private int ExtractWarehouseId(string? shippingAddress)
         {
-            
+           
             if (string.IsNullOrEmpty(shippingAddress))
-                return 1; 
+                return 1; // Default warehouse
 
             if (shippingAddress.StartsWith("Warehouse:"))
             {
@@ -649,7 +792,7 @@ namespace OrderService.Business
             return 1; 
         }
 
-    
+       
         private async Task<int> GetWarehouseIdFromOrderAsync(int orderId)
         {
             var order = await _orderRepository.GetByIdAsync(orderId);
@@ -669,13 +812,14 @@ namespace OrderService.Business
                         {
                             document.Open();
 
-                          
+                         
                             var titleFont = FontFactory.GetFont(FontFactory.HELVETICA_BOLD, 18);
                             var headerFont = FontFactory.GetFont(FontFactory.HELVETICA_BOLD, 12);
                             var normalFont = FontFactory.GetFont(FontFactory.HELVETICA, 10);
                             var boldFont = FontFactory.GetFont(FontFactory.HELVETICA_BOLD, 10);
                             var smallFont = FontFactory.GetFont(FontFactory.HELVETICA, 8);
 
+                         
                             var companyTable = new PdfPTable(1);
                             companyTable.WidthPercentage = 100;
                             
@@ -709,7 +853,7 @@ namespace OrderService.Business
                             
                             document.Add(companyTable);
 
-                          
+                         
                             var titleTable = new PdfPTable(1);
                             titleTable.WidthPercentage = 100;
                             titleTable.AddCell(new PdfPCell(new Phrase("TAX INVOICE", titleFont))
@@ -722,7 +866,7 @@ namespace OrderService.Business
                             
                             document.Add(new Paragraph(" "));
 
-                      
+                           
                             var detailsTable = new PdfPTable(2);
                             detailsTable.WidthPercentage = 100;
                             detailsTable.SetWidths(new float[] { 50f, 50f });
@@ -764,7 +908,7 @@ namespace OrderService.Business
                             
                             document.Add(detailsTable);
 
-                            
+                          
                             var itemTable = new PdfPTable(5);
                             itemTable.WidthPercentage = 100;
                             itemTable.SetWidths(new float[] { 40f, 15f, 15f, 15f, 15f });
@@ -792,7 +936,7 @@ namespace OrderService.Business
                             document.Add(itemTable);
                             document.Add(new Paragraph(" "));
 
-                         
+                       
                             var totalTax = subtotal * 0.18m;
                             var grandTotal = subtotal + totalTax;
                             
@@ -808,7 +952,7 @@ namespace OrderService.Business
                             document.Add(totalTable);
                             document.Add(new Paragraph(" "));
 
-                      
+                       
                             var paymentTable = new PdfPTable(1);
                             paymentTable.WidthPercentage = 100;
                             
@@ -831,7 +975,7 @@ namespace OrderService.Business
                             document.Add(paymentTable);
                             document.Add(new Paragraph(" "));
 
-                        
+                          
                             var footerTable = new PdfPTable(1);
                             footerTable.WidthPercentage = 100;
                             footerTable.AddCell(new PdfPCell(new Phrase("Thank you for your business!", smallFont))
@@ -909,6 +1053,12 @@ namespace OrderService.Business
                 BillingAddress = order.BillingAddress,
                 ShippedAt = order.ShippedAt,
                 DeliveredAt = order.DeliveredAt,
+                PaymentMethod = order.Payments?.FirstOrDefault()?.PaymentMethod,
+                PaymentReference = order.Payments?.FirstOrDefault()?.TransactionId,
+                BankAccount = order.BankAccount,
+                BillingName = order.BillingName,
+                BillingEmail = order.BillingEmail,
+                BillingPhone = order.BillingPhone,
                 Items = order.OrderItems?.Select(i => new OrderItemDto
                 {
                     Id = i.Id,

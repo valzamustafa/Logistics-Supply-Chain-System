@@ -71,7 +71,7 @@ namespace InventoryService.Business
                 }
             }
 
-
+          
             if (request.Type == "RELEASE")
             {
                 var currentInventory = await _inventoryRepository.GetByProductAndWarehouseAsync(
@@ -111,7 +111,7 @@ namespace InventoryService.Business
             };
         }
 
-
+       
         public async Task<IEnumerable<LowStockAlertDto>> GetLowStockAlertsAsync()
         {
             var allInventory = await _inventoryRepository.GetAllAsync();
@@ -137,7 +137,7 @@ namespace InventoryService.Business
             return alerts;
         }
 
-     
+       
         public async Task<bool> CheckStockAvailabilityAsync(int productId, int warehouseId, int quantity)
         {
             var inventory = await _inventoryRepository.GetByProductAndWarehouseAsync(productId, warehouseId);
@@ -149,7 +149,7 @@ namespace InventoryService.Business
             return availableQuantity >= quantity;
         }
 
-     
+        
         public async Task<bool> ReserveStockAsync(int productId, int warehouseId, int quantity, string referenceType, int referenceId)
         {
             var inventory = await _inventoryRepository.GetByProductAndWarehouseAsync(productId, warehouseId);
@@ -178,7 +178,8 @@ namespace InventoryService.Business
             return true;
         }
 
-           public async Task<bool> ReleaseStockAsync(int productId, int warehouseId, int quantity, string referenceType, int referenceId)
+        
+        public async Task<bool> ReleaseStockAsync(int productId, int warehouseId, int quantity, string referenceType, int referenceId)
         {
             var inventory = await _inventoryRepository.GetByProductAndWarehouseAsync(productId, warehouseId);
             
@@ -202,7 +203,7 @@ namespace InventoryService.Business
             return true;
         }
 
-    
+       
         public async Task<bool> DeductStockAsync(int productId, int warehouseId, int quantity, string referenceType, int referenceId, string? notes)
         {
             var inventory = await _inventoryRepository.GetByProductAndWarehouseAsync(productId, warehouseId);
@@ -264,7 +265,7 @@ namespace InventoryService.Business
                 ReorderLevel = inventory.ReorderLevel
             };
 
-     
+           
             try
             {
                 var productClient = _httpClientFactory.CreateClient();
@@ -284,7 +285,7 @@ namespace InventoryService.Business
                 dto.ProductName = $"Product {inventory.ProductId}";
             }
 
-         
+           
             try
             {
                 var warehouseClient = _httpClientFactory.CreateClient();
