@@ -1,8 +1,12 @@
+using System;
+using System.IO;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
+using Microsoft.Extensions.FileProviders;
 using System.Text;
 using System.Text.Json.Serialization;
 using Microsoft.IdentityModel.Tokens;
+using Microsoft.AspNetCore.Authorization; // Shto këtë për AuthorizationPolicyBuilder
 using ProductService.Data;
 using ProductService.Models;
 using ProductService.Repositories.Interfaces;
@@ -26,7 +30,7 @@ builder.Services.AddDbContext<ProductDbContext>(options =>
 builder.Services.AddScoped<IProductRepository, ProductRepository>();
 builder.Services.AddScoped<IProductService, ProductService.Services.Implementations.ProductService>();
 
-// Add CORS
+
 builder.Services.AddCors(options =>
 {
     options.AddPolicy("AllowFrontend", builder =>
@@ -38,7 +42,7 @@ builder.Services.AddCors(options =>
     });
 });
 
-// JWT Configuration
+
 var jwtKey = builder.Configuration["Jwt:Key"];
 var jwtIssuer = builder.Configuration["Jwt:Issuer"];
 var jwtAudience = builder.Configuration["Jwt:Audience"];
@@ -63,6 +67,14 @@ builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
         };
     });
 
+
+builder.Services.AddAuthorization(options =>
+{
+    options.FallbackPolicy = new AuthorizationPolicyBuilder()
+        .RequireAuthenticatedUser()
+        .Build();
+});
+
 var app = builder.Build();
 
 if (app.Environment.IsDevelopment())
@@ -72,6 +84,16 @@ if (app.Environment.IsDevelopment())
 }
 
 app.UseCors("AllowFrontend");
+
+var webRootPath = Path.Combine(app.Environment.ContentRootPath, "wwwroot");
+Directory.CreateDirectory(webRootPath);
+app.UseStaticFiles(new StaticFileOptions
+{
+    FileProvider = new PhysicalFileProvider(webRootPath),
+    RequestPath = string.Empty
+});
+
+app.UseRouting();
 app.UseAuthentication();
 app.UseAuthorization();
 app.MapControllers();
@@ -80,7 +102,7 @@ using (var scope = app.Services.CreateScope())
 {
     var dbContext = scope.ServiceProvider.GetRequiredService<ProductDbContext>();
     
- 
+    
     await dbContext.Database.EnsureCreatedAsync();
 
     if (!dbContext.Categories.Any())

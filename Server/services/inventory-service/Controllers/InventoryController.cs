@@ -59,7 +59,7 @@ namespace InventoryService.Controllers
             return Ok(new { isAvailable });
         }
 
-       
+        
         [HttpPost("reserve")]
         public async Task<IActionResult> ReserveStock([FromBody] StockOperationRequest request)
         {
@@ -89,7 +89,7 @@ namespace InventoryService.Controllers
             return Ok(new { success = result });
         }
 
-
+       
         [HttpPost("restore")]
         public async Task<IActionResult> RestoreStock([FromBody] StockDeductRequest request)
         {
@@ -100,7 +100,7 @@ namespace InventoryService.Controllers
         }
     }
 
-   
+    
     public class StockOperationRequest
     {
         public int ProductId { get; set; }

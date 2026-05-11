@@ -18,6 +18,7 @@ namespace OrderService.Repositories.Implementations
         {
             return await _context.Orders
                 .Include(o => o.OrderItems)
+                .Include(o => o.Payments)
                 .FirstOrDefaultAsync(o => o.Id == id);
         }
 
@@ -32,6 +33,7 @@ namespace OrderService.Repositories.Implementations
         {
             return await _context.Orders
                 .Include(o => o.OrderItems)
+                .Include(o => o.Payments)
                 .ToListAsync();
         }
 
@@ -40,6 +42,7 @@ namespace OrderService.Repositories.Implementations
             return await _context.Orders
                 .Where(o => o.UserId == userId)
                 .Include(o => o.OrderItems)
+                .Include(o => o.Payments)
                 .ToListAsync();
         }
 
