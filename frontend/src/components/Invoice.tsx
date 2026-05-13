@@ -1,3 +1,4 @@
+
 import React from 'react';
 import { Order } from '../services/orderService';
 
@@ -20,7 +21,7 @@ export const Invoice: React.FC<InvoiceProps> = ({ order, bankAccount }) => {
   };
 
   const downloadPDF = async () => {
-   
+    
     const response = await fetch(`/api/orders/${order.id}/invoice`, {
       method: 'GET',
       headers: {
@@ -44,44 +45,44 @@ export const Invoice: React.FC<InvoiceProps> = ({ order, bankAccount }) => {
   return (
     <div className="invoice-container">
       <div className="invoice-header">
-        <h2>TAX INVOICE</h2>
+        <h2>FATURA TATIMORE</h2>
         <div className="invoice-number">
-          <strong>Invoice No:</strong> {order.orderNumber}
+          <strong>Nr. Fatures:</strong> {order.orderNumber}
         </div>
         <div className="invoice-date">
-          <strong>Date:</strong> {new Date(order.orderDate).toLocaleDateString('en-US')}
+          <strong>Data:</strong> {new Date(order.orderDate).toLocaleDateString('sq-AL')}
         </div>
       </div>
 
       <div className="company-info">
-        <h3>Logistics LLC</h3>
-        <p>Address: Bill Clinton Street, Pristina 10000</p>
-        <p>Phone: +383 49 123 456</p>
-        <p>Email: info@logistics.com</p>
-        <p><strong>Bank Account Number: {bankAccount}</strong></p>
-        <p>Business Number: 81234567</p>
-        <p>VAT: 51234567</p>
+        <h3>Logjistika SH.P.K.</h3>
+        <p>Adresa: Rr. Bill Clinton, Prishtinë 10000</p>
+        <p>Tel: +383 49 123 456</p>
+        <p>Email: info@logjistika.com</p>
+        <p><strong>Nr. Gjirollogarisë: {bankAccount}</strong></p>
+        <p>NUIS: 81234567</p>
+        <p>TVSH: 51234567</p>
       </div>
 
       <div className="customer-info">
-        <h4>Customer:</h4>
+        <h4>Klienti:</h4>
         <p>ID: {order.userId}</p>
       </div>
 
       <table className="invoice-items">
         <thead>
           <tr>
-            <th>Description</th>
-            <th>Quantity</th>
-            <th>Unit Price</th>
-            <th>VAT 18%</th>
-            <th>Total</th>
+            <th>Përshkrimi</th>
+            <th>Sasia</th>
+            <th>Çmimi Unit</th>
+            <th>TVSH 18%</th>
+            <th>Totali</th>
           </tr>
         </thead>
         <tbody>
           {order.items.map((item) => (
             <tr key={item.id}>
-              <td>{item.productName || `Product ${item.productId}`}</td>
+              <td>{item.productName || `Produkti ${item.productId}`}</td>
               <td>{item.quantity}</td>
               <td>€{item.unitPrice.toFixed(2)}</td>
               <td>€{(item.unitPrice * item.quantity * 0.18).toFixed(2)}</td>
@@ -97,28 +98,28 @@ export const Invoice: React.FC<InvoiceProps> = ({ order, bankAccount }) => {
           </tr>
           <tr>
             <td colSpan={3}></td>
-            <td><strong>VAT (18%):</strong></td>
+            <td><strong>TVSH (18%):</strong></td>
             <td>€{calculateTax().toFixed(2)}</td>
           </tr>
           <tr>
             <td colSpan={3}></td>
-            <td><strong>TOTAL:</strong></td>
+            <td><strong>TOTALI:</strong></td>
             <td><strong>€{calculateTotal().toFixed(2)}</strong></td>
           </tr>
         </tfoot>
       </table>
 
       <div className="payment-info">
-        <h4>Payment Information:</h4>
-        <p><strong>Bank:</strong> Economic Bank</p>
-        <p><strong>Account:</strong> {bankAccount}</p>
-        <p><strong>IBAN Code:</strong> XK05 1234 5678 9012 3456</p>
-        <p><strong>SWIFT Code:</strong> BAKXKS10</p>
-        <p><strong>Description:</strong> Payment for order {order.orderNumber}</p>
+        <h4>Informata për Pagesë:</h4>
+        <p><strong>Banka:</strong> Banka Ekonomike</p>
+        <p><strong>Llogaria:</strong> {bankAccount}</p>
+        <p><strong>Kodi IBAN:</strong> XK05 1234 5678 9012 3456</p>
+        <p><strong>Kodi SWIFT:</strong> BAKXKS10</p>
+        <p><strong>Përshkrimi:</strong> Pagesë për porosinë {order.orderNumber}</p>
       </div>
 
       <button onClick={downloadPDF} className="download-btn">
-        Download Invoice (PDF)
+        Shkarko Faturën (PDF)
       </button>
     </div>
   );
