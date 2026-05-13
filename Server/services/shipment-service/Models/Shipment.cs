@@ -40,7 +40,7 @@ public string? CustomerFeedback { get; set; }
     public int? CreatedBy { get; set; }
     public int? UpdatedBy { get; set; }
     
-    // Navigation properties
+
     public virtual Driver? Driver { get; set; }
     public virtual Vehicle? Vehicle { get; set; }
     public virtual ICollection<ShipmentItem> Items { get; set; } = new List<ShipmentItem>();

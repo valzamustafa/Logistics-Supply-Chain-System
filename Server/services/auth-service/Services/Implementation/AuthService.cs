@@ -202,7 +202,7 @@ namespace AuthService.Services.Implementations
                 }
                 catch
                 {
-                 
+                    
                 }
             }
 

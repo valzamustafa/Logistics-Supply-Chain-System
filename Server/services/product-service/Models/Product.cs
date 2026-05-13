@@ -25,7 +25,8 @@ namespace ProductService.Models
         
         public bool IsActive { get; set; } = true;
        
-        
+        public virtual ICollection<ProductImage> Images { get; set; } = new List<ProductImage>();
+
         [BindNever]
         [ForeignKey(nameof(CategoryId))]
         public virtual Category? Category { get; set; }

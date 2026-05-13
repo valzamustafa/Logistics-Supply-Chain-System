@@ -1,4 +1,7 @@
+
 using Microsoft.AspNetCore.Authentication.JwtBearer;
+using Microsoft.AspNetCore.Authorization;
+using Microsoft.Data.SqlClient;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
 using ShipmentService.Data;
@@ -28,7 +31,7 @@ if (string.IsNullOrEmpty(connectionString))
     connectionString = "Server=mssql;Database=ShipmentServiceDB;User Id=sa;Password=YourStrong!Password123;TrustServerCertificate=true;Encrypt=false";
 }
 builder.Services.AddDbContext<ShipmentDbContext>(options =>
-    options.UseSqlServer(connectionString));
+    options.UseSqlServer(connectionString, sqlOptions => sqlOptions.EnableRetryOnFailure()));
 
 
 builder.Services.AddCors(options =>
@@ -69,6 +72,25 @@ builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
         };
     });
 
+builder.Services.AddAuthorization(options =>
+{
+    var allowedShipmentRoles = new[] { "Admin", "Manager", "Supplier", "Warehouse", "WarehouseStaff" };
+
+    options.AddPolicy("ShipmentCreator", policy =>
+        policy.RequireAuthenticatedUser()
+              .RequireAssertion(context =>
+                  context.User.Claims.Any(c =>
+                      (c.Type == ClaimTypes.Role || c.Type == "role" || c.Type == "roles" || c.Type == ClaimTypes.Role)
+                      && allowedShipmentRoles.Any(role => string.Equals(c.Value, role, StringComparison.OrdinalIgnoreCase))
+                  )
+              )
+    );
+
+    options.FallbackPolicy = new AuthorizationPolicyBuilder()
+        .RequireAuthenticatedUser()
+        .Build();
+});
+
 
 builder.Services.AddScoped<IShipmentRepository, ShipmentRepository>();
 builder.Services.AddScoped<IShipmentService, ShipmentServices>();
@@ -98,13 +120,49 @@ using (var scope = app.Services.CreateScope())
     var dbContext = scope.ServiceProvider.GetRequiredService<ShipmentDbContext>();
     try
     {
-        dbContext.Database.Migrate();
-        Console.WriteLine("Database migrated successfully!");
+        await EnsureDatabaseExistsAsync(connectionString);
+
+        if (app.Environment.IsDevelopment())
+        {
+            var hasShipmentTables = await dbContext.Database
+                .SqlQueryRaw<int>("SELECT CASE WHEN OBJECT_ID(N'[Shipments]', N'U') IS NULL THEN 0 ELSE 1 END AS [Value]")
+                .SingleAsync();
+
+            if (hasShipmentTables == 0)
+            {
+                await dbContext.Database.EnsureDeletedAsync();
+            }
+        }
+
+        await dbContext.Database.EnsureCreatedAsync();
+        Console.WriteLine("Database schema ensured successfully!");
     }
     catch (Exception ex)
     {
-        Console.WriteLine($"Database migration error: {ex.Message}");
+        Console.WriteLine($"Database initialization error: {ex.Message}");
     }
 }
 
 app.Run();
+
+static async Task EnsureDatabaseExistsAsync(string connectionString)
+{
+    var builder = new SqlConnectionStringBuilder(connectionString);
+    var databaseName = builder.InitialCatalog;
+    if (string.IsNullOrEmpty(databaseName))
+    {
+        return;
+    }
+
+    var masterBuilder = new SqlConnectionStringBuilder(connectionString)
+    {
+        InitialCatalog = "master"
+    };
+
+    await using var connection = new SqlConnection(masterBuilder.ConnectionString);
+    await connection.OpenAsync();
+
+    await using var command = connection.CreateCommand();
+    command.CommandText = $"IF DB_ID(N'{databaseName}') IS NULL CREATE DATABASE [{databaseName}]";
+    await command.ExecuteNonQueryAsync();
+}

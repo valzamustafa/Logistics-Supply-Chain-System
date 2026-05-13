@@ -22,7 +22,7 @@ namespace OrderService.DTOs
         public string TrackingNumber { get; set; } = string.Empty;
     }
 
-   
+
     public class SelectWarehouseRequest
     {
         public string? CustomerAddress { get; set; }
