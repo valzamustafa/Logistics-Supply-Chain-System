@@ -64,12 +64,12 @@ export function CartProvider({ children }: { children: ReactNode }) {
   const addToCart = (product: Product, quantity: number = 1) => {
     setCart(prevCart => {
       const existingItem = prevCart.find(item => item.productId === product.id);
-      
+
       if (existingItem) {
         return prevCart.map(item =>
-          item.productId === product.id
-            ? { ...item, quantity: item.quantity + quantity }
-            : item
+            item.productId === product.id
+                ? { ...item, quantity: item.quantity + quantity }
+                : item
         );
       } else {
         return [...prevCart, {
@@ -91,13 +91,13 @@ export function CartProvider({ children }: { children: ReactNode }) {
       removeFromCart(productId);
       return;
     }
-    
+
     setCart(prevCart =>
-      prevCart.map(item =>
-        item.productId === productId
-          ? { ...item, quantity }
-          : item
-      )
+        prevCart.map(item =>
+            item.productId === productId
+                ? { ...item, quantity }
+                : item
+        )
     );
   };
 
@@ -150,17 +150,17 @@ export function CartProvider({ children }: { children: ReactNode }) {
       };
 
       const response = await orderService.create(orderData);
-   
+      // response already contains the Order object directly
       const newOrder = response;
-      
-      
+
+      // Clear cart after successful order
       clearCart();
-      
-  
+
+      // Remove cart from localStorage
       if (user?.id) {
         localStorage.removeItem(`cart_${user.id}`);
       }
-      
+
       return newOrder;
     } catch (err: any) {
       const errorMessage = err.response?.data?.message || err.message || 'Failed to create order';
@@ -172,23 +172,23 @@ export function CartProvider({ children }: { children: ReactNode }) {
   };
 
   return (
-    <CartContext.Provider
-      value={{
-        cart,
-        addToCart,
-        removeFromCart,
-        updateQuantity,
-        clearCart,
-        getCartTotal,
-        getCartItemCount,
-        getCartItems,
-        placeOrder,
-        isLoading,
-        error,
-      }}
-    >
-      {children}
-    </CartContext.Provider>
+      <CartContext.Provider
+          value={{
+            cart,
+            addToCart,
+            removeFromCart,
+            updateQuantity,
+            clearCart,
+            getCartTotal,
+            getCartItemCount,
+            getCartItems,
+            placeOrder,
+            isLoading,
+            error,
+          }}
+      >
+        {children}
+      </CartContext.Provider>
   );
 }
 

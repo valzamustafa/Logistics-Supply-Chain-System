@@ -15,6 +15,20 @@
       "UpstreamHttpMethod": [ "GET", "POST", "PUT", "DELETE", "OPTIONS" ]
     },
     {
+      "DownstreamPathTemplate": "/images/{everything}",
+      "DownstreamScheme": "http",
+      "DownstreamHostAndPorts": [{ "Host": "product-service", "Port": 80 }],
+      "UpstreamPathTemplate": "/images/{everything}",
+      "UpstreamHttpMethod": [ "GET" ]
+    },
+    {
+      "DownstreamPathTemplate": "/api/orders/payment-intent",
+      "DownstreamScheme": "http",
+      "DownstreamHostAndPorts": [{ "Host": "order-service", "Port": 80 }],
+      "UpstreamPathTemplate": "/api/orders/payment-intent",
+      "UpstreamHttpMethod": [ "POST", "OPTIONS" ]
+    },
+    {
       "DownstreamPathTemplate": "/api/orders/{everything}",
       "DownstreamScheme": "http",
       "DownstreamHostAndPorts": [{ "Host": "order-service", "Port": 80 }],
@@ -36,17 +50,12 @@
       "UpstreamHttpMethod": [ "GET", "POST", "PUT", "DELETE", "OPTIONS" ]
     },
     {
-  "DownstreamPathTemplate": "/api/purchaseorders/{everything}",
-  "DownstreamScheme": "http",
-  "DownstreamHostAndPorts": [
-    {
-      "Host": "supplier-service",
-      "Port": 80
-    }
-  ],
-  "UpstreamPathTemplate": "/api/purchaseorders/{everything}",
-  "UpstreamHttpMethod": [ "Get", "Post", "Put", "Delete" ]
-},
+      "DownstreamPathTemplate": "/api/purchaseorders/{everything}",
+      "DownstreamScheme": "http",
+      "DownstreamHostAndPorts": [{ "Host": "supplier-service", "Port": 80 }],
+      "UpstreamPathTemplate": "/api/purchaseorders/{everything}",
+      "UpstreamHttpMethod": [ "GET", "POST", "PUT", "DELETE", "OPTIONS" ]
+    },
     {
       "DownstreamPathTemplate": "/api/shipments",
       "DownstreamScheme": "http",
@@ -87,6 +96,20 @@
       "DownstreamScheme": "http",
       "DownstreamHostAndPorts": [{ "Host": "shipment-service", "Port": 80 }],
       "UpstreamPathTemplate": "/api/vehicles",
+      "UpstreamHttpMethod": [ "GET", "POST", "PUT", "DELETE", "OPTIONS" ]
+    },
+    {
+      "DownstreamPathTemplate": "/api/driver/{everything}",
+      "DownstreamScheme": "http",
+      "DownstreamHostAndPorts": [{ "Host": "shipment-service", "Port": 80 }],
+      "UpstreamPathTemplate": "/api/driver/{everything}",
+      "UpstreamHttpMethod": [ "GET", "POST", "PUT", "DELETE", "OPTIONS" ]
+    },
+    {
+      "DownstreamPathTemplate": "/api/driver",
+      "DownstreamScheme": "http",
+      "DownstreamHostAndPorts": [{ "Host": "shipment-service", "Port": 80 }],
+      "UpstreamPathTemplate": "/api/driver",
       "UpstreamHttpMethod": [ "GET", "POST", "PUT", "DELETE", "OPTIONS" ]
     },
     {
