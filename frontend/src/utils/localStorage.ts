@@ -17,7 +17,7 @@ export function setLocalStorageItem(key: string, value: string): void {
     try {
       window.sessionStorage.setItem(key, value);
     } catch {
-
+      // Ignore storage errors in restricted browser environments.
     }
   }
 }
@@ -29,7 +29,7 @@ export function removeLocalStorageItem(key: string): void {
     try {
       window.sessionStorage.removeItem(key);
     } catch {
-   
+      // Ignore storage errors in restricted browser environments.
     }
   }
 }
