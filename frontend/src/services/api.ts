@@ -1,3 +1,4 @@
+
 import { getLocalStorageItem } from '../utils/localStorage';
 
 export const API_BASE_URL = import.meta.env.VITE_API_BASE_URL ?? 'http://localhost:5000';
@@ -45,7 +46,7 @@ async function request<T>(
         const text = await response.text();
         if (text) errorMessage = text;
       } catch {
-       
+     
       }
     }
     throw new Error(errorMessage);
@@ -83,7 +84,7 @@ async function requestBlob(
       try {
         errorMessage = await clone.text() || errorMessage;
       } catch {
-       
+     
       }
     }
     throw new Error(errorMessage);

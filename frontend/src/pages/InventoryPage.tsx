@@ -1,21 +1,8 @@
 import React, { useState, useEffect } from 'react';
-import { useAuth } from '../hooks/useAuth';
-
-const API_BASE_URL = import.meta.env.VITE_API_BASE_URL ?? 'http://localhost:5000';
-
-interface InventoryItem {
-  id: number;
-  productId: number;
-  productName: string;
-  quantity: number;
-  warehouseId: number;
-  warehouseName: string;
-  lastUpdated: string;
-}
+import { warehouseStockService, WarehouseStock } from '../services/warehouseStockService';
 
 export const InventoryPage: React.FC = () => {
-  const { token } = useAuth();
-  const [inventory, setInventory] = useState<InventoryItem[]>([]);
+  const [inventory, setInventory] = useState<WarehouseStock[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
@@ -26,20 +13,11 @@ export const InventoryPage: React.FC = () => {
   const fetchInventory = async () => {
     try {
       setLoading(true);
-      const response = await fetch(`${API_BASE_URL}/api/inventory`, {
-        headers: {
-          'Authorization': `Bearer ${token}`,
-        },
-      });
-      
-      if (response.ok) {
-        const data = await response.json();
-        setInventory(data);
-      } else {
-        setError('Failed to fetch inventory');
-      }
+      const data = await warehouseStockService.getAll();
+      setInventory(data);
     } catch (err) {
-      setError('Error loading inventory');
+      console.error('Failed to load inventory:', err);
+      setError('Failed to load inventory data.');
     } finally {
       setLoading(false);
     }
@@ -66,61 +44,54 @@ export const InventoryPage: React.FC = () => {
   return (
     <div className="p-6">
       <h1 className="text-2xl font-bold text-white mb-6">Inventory Management</h1>
-      
       <div className="bg-slate-800 rounded-lg shadow overflow-hidden border border-slate-700">
-        <table className="min-w-full divide-y divide-slate-700">
-          <thead className="bg-slate-900">
-            <tr>
-              <th className="px-6 py-3 text-left text-xs font-medium text-slate-400 uppercase tracking-wider">
-                Product ID
-              </th>
-              <th className="px-6 py-3 text-left text-xs font-medium text-slate-400 uppercase tracking-wider">
-                Product Name
-              </th>
-              <th className="px-6 py-3 text-left text-xs font-medium text-slate-400 uppercase tracking-wider">
-                Quantity
-              </th>
-              <th className="px-6 py-3 text-left text-xs font-medium text-slate-400 uppercase tracking-wider">
-                Warehouse
-              </th>
-              <th className="px-6 py-3 text-left text-xs font-medium text-slate-400 uppercase tracking-wider">
-                Last Updated
-              </th>
-            </tr>
-          </thead>
-          <tbody className="bg-slate-800 divide-y divide-slate-700">
-            {inventory.map((item) => (
-              <tr key={item.id} className="hover:bg-slate-700/50 transition">
-                <td className="px-6 py-4 whitespace-nowrap text-sm text-white">
-                  {item.productId}
-                </td>
-                <td className="px-6 py-4 whitespace-nowrap text-sm text-slate-300">
-                  {item.productName}
-                </td>
-                <td className="px-6 py-4 whitespace-nowrap text-sm">
-                  <span className={`px-2 py-1 inline-flex text-xs leading-5 font-semibold rounded-full ${
-                    item.quantity < 10 ? 'bg-red-500/20 text-red-400 border border-red-500/30' : 
-                    item.quantity < 50 ? 'bg-yellow-500/20 text-yellow-400 border border-yellow-500/30' : 
-                    'bg-green-500/20 text-green-400 border border-green-500/30'
-                  }`}>
-                    {item.quantity} units
-                  </span>
-                </td>
-                <td className="px-6 py-4 whitespace-nowrap text-sm text-slate-300">
-                  {item.warehouseName}
-                </td>
-                <td className="px-6 py-4 whitespace-nowrap text-sm text-slate-300">
-                  {new Date(item.lastUpdated).toLocaleDateString()}
-                </td>
+        <div className="px-6 py-4 border-b border-slate-700 flex flex-col md:flex-row md:items-center md:justify-between gap-3">
+          <div>
+            <p className="text-sm text-slate-400">Showing all warehouse stock items</p>
+            <p className="text-xl font-semibold text-white">{inventory.length} records</p>
+          </div>
+        </div>
+        <div className="overflow-x-auto">
+          <table className="min-w-full divide-y divide-slate-700">
+            <thead className="bg-slate-900">
+              <tr>
+                <th className="px-6 py-3 text-left text-xs font-medium text-slate-400 uppercase tracking-wider">Product</th>
+                <th className="px-6 py-3 text-left text-xs font-medium text-slate-400 uppercase tracking-wider">SKU</th>
+                <th className="px-6 py-3 text-left text-xs font-medium text-slate-400 uppercase tracking-wider">Stock Level</th>
+                <th className="px-6 py-3 text-left text-xs font-medium text-slate-400 uppercase tracking-wider">Min Level</th>
+                <th className="px-6 py-3 text-left text-xs font-medium text-slate-400 uppercase tracking-wider">Max Level</th>
+                <th className="px-6 py-3 text-left text-xs font-medium text-slate-400 uppercase tracking-wider">Status</th>
+                <th className="px-6 py-3 text-left text-xs font-medium text-slate-400 uppercase tracking-wider">Warehouse</th>
+                <th className="px-6 py-3 text-left text-xs font-medium text-slate-400 uppercase tracking-wider">Location</th>
               </tr>
-            ))}
-          </tbody>
-        </table>
+            </thead>
+            <tbody className="bg-slate-800 divide-y divide-slate-700">
+              {inventory.map((item) => (
+                <tr key={`${item.warehouseId}-${item.productId}`} className="hover:bg-slate-700/50 transition">
+                  <td className="px-6 py-4 whitespace-nowrap text-sm text-white">{item.productName || 'N/A'}</td>
+                  <td className="px-6 py-4 whitespace-nowrap text-sm text-slate-300">{item.productSku || 'N/A'}</td>
+                  <td className="px-6 py-4 whitespace-nowrap text-sm text-white">{item.quantity}</td>
+                  <td className="px-6 py-4 whitespace-nowrap text-sm text-slate-300">{item.minimumStockLevel}</td>
+                  <td className="px-6 py-4 whitespace-nowrap text-sm text-slate-300">{item.maximumStockLevel}</td>
+                  <td className="px-6 py-4 whitespace-nowrap text-sm">
+                    <span className={`px-2 py-1 rounded-full text-xs ${
+                      item.isOutOfStock ? 'bg-red-500/20 text-red-400' :
+                      item.isLowStock ? 'bg-yellow-500/20 text-yellow-400' :
+                      'bg-green-500/20 text-green-400'
+                    }`}>
+                      {item.isOutOfStock ? 'Out of Stock' : item.isLowStock ? 'Low Stock' : 'Good'}
+                    </span>
+                  </td>
+                  <td className="px-6 py-4 whitespace-nowrap text-sm text-slate-300">{item.warehouseName}</td>
+                  <td className="px-6 py-4 whitespace-nowrap text-sm text-slate-300">{item.shelfLocation || '-'}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
 
         {inventory.length === 0 && (
-          <div className="text-center py-8 text-slate-400">
-            No inventory items found.
-          </div>
+          <div className="text-center py-8 text-slate-400">No inventory items found.</div>
         )}
       </div>
     </div>

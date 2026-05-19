@@ -78,6 +78,8 @@ export const MyOrdersPage: React.FC = () => {
   return (
     <div className="p-6">
       <h1 className="text-2xl font-bold text-white mb-6">My Orders</h1>
+
+      {/* Stats Cards */}
       <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-8">
         <div className="bg-slate-800 rounded-lg shadow p-4 border border-slate-700">
           <div className="text-slate-400 text-sm">Total Orders</div>
@@ -103,6 +105,7 @@ export const MyOrdersPage: React.FC = () => {
         </div>
       </div>
 
+      {/* Orders Table */}
       <div className="bg-slate-800 rounded-lg shadow overflow-hidden border border-slate-700">
         <table className="min-w-full divide-y divide-slate-700">
           <thead className="bg-slate-900">
