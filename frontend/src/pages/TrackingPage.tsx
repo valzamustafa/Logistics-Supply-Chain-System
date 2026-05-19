@@ -165,7 +165,7 @@ export function TrackingPage() {
       )}
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-       
+        {/* List of Shipments */}
         <div className="lg:col-span-1">
           <div className="rounded-2xl border border-slate-700 bg-slate-800/50 p-6 backdrop-blur h-full">
             <h2 className="text-xl font-bold text-white mb-4">Shipments</h2>
@@ -207,6 +207,7 @@ export function TrackingPage() {
         {/* Tracking Details */}
         {selectedShipment && (
           <div className="lg:col-span-2 space-y-6">
+        
             <div className="rounded-2xl border border-slate-700 bg-slate-800/50 p-6 backdrop-blur">
               <div className="flex justify-between items-start mb-6">
                 <div>
@@ -240,7 +241,7 @@ export function TrackingPage() {
               </div>
             </div>
 
-       
+            {/* Live Tracking Panel */}
             <div className="rounded-2xl border border-slate-700 bg-slate-800/50 p-6 backdrop-blur">
               <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-4 mb-4">
                 <div>
@@ -303,6 +304,7 @@ export function TrackingPage() {
 
             </div>
 
+            {/* Tracking Timeline */}
             <div className="rounded-2xl border border-slate-700 bg-slate-800/50 p-6 backdrop-blur">
               <h3 className="text-lg font-bold text-white mb-6">Delivery Progress</h3>
               <div className="space-y-4">
@@ -330,7 +332,7 @@ export function TrackingPage() {
               </div>
             </div>
 
-     
+            {/* Location Info */}
             <div className="rounded-2xl border border-slate-700 bg-slate-800/50 p-6 backdrop-blur">
               <div className="space-y-3">
                 <div className="flex items-start gap-3">

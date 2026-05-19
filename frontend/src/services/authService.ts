@@ -1,3 +1,4 @@
+
 import { getLocalStorageItem, removeLocalStorageItem } from '../utils/localStorage';
 
 const apiBaseUrl = import.meta.env.VITE_API_BASE_URL ?? 'http://localhost:5000';
@@ -10,6 +11,18 @@ export interface User {
   isActive: boolean;
   roles: string[];
   lastActive?: string;
+}
+
+export interface Role {
+  id: number;
+  name: string;
+  description?: string;
+}
+
+export interface Permission {
+  id: number;
+  name: string;
+  description?: string;
 }
 
 export interface LoginResponse {
@@ -91,11 +104,13 @@ export async function getUsers(): Promise<User[]> {
   return response.json();
 }
 
+
 export async function createUser(userData: {
   email: string;
   password: string;
   firstName: string;
   lastName: string;
+  role?: string;  
 }): Promise<User> {
   const token = getLocalStorageItem('token');
   const response = await fetch(`${apiBaseUrl}/api/auth/register`, {
@@ -114,7 +129,6 @@ export async function createUser(userData: {
 
   return response.json();
 }
-
 export async function updateUser(id: number, data: { firstName: string; lastName: string; email: string; isActive: boolean }): Promise<User> {
   const token = getLocalStorageItem('token');
   const response = await fetch(`${apiBaseUrl}/api/auth/${id}`, {
@@ -145,6 +159,103 @@ export async function deleteUser(id: number): Promise<void> {
 
   if (!response.ok) {
     throw new Error('Failed to delete user');
+  }
+}
+
+export async function getRoles(): Promise<Role[]> {
+  const token = getLocalStorageItem('token');
+  const response = await fetch(`${apiBaseUrl}/api/auth/roles`, {
+    headers: {
+      'Authorization': `Bearer ${token}`,
+      'Content-Type': 'application/json'
+    }
+  });
+
+  if (!response.ok) {
+    throw new Error('Failed to get roles');
+  }
+
+  return response.json();
+}
+
+export async function createRole(roleData: { name: string; description?: string }): Promise<Role> {
+  const token = getLocalStorageItem('token');
+  const response = await fetch(`${apiBaseUrl}/api/auth/roles`, {
+    method: 'POST',
+    headers: {
+      'Authorization': `Bearer ${token}`,
+      'Content-Type': 'application/json'
+    },
+    body: JSON.stringify(roleData)
+  });
+
+  if (!response.ok) {
+    const error = await response.text();
+    throw new Error(error);
+  }
+
+  return response.json();
+}
+
+export async function assignRoleToUser(userId: number, roleId: number): Promise<void> {
+  const token = getLocalStorageItem('token');
+  const response = await fetch(`${apiBaseUrl}/api/auth/${userId}/roles/${roleId}`, {
+    method: 'POST',
+    headers: {
+      'Authorization': `Bearer ${token}`,
+      'Content-Type': 'application/json'
+    }
+  });
+
+  if (!response.ok) {
+    throw new Error('Failed to assign role');
+  }
+}
+
+export async function removeRoleFromUser(userId: number, roleId: number): Promise<void> {
+  const token = getLocalStorageItem('token');
+  const response = await fetch(`${apiBaseUrl}/api/auth/${userId}/roles/${roleId}`, {
+    method: 'DELETE',
+    headers: {
+      'Authorization': `Bearer ${token}`,
+      'Content-Type': 'application/json'
+    }
+  });
+
+  if (!response.ok) {
+    throw new Error('Failed to remove role');
+  }
+}
+
+export async function getPermissions(): Promise<Permission[]> {
+  const token = getLocalStorageItem('token');
+  const response = await fetch(`${apiBaseUrl}/api/auth/permissions`, {
+    headers: {
+      'Authorization': `Bearer ${token}`,
+      'Content-Type': 'application/json'
+    }
+  });
+
+  if (!response.ok) {
+    throw new Error('Failed to get permissions');
+  }
+
+  return response.json();
+}
+
+export async function updateRolePermissions(roleId: number, permissions: string[]): Promise<void> {
+  const token = getLocalStorageItem('token');
+  const response = await fetch(`${apiBaseUrl}/api/auth/roles/${roleId}/permissions`, {
+    method: 'PUT',
+    headers: {
+      'Authorization': `Bearer ${token}`,
+      'Content-Type': 'application/json'
+    },
+    body: JSON.stringify({ permissions })
+  });
+
+  if (!response.ok) {
+    throw new Error('Failed to update role permissions');
   }
 }
 
