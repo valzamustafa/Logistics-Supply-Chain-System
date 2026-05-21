@@ -1,4 +1,8 @@
+using System.Linq;
+using System.Net.Http.Json;
+using Microsoft.AspNetCore.SignalR;
 using NotificationService.DTOs;
+using NotificationService.Hubs;
 using NotificationService.Models;
 using NotificationService.Repositories.Interfaces;
 using NotificationService.Services.Interfaces;
@@ -8,10 +12,20 @@ namespace NotificationService.Business
     public class NotificationService : INotificationService
     {
         private readonly INotificationRepository _repository;
+        private readonly IHubContext<NotificationHub> _hubContext;
+        private readonly IHttpClientFactory _httpClientFactory;
+        private readonly IConfiguration _configuration;
 
-        public NotificationService(INotificationRepository repository)
+        public NotificationService(
+            INotificationRepository repository,
+            IHubContext<NotificationHub> hubContext,
+            IHttpClientFactory httpClientFactory,
+            IConfiguration configuration)
         {
             _repository = repository;
+            _hubContext = hubContext;
+            _httpClientFactory = httpClientFactory;
+            _configuration = configuration;
         }
 
         public async Task<IEnumerable<NotificationDto>> GetUserNotificationsAsync(int userId)
@@ -34,18 +48,23 @@ namespace NotificationService.Business
 
         public async Task<NotificationDto> SendNotificationAsync(SendNotificationDto dto)
         {
-            var notification = new Notification
-            {
-                UserId = dto.UserId,
-                Type = dto.Type,
-                Title = dto.Title,
-                Message = dto.Message,
-                IsRead = false,
-                CreatedAt = DateTime.UtcNow
-            };
+            return await CreateNotificationAsync(dto.UserId, dto.Type, dto.Title, dto.Message, dto.ActionUrl);
+        }
 
-            var created = await _repository.CreateAsync(notification);
-            return MapToDto(created);
+        public async Task<IEnumerable<NotificationDto>> SendNotificationToRoleAsync(SendNotificationToRoleDto dto)
+        {
+            var userIds = await GetUserIdsByRoleAsync(dto.Role);
+            if (!userIds.Any())
+            {
+                return Enumerable.Empty<NotificationDto>();
+            }
+
+            return await SendNotificationsToUsersAsync(userIds, dto.Type, dto.Title, dto.Message, dto.ActionUrl);
+        }
+
+        public async Task<IEnumerable<NotificationDto>> SendNotificationToUsersAsync(SendNotificationToUsersDto dto)
+        {
+            return await SendNotificationsToUsersAsync(dto.UserIds, dto.Type, dto.Title, dto.Message, dto.ActionUrl);
         }
 
         public async Task MarkAsReadAsync(int notificationId)
@@ -64,6 +83,58 @@ namespace NotificationService.Business
             await _repository.MarkAllAsReadAsync(userId);
         }
 
+        private async Task<IEnumerable<NotificationDto>> SendNotificationsToUsersAsync(IEnumerable<int> userIds, string type, string title, string message, string? actionUrl)
+        {
+            var results = new List<NotificationDto>();
+            foreach (var userId in userIds.Distinct())
+            {
+                var notification = await CreateNotificationAsync(userId, type, title, message, actionUrl);
+                results.Add(notification);
+                await _hubContext.Clients.Group($"user-{userId}").SendAsync("ReceiveNotification", notification);
+            }
+            return results;
+        }
+
+        private async Task<NotificationDto> CreateNotificationAsync(int userId, string type, string title, string message, string? actionUrl)
+        {
+            var notification = new Notification
+            {
+                UserId = userId,
+                Type = type,
+                Title = title,
+                Message = message,
+                ActionUrl = actionUrl,
+                IsRead = false,
+                CreatedAt = DateTime.UtcNow
+            };
+
+            var created = await _repository.CreateAsync(notification);
+            return MapToDto(created);
+        }
+
+        private async Task<IEnumerable<int>> GetUserIdsByRoleAsync(string roleName)
+        {
+            var authServiceUrl = _configuration["AuthServiceUrl"] ?? "http://localhost:5001";
+            using var client = _httpClientFactory.CreateClient();
+            client.BaseAddress = new Uri(authServiceUrl.TrimEnd('/') + "/");
+
+            try
+            {
+                var response = await client.GetAsync($"api/auth/roles/{Uri.EscapeDataString(roleName)}/users");
+                if (!response.IsSuccessStatusCode)
+                {
+                    return Enumerable.Empty<int>();
+                }
+
+                var userIds = await response.Content.ReadFromJsonAsync<List<int>>();
+                return userIds ?? Enumerable.Empty<int>();
+            }
+            catch
+            {
+                return Enumerable.Empty<int>();
+            }
+        }
+
         private NotificationDto MapToDto(Notification notification)
         {
             return new NotificationDto
@@ -73,6 +144,7 @@ namespace NotificationService.Business
                 Type = notification.Type,
                 Title = notification.Title,
                 Message = notification.Message,
+                ActionUrl = notification.ActionUrl,
                 IsRead = notification.IsRead,
                 ReadAt = notification.ReadAt,
                 CreatedAt = notification.CreatedAt

@@ -127,6 +127,30 @@
       "UpstreamHttpMethod": [ "GET", "POST", "PUT", "DELETE", "OPTIONS" ]
     },
     {
+      "DownstreamPathTemplate": "/api/warehouses/{warehouseId}/staff",
+      "DownstreamScheme": "http",
+      "DownstreamHostAndPorts": [{ "Host": "warehouse-service", "Port": 80 }],
+      "UpstreamPathTemplate": "/api/warehouses/{warehouseId}/staff",
+      "UpstreamHttpMethod": [ "GET", "POST", "PUT", "DELETE", "OPTIONS" ],
+      "Priority": 1
+    },
+    {
+      "DownstreamPathTemplate": "/api/warehouses/staff/{id}",
+      "DownstreamScheme": "http",
+      "DownstreamHostAndPorts": [{ "Host": "warehouse-service", "Port": 80 }],
+      "UpstreamPathTemplate": "/api/warehouses/staff/{id}",
+      "UpstreamHttpMethod": [ "GET", "PUT", "DELETE", "OPTIONS" ],
+      "Priority": 1
+    },
+    {
+      "DownstreamPathTemplate": "/api/warehouses/staff/user/{userId}",
+      "DownstreamScheme": "http",
+      "DownstreamHostAndPorts": [{ "Host": "warehouse-service", "Port": 80 }],
+      "UpstreamPathTemplate": "/api/warehouses/staff/user/{userId}",
+      "UpstreamHttpMethod": [ "GET", "OPTIONS" ],
+      "Priority": 1
+    },
+    {
       "DownstreamPathTemplate": "/api/warehouses/{everything}",
       "DownstreamScheme": "http",
       "DownstreamHostAndPorts": [{ "Host": "warehouse-service", "Port": 80 }],
@@ -146,6 +170,38 @@
       "DownstreamHostAndPorts": [{ "Host": "warehouse-service", "Port": 80 }],
       "UpstreamPathTemplate": "/api/warehousestock/{everything}",
       "UpstreamHttpMethod": [ "GET", "POST", "PUT", "DELETE", "OPTIONS" ]
+    },
+    {
+      "DownstreamPathTemplate": "/notificationsHub",
+      "DownstreamScheme": "http",
+      "DownstreamHostAndPorts": [{ "Host": "notification-service", "Port": 80 }],
+      "UpstreamPathTemplate": "/notificationsHub",
+      "UpstreamHttpMethod": [ "GET", "OPTIONS" ]
+      ,"Priority": 2
+    },
+    {
+      "DownstreamPathTemplate": "/notificationsHub/{everything}",
+      "DownstreamScheme": "http",
+      "DownstreamHostAndPorts": [{ "Host": "notification-service", "Port": 80 }],
+      "UpstreamPathTemplate": "/notificationsHub/{everything}",
+      "UpstreamHttpMethod": [ "GET", "POST", "OPTIONS" ]
+      ,"Priority": 1
+    },
+    {
+      "DownstreamPathTemplate": "/dashboardHub",
+      "DownstreamScheme": "http",
+      "DownstreamHostAndPorts": [{ "Host": "report-service", "Port": 80 }],
+      "UpstreamPathTemplate": "/dashboardHub",
+      "UpstreamHttpMethod": [ "GET", "OPTIONS" ]
+      ,"Priority": 2
+    },
+    {
+      "DownstreamPathTemplate": "/dashboardHub/{everything}",
+      "DownstreamScheme": "http",
+      "DownstreamHostAndPorts": [{ "Host": "report-service", "Port": 80 }],
+      "UpstreamPathTemplate": "/dashboardHub/{everything}",
+      "UpstreamHttpMethod": [ "GET", "POST", "OPTIONS" ]
+      ,"Priority": 1
     },
     {
       "DownstreamPathTemplate": "/api/notifications/{everything}",

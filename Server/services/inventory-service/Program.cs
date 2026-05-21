@@ -8,10 +8,12 @@ using InventoryService.Repositories.Interfaces;
 using InventoryService.Repositories.Implementations;
 using InventoryService.Services.Interfaces;
 using InventoryService.Business;
+using InventoryService.Filters;
+using BuildingBlocks;
 
 var builder = WebApplication.CreateBuilder(args);
 
-builder.Services.AddControllers();
+builder.Services.AddControllers(options => options.Filters.Add<NotificationActionFilter>());
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();
 
@@ -19,8 +21,15 @@ builder.Services.AddDbContext<InventoryDbContext>(options =>
     options.UseSqlServer(builder.Configuration.GetConnectionString("InventoryDB")));
 
 builder.Services.AddHttpClient();
+builder.Services.AddScoped<NotificationActionFilter>();
 builder.Services.AddScoped<IInventoryRepository, InventoryRepository>();
 builder.Services.AddScoped<IInventoryService, InventoryService.Business.InventoryService>();
+
+
+builder.Services.AddHttpClient<INotificationClient, NotificationClient>(client =>
+{
+    client.Timeout = TimeSpan.FromSeconds(10);
+});
 
 
 builder.Services.AddCors(options =>
