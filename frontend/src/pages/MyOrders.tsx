@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { useAuth } from '../hooks/useAuth';
 import { orderService, Order } from '../services/orderService';
@@ -189,6 +188,7 @@ export const MyOrdersPage: React.FC = () => {
         )}
       </div>
 
+      {/* Invoice Modal */}
       {showInvoice && selectedOrder && (
         <InvoiceModal
           order={selectedOrder}

@@ -4,7 +4,6 @@ using System.ComponentModel.DataAnnotations.Schema;
 namespace ShipmentService.Models
 {
     public class DeliveryProof
-    
     {
         [Key]
         public int Id { get; set; }

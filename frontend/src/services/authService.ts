@@ -1,3 +1,6 @@
+
+import { getLocalStorageItem, removeLocalStorageItem } from '../utils/localStorage';
+
 const apiBaseUrl = import.meta.env.VITE_API_BASE_URL ?? 'http://localhost:5000';
 
 export interface User {
@@ -8,6 +11,18 @@ export interface User {
   isActive: boolean;
   roles: string[];
   lastActive?: string;
+}
+
+export interface Role {
+  id: number;
+  name: string;
+  description?: string;
+}
+
+export interface Permission {
+  id: number;
+  name: string;
+  description?: string;
 }
 
 export interface LoginResponse {
@@ -52,8 +67,8 @@ export async function register(email: string, password: string, firstName: strin
 }
 
 export async function getCurrentUser(token?: string): Promise<User> {
-  const authToken = token || localStorage.getItem('token');
-  
+  const authToken = token || getLocalStorageItem('token');
+
   const headers: Record<string, string> = {
     'Content-Type': 'application/json'
   };
@@ -74,7 +89,7 @@ export async function getCurrentUser(token?: string): Promise<User> {
 }
 
 export async function getUsers(): Promise<User[]> {
-  const token = localStorage.getItem('token');
+  const token = getLocalStorageItem('token');
   const response = await fetch(`${apiBaseUrl}/api/auth/users`, {
     headers: {
       'Authorization': `Bearer ${token}`,
@@ -89,13 +104,15 @@ export async function getUsers(): Promise<User[]> {
   return response.json();
 }
 
+
 export async function createUser(userData: {
   email: string;
   password: string;
   firstName: string;
   lastName: string;
+  role?: string;  
 }): Promise<User> {
-  const token = localStorage.getItem('token');
+  const token = getLocalStorageItem('token');
   const response = await fetch(`${apiBaseUrl}/api/auth/register`, {
     method: 'POST',
     headers: {
@@ -112,9 +129,8 @@ export async function createUser(userData: {
 
   return response.json();
 }
-
 export async function updateUser(id: number, data: { firstName: string; lastName: string; email: string; isActive: boolean }): Promise<User> {
-  const token = localStorage.getItem('token');
+  const token = getLocalStorageItem('token');
   const response = await fetch(`${apiBaseUrl}/api/auth/${id}`, {
     method: 'PUT',
     headers: {
@@ -132,7 +148,7 @@ export async function updateUser(id: number, data: { firstName: string; lastName
 }
 
 export async function deleteUser(id: number): Promise<void> {
-  const token = localStorage.getItem('token');
+  const token = getLocalStorageItem('token');
   const response = await fetch(`${apiBaseUrl}/api/auth/${id}`, {
     method: 'DELETE',
     headers: {
@@ -146,8 +162,105 @@ export async function deleteUser(id: number): Promise<void> {
   }
 }
 
+export async function getRoles(): Promise<Role[]> {
+  const token = getLocalStorageItem('token');
+  const response = await fetch(`${apiBaseUrl}/api/auth/roles`, {
+    headers: {
+      'Authorization': `Bearer ${token}`,
+      'Content-Type': 'application/json'
+    }
+  });
+
+  if (!response.ok) {
+    throw new Error('Failed to get roles');
+  }
+
+  return response.json();
+}
+
+export async function createRole(roleData: { name: string; description?: string }): Promise<Role> {
+  const token = getLocalStorageItem('token');
+  const response = await fetch(`${apiBaseUrl}/api/auth/roles`, {
+    method: 'POST',
+    headers: {
+      'Authorization': `Bearer ${token}`,
+      'Content-Type': 'application/json'
+    },
+    body: JSON.stringify(roleData)
+  });
+
+  if (!response.ok) {
+    const error = await response.text();
+    throw new Error(error);
+  }
+
+  return response.json();
+}
+
+export async function assignRoleToUser(userId: number, roleId: number): Promise<void> {
+  const token = getLocalStorageItem('token');
+  const response = await fetch(`${apiBaseUrl}/api/auth/${userId}/roles/${roleId}`, {
+    method: 'POST',
+    headers: {
+      'Authorization': `Bearer ${token}`,
+      'Content-Type': 'application/json'
+    }
+  });
+
+  if (!response.ok) {
+    throw new Error('Failed to assign role');
+  }
+}
+
+export async function removeRoleFromUser(userId: number, roleId: number): Promise<void> {
+  const token = getLocalStorageItem('token');
+  const response = await fetch(`${apiBaseUrl}/api/auth/${userId}/roles/${roleId}`, {
+    method: 'DELETE',
+    headers: {
+      'Authorization': `Bearer ${token}`,
+      'Content-Type': 'application/json'
+    }
+  });
+
+  if (!response.ok) {
+    throw new Error('Failed to remove role');
+  }
+}
+
+export async function getPermissions(): Promise<Permission[]> {
+  const token = getLocalStorageItem('token');
+  const response = await fetch(`${apiBaseUrl}/api/auth/permissions`, {
+    headers: {
+      'Authorization': `Bearer ${token}`,
+      'Content-Type': 'application/json'
+    }
+  });
+
+  if (!response.ok) {
+    throw new Error('Failed to get permissions');
+  }
+
+  return response.json();
+}
+
+export async function updateRolePermissions(roleId: number, permissions: string[]): Promise<void> {
+  const token = getLocalStorageItem('token');
+  const response = await fetch(`${apiBaseUrl}/api/auth/roles/${roleId}/permissions`, {
+    method: 'PUT',
+    headers: {
+      'Authorization': `Bearer ${token}`,
+      'Content-Type': 'application/json'
+    },
+    body: JSON.stringify({ permissions })
+  });
+
+  if (!response.ok) {
+    throw new Error('Failed to update role permissions');
+  }
+}
+
 export async function assignRole(userId: number, roleId: number): Promise<void> {
-  const token = localStorage.getItem('token');
+  const token = getLocalStorageItem('token');
   const response = await fetch(`${apiBaseUrl}/api/auth/${userId}/roles/${roleId}`, {
     method: 'POST',
     headers: {
@@ -162,7 +275,7 @@ export async function assignRole(userId: number, roleId: number): Promise<void> 
 }
 
 export async function removeRole(userId: number, roleId: number): Promise<void> {
-  const token = localStorage.getItem('token');
+  const token = getLocalStorageItem('token');
   const response = await fetch(`${apiBaseUrl}/api/auth/${userId}/roles/${roleId}`, {
     method: 'DELETE',
     headers: {
@@ -177,13 +290,13 @@ export async function removeRole(userId: number, roleId: number): Promise<void> 
 }
 
 export function logout(): void {
-  localStorage.removeItem('token');
-  localStorage.removeItem('user');
+  removeLocalStorageItem('token');
+  removeLocalStorageItem('user');
   window.location.href = '/login';
 }
 
 export function isAuthenticated(): boolean {
-  const token = localStorage.getItem('token');
+  const token = getLocalStorageItem('token');
   if (!token) return false;
   
   try {

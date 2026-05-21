@@ -1,4 +1,5 @@
 using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using System.Security.Claims;
 using ShipmentService.DTOs;
@@ -58,11 +59,12 @@ public class ShipmentsController : ControllerBase
         return Ok(shipments);
     }
     
+    [Authorize(Policy = "ShipmentCreator")]
     [HttpPost]
     public async Task<IActionResult> Create([FromBody] CreateShipmentDto request)
     {
         if (!HasShipmentPermission())
-            return Forbid();
+            return StatusCode(StatusCodes.Status403Forbidden, new { message = "You do not have permission to create shipments." });
 
         var shipment = await _shipmentService.CreateAsync(request);
         return CreatedAtAction(nameof(GetById), new { id = shipment.Id }, shipment);
@@ -114,13 +116,13 @@ public class ShipmentsController : ControllerBase
     {
         try
         {
-    
+           
             var shipmentModel = await _shipmentService.UpdateStatusAsync(id, request.Status);
             
             if (shipmentModel == null)
                 return NotFound(new { message = "Shipment not found" });
             
-        
+          
             await UpdateSupplierPurchaseOrderStatus(shipmentModel, request);
             
             return Ok(shipmentModel);
@@ -136,7 +138,7 @@ public class ShipmentsController : ControllerBase
     {
         try
         {
-          
+            
             var supplierApiUrl = _configuration["Services:SupplierService"] ?? "http://localhost:5000";
             var endpoint = $"{supplierApiUrl}/api/purchaseorders/{shipment.OrderId}/confirm-shipment";
             
@@ -197,14 +199,27 @@ public class ShipmentsController : ControllerBase
         }
     }
 
-    [Authorize(Roles = "Driver,Supplier,Admin")]
+    [Authorize(Roles = "Driver,Supplier,Admin,Manager,Warehouse,WarehouseStaff,User")]
     [HttpGet("{id}/tracking/live")]
     public async Task<IActionResult> GetLiveTracking(int id)
     {
         var shipment = await _shipmentService.GetByIdAsync(id);
         if (shipment == null)
             return NotFound();
-        
+
+        var driverName = shipment.DriverId.HasValue ? $"Driver #{shipment.DriverId}" : "Not assigned";
+        var driverPhone = "N/A";
+
+        if (shipment.DriverId.HasValue)
+        {
+            var driver = await _driverRepository.GetByIdAsync(shipment.DriverId.Value);
+            if (driver != null)
+            {
+                driverName = $"Driver #{driver.Id}";
+                driverPhone = driver.PhoneNumber ?? "N/A";
+            }
+        }
+
         return Ok(new
         {
             shipment.TrackingNumber,
@@ -212,8 +227,8 @@ public class ShipmentsController : ControllerBase
             shipment.LastLocationUpdate,
             shipment.Status,
             shipment.EstimatedDeliveryDate,
-            DriverName = shipment.DriverId.HasValue ? $"Driver #{shipment.DriverId}" : "Not assigned",
-            DriverPhone = "N/A"
+            DriverName = driverName,
+            DriverPhone = driverPhone
         });
     }
 
@@ -294,11 +309,12 @@ public class NotifySupplierDto
     public string? Notes { get; set; }
     public string? UpdatedBy { get; set; }
 }
+    [Authorize(Policy = "ShipmentCreator")]
     [HttpPut("{id}/assign-driver")]
     public async Task<IActionResult> AssignDriver(int id, [FromBody] AssignDriverDto request)
     {
         if (!HasShipmentPermission())
-            return Forbid();
+            return StatusCode(StatusCodes.Status403Forbidden, new { message = "You do not have permission to assign drivers to shipments." });
 
         try
         {
@@ -319,7 +335,7 @@ public class NotifySupplierDto
         if (shipment == null)
             return NotFound();
         
-       
+   
         return Ok(shipment);
     }
 
@@ -328,13 +344,17 @@ public class NotifySupplierDto
         if (User?.Identity?.IsAuthenticated != true)
             return false;
 
-        var allowedRoles = new[] { "Admin", "Manager", "Supplier" };
+        var allowedRoles = new[] { "Admin", "Manager", "Supplier", "Warehouse", "WarehouseStaff" };
 
         if (allowedRoles.Any(User.IsInRole))
             return true;
 
-        return User.Claims.Any(c =>
-            (c.Type == ClaimTypes.Role || c.Type == "role" || c.Type == "roles" || c.Type == "http://schemas.microsoft.com/ws/2008/06/identity/claims/role")
-            && allowedRoles.Any(role => string.Equals(c.Value, role, StringComparison.OrdinalIgnoreCase)));
+        var roleClaims = User.Claims.Where(c =>
+            c.Type == ClaimTypes.Role ||
+            c.Type == "role" ||
+            c.Type == "roles" ||
+            c.Type == "http://schemas.microsoft.com/ws/2008/06/identity/claims/role");
+
+        return roleClaims.Any(c => allowedRoles.Any(role => string.Equals(c.Value, role, StringComparison.OrdinalIgnoreCase)));
     }
 }

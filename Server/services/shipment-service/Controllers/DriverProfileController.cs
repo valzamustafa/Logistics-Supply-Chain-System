@@ -8,7 +8,7 @@ using ShipmentService.Services.Interfaces;
 namespace ShipmentService.Controllers
 {
     [ApiController]
-    [Route("api/[controller]")]
+    [Route("api/driver")]
     [Authorize(Roles = "Driver")]
     public class DriverProfileController : ControllerBase
     {
@@ -53,7 +53,7 @@ namespace ShipmentService.Controllers
             if (driver == null)
                 return NotFound(new { message = "Driver profile not found" });
 
-        
+           
             var profile = new
             {
                 driver.Id,
@@ -96,10 +96,10 @@ namespace ShipmentService.Controllers
             var today = DateTime.UtcNow.Date;
             var todaysDeliveries = shipmentsList.Count(s => s.EstimatedDeliveryDate.Date == today);
             
-      
+         
             var totalDistance = shipmentsList.Sum(s => s.Distance ?? 0);
             
-      
+          
             var onTimeRate = shipmentsList.Count > 0 ? (int)Math.Round((double)completed / shipmentsList.Count * 100) : 0;
 
             return Ok(new DriverStatsDto

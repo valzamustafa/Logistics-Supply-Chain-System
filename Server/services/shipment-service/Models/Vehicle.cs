@@ -22,6 +22,5 @@ public class Vehicle
     public int? CreatedBy { get; set; }
     public int? UpdatedBy { get; set; }
     
-    
     public virtual ICollection<Shipment> Shipments { get; set; } = new List<Shipment>();
 }

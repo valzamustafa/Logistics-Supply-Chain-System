@@ -87,7 +87,7 @@ public class ReportsController : ControllerBase
 
         var pdfBytes = await _reportService.GeneratePdfAsync(report);
         
-        
+      
         var fileName = $"{report.Type}_{report.Name}_{DateTime.Now:yyyyMMdd}.pdf";
         return File(pdfBytes, "application/pdf", fileName);
     }

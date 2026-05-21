@@ -10,6 +10,7 @@ export interface WarehouseStock {
   productName: string;
   productSku: string;
   quantity: number;
+  availableQuantity?: number;
   minimumStockLevel: number;
   maximumStockLevel: number;
   shelfLocation: string | null;

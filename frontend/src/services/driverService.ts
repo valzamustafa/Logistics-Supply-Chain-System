@@ -1,3 +1,4 @@
+
 import { api } from './api';
 
 export interface Driver {
@@ -100,12 +101,11 @@ export const driverService = {
   create: (data: CreateDriverDto) => api.post<Driver>('/api/drivers', data),
   update: (id: number, data: Partial<Driver>) => api.put<Driver>(`/api/drivers/${id}`, data),
   delete: (id: number) => api.delete<void>(`/api/drivers/${id}`),
-  
 
   getProfile: () => api.get<DriverProfile>('/api/driver/profile'),
   updateProfile: (data: Partial<DriverProfile>) => api.put<DriverProfile>('/api/driver/profile', data),
   updateAvailability: (isAvailable: boolean) => api.put('/api/driver/availability', { isAvailable }),
- 
+  
   getMyShipments: () => api.get<DriverShipment[]>('/api/shipments/driver/assigned'),
   getShipmentById: (id: string) => api.get<DriverShipment>(`/api/shipments/${id}`),
   startDelivery: (id: string) => api.post(`/api/shipments/${id}/start`, {}),
@@ -115,12 +115,13 @@ export const driverService = {
     api.put(`/api/shipments/${id}/status`, { status, location }),
    notifySupplier: (shipmentId: string, data: { status: string; location?: string; notes?: string }) =>
     api.post(`/api/shipments/${shipmentId}/notify-supplier`, { ...data, updatedBy: 'driver' }),
-
+  // Live Tracking
   updateLocation: (shipmentId: string, location: { lat: number; lng: number; timestamp: string }) =>
     api.put(`/api/shipments/${shipmentId}/location`, location),
   getLiveTracking: (shipmentId: string) =>
     api.get(`/api/shipments/${shipmentId}/tracking/live`),
   
+  // Driver Stats & Schedule
   getStats: () => api.get<DriverStats>('/api/driver/stats'),
   getTodaySchedule: () => api.get<DriverSchedule[]>('/api/driver/schedule/today'),
   getWeeklySchedule: () => api.get<DriverSchedule[]>('/api/driver/schedule/week'),

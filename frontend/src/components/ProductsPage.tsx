@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from 'react';
 import { useAuth } from '../hooks/useAuth';
 import { productService, Product, Category } from '../services/productService';
@@ -37,7 +38,7 @@ export function ProductsPage() {
     setAddingToCart(product.id);
     try {
       await addToCart(product, 1);
-      
+   
     } catch (error) {
       console.error('Failed to add to cart:', error);
     } finally {
@@ -47,13 +48,11 @@ export function ProductsPage() {
 
   const getFilteredProducts = () => {
     let filtered = products;
-    
-
+  
     if (selectedCategory !== null) {
       filtered = filtered.filter(p => p.categoryId === selectedCategory);
     }
     
-   
     if (searchTerm.trim()) {
       const term = searchTerm.toLowerCase();
       filtered = filtered.filter(p => 
@@ -95,9 +94,9 @@ export function ProductsPage() {
         <p className="text-slate-400">Browse and add products to your cart</p>
       </div>
 
-
+      {/* Search and Filter Bar */}
       <div className="mb-6 flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
-
+        {/* Search */}
         <div className="relative flex-1 max-w-md">
           <input
             type="text"
@@ -109,7 +108,7 @@ export function ProductsPage() {
           <span className="absolute left-3 top-2.5 text-slate-400">🔍</span>
         </div>
         
-        
+        {/* Cart Summary */}
         <div className="flex items-center gap-4 px-4 py-2 rounded-lg bg-slate-800 border border-slate-700">
           <div className="flex items-center gap-2">
             <span className="text-white">🛒</span>
@@ -127,6 +126,7 @@ export function ProductsPage() {
         </div>
       </div>
 
+      {/* Category Filters */}
       <div className="mb-6 flex gap-2 flex-wrap">
         <button
           onClick={() => setSelectedCategory(null)}
@@ -167,7 +167,7 @@ export function ProductsPage() {
               key={product.id}
               className="group rounded-xl border border-slate-700 bg-slate-800/50 overflow-hidden hover:border-cyan-500/50 transition-all hover:transform hover:scale-[1.02] duration-200"
             >
-            
+              {/* Product Image Placeholder */}
               <div className="h-40 bg-gradient-to-br from-slate-700 to-slate-800 flex items-center justify-center">
                 <span className="text-5xl opacity-50">
                   {product.categoryId === 1 ? '📱' : product.categoryId === 2 ? '💻' : '📦'}

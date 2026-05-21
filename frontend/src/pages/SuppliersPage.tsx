@@ -1,5 +1,5 @@
-import { useEffect, useState } from 'react';
-import { supplierService, Supplier, SupplierOrderDto, CreateSupplierDto, CreateSupplierOrderDto, CreateSupplierOrderItemDto } from '../services/supplierService';
+import { useEffect, useMemo, useState } from 'react';
+import { supplierService, Supplier, SupplierOrderDto, CreateSupplierDto, CreateSupplierOrderDto, CreateSupplierOrderItemDto, SupplierProductDto } from '../services/supplierService';
 import { productService, Product } from '../services/productService';
 
 export function SuppliersPage() {
@@ -7,6 +7,7 @@ export function SuppliersPage() {
   const [suppliers, setSuppliers] = useState<Supplier[]>([]);
   const [orders, setOrders] = useState<SupplierOrderDto[]>([]);
   const [products, setProducts] = useState<Product[]>([]);
+  const [supplierProducts, setSupplierProducts] = useState<SupplierProductDto[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState<string | null>(null);
@@ -26,13 +27,19 @@ export function SuppliersPage() {
 
   const [selectedOrder, setSelectedOrder] = useState<SupplierOrderDto | null>(null);
 
+  const filteredProducts = useMemo(() => {
+    if (!orderForm.supplierId) return [];
+    const supplierProductIds = new Set(supplierProducts.map((supplierProduct) => supplierProduct.productId));
+    return products.filter((product) => supplierProductIds.has(product.id));
+  }, [orderForm.supplierId, products, supplierProducts]);
+
   const loadData = async () => {
     try {
       setLoading(true);
       const [supplierData, orderData, productData] = await Promise.all([
         supplierService.getAll(),
         supplierService.getAllOrders(),
-        productService.getAll(),
+        productService.getAll(true),
       ]);
       setSuppliers(supplierData);
       setOrders(orderData);
@@ -49,6 +56,25 @@ export function SuppliersPage() {
   useEffect(() => {
     loadData();
   }, []);
+
+  useEffect(() => {
+    const loadSupplierProducts = async () => {
+      if (!orderForm.supplierId) {
+        setSupplierProducts([]);
+        return;
+      }
+
+      try {
+        const supplierData = await supplierService.getProductsBySupplier(orderForm.supplierId);
+        setSupplierProducts(supplierData);
+      } catch (err) {
+        console.error('Failed to load supplier products:', err);
+        setSupplierProducts([]);
+      }
+    };
+
+    loadSupplierProducts();
+  }, [orderForm.supplierId]);
 
   const handleCreateSupplier = async () => {
     try {
@@ -68,6 +94,12 @@ export function SuppliersPage() {
   const handleCreateOrder = async () => {
     if (!orderForm.supplierId || orderForm.items.length === 0) {
       setError('Select a supplier and add at least one item to create an order');
+      return;
+    }
+
+    const supplierProductIds = new Set(supplierProducts.map((supplierProduct) => supplierProduct.productId));
+    if (orderForm.items.some((item) => item.productId === 0 || !supplierProductIds.has(item.productId))) {
+      setError('Please select valid products from the supplier-specific catalog.');
       return;
     }
 
@@ -110,6 +142,21 @@ export function SuppliersPage() {
       ),
     }));
   };
+
+  useEffect(() => {
+    if (!orderForm.supplierId) return;
+
+    const supplierProductIdSet = new Set(supplierProducts.map((mapping) => mapping.productId));
+    const updatedItems = orderForm.items.map((item) => ({
+      ...item,
+      productId: supplierProductIdSet.has(item.productId) ? item.productId : filteredProducts[0]?.id ?? 0,
+    }));
+
+    const itemsChanged = updatedItems.some((item, index) => item.productId !== orderForm.items[index]?.productId);
+    if (itemsChanged) {
+      setOrderForm((prev) => ({ ...prev, items: updatedItems }));
+    }
+  }, [orderForm.supplierId, orderForm.items, supplierProducts, filteredProducts]);
 
   return (
     <div className="p-6 space-y-6 bg-slate-900 min-h-screen">
@@ -305,9 +352,12 @@ export function SuppliersPage() {
                           className="mt-1 w-full rounded-lg border border-slate-700 bg-slate-950 px-3 py-2 text-white outline-none"
                         >
                           <option value={0}>Select product</option>
-                          {products.map((product) => (
+                          {filteredProducts.map((product) => (
                             <option key={product.id} value={product.id}>{product.name}</option>
                           ))}
+                          {orderForm.supplierId && filteredProducts.length === 0 && (
+                            <option value={0} disabled>No products available for this supplier</option>
+                          )}
                         </select>
                       </label>
                       <label className="block">

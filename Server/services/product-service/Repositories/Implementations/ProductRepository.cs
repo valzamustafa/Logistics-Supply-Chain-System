@@ -18,12 +18,14 @@ namespace ProductService.Repositories.Implementations
         {
             return await _context.Products
                 .Include(p => p.Category)
+                .Include(p => p.Images)
                 .FirstOrDefaultAsync(p => p.Id == id);
         }
 
         public async Task<Product?> GetBySkuAsync(string sku)
         {
             return await _context.Products
+                .Include(p => p.Images)
                 .FirstOrDefaultAsync(p => p.SKU == sku);
         }
 
@@ -31,6 +33,7 @@ namespace ProductService.Repositories.Implementations
         {
             return await _context.Products
                 .Include(p => p.Category)
+                .Include(p => p.Images)
                 .ToListAsync();
         }
 
@@ -38,6 +41,7 @@ namespace ProductService.Repositories.Implementations
         {
             return await _context.Products
                 .Where(p => p.CategoryId == categoryId)
+                .Include(p => p.Images)
                 .ToListAsync();
         }
 

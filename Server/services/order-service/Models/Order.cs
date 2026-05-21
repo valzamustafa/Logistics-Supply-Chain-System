@@ -21,18 +21,22 @@ namespace OrderService.Models
         public decimal? TaxAmount { get; set; }
         
         public decimal? ShippingCost { get; set; }
+        public string? BankAccount { get; set; }
+        public string? BillingName { get; set; }
+        public string? BillingEmail { get; set; }
+        public string? BillingPhone { get; set; }
         
         [Required, MaxLength(50)]
         public string Status { get; set; } = "Pending";
         
-
+  
         public int? WarehouseId { get; set; }
         
        
         [MaxLength(50)]
         public string? ProcessingStatus { get; set; } 
         
-  
+        
         public int? ShipmentId { get; set; }
         
         [MaxLength(500)]
