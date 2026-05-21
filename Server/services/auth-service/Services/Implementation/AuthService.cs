@@ -20,14 +20,16 @@ namespace AuthService.Services.Implementations
         private readonly IUserRoleRepository _userRoleRepository;
         private readonly IConfiguration _configuration;
         private readonly IHttpClientFactory _httpClientFactory;
+        private readonly BuildingBlocks.INotificationClient _notificationClient;
 
-        public AuthService(IUserRepository userRepository, IRoleRepository roleRepository, IUserRoleRepository userRoleRepository, IConfiguration configuration, IHttpClientFactory httpClientFactory)
+        public AuthService(IUserRepository userRepository, IRoleRepository roleRepository, IUserRoleRepository userRoleRepository, IConfiguration configuration, IHttpClientFactory httpClientFactory, BuildingBlocks.INotificationClient notificationClient)
         {
             _userRepository = userRepository;
             _roleRepository = roleRepository;
             _userRoleRepository = userRoleRepository;
             _configuration = configuration;
             _httpClientFactory = httpClientFactory;
+            _notificationClient = notificationClient;
         }
 
         public async Task<UserResponseDto?> RegisterAsync(RegisterDto dto)
@@ -48,24 +50,76 @@ namespace AuthService.Services.Implementations
 
             var created = await _userRepository.CreateAsync(user);
 
-            var defaultRole = await _roleRepository.GetByNameAsync("User");
-            if (defaultRole != null)
+    
+            string roleName = string.IsNullOrEmpty(dto.Role) ? "User" : dto.Role;
+            
+            var role = await _roleRepository.GetByNameAsync(roleName);
+            if (role == null)
             {
-                await _userRoleRepository.CreateAsync(new UserRole
-                {
-                    UserId = created.Id,
-                    RoleId = defaultRole.Id,
-                    AssignedAt = DateTime.UtcNow
-                });
+          
+                role = new Role 
+                { 
+                    Name = roleName, 
+                    Description = $"{roleName} role",
+                    CreatedBy = 1,
+                    UpdatedBy = 1
+                };
+                await _roleRepository.CreateAsync(role);
             }
 
-            return MapToResponse(created);
+            await _userRoleRepository.CreateAsync(new UserRole
+            {
+                UserId = created.Id,
+                RoleId = role.Id,
+                AssignedAt = DateTime.UtcNow
+            });
+
+          
+            if (role.Name == "Supplier")
+            {
+                try
+                {
+                    var client = _httpClientFactory.CreateClient();
+                    client.BaseAddress = new Uri(_configuration["Services:SupplierService"] ?? "http://localhost:5000");
+                    
+                    var createResponse = await client.PostAsJsonAsync("/api/suppliers", new
+                    {
+                        Name = $"{user.FirstName} {user.LastName}",
+                        Email = user.Email,
+                        ContactPerson = $"{user.FirstName} {user.LastName}",
+                        Phone = string.Empty,
+                        Address = string.Empty,
+                        IsActive = true
+                    });
+                    createResponse.EnsureSuccessStatusCode();
+                }
+                catch
+                {
+               
+                }
+            }
+
+  
+            await SendNotificationToRoleAsync("Admin", "UserRegistered",
+                "New User Registered",
+                $"New user '{created.FirstName} {created.LastName}' ({created.Email}) has been registered with role {roleName}.",
+                $"/admin/users/{created.Id}");
+
+         
+            await SendNotificationAsync(created.Id, "Welcome",
+                "Welcome to Logjistika!",
+                $"Welcome {created.FirstName}! Your account has been successfully created.",
+                $"/dashboard");
+
+           
+            var userWithRoles = await _userRepository.GetUserWithRolesAsync(created.Id);
+            return MapToResponse(userWithRoles!);
         }
 
         public async Task<LoginResponseDto?> LoginAsync(LoginDto dto)
         {
             var user = await _userRepository.GetUserWithRolesAsync(dto.Email);
-            if (user == null || !BCrypt.Net.BCrypt.Verify(dto.Password, user.PasswordHash))
+            if (user == null || !VerifyPassword(dto.Password, user.PasswordHash))
                 return null;
 
             user.LastLoginAt = DateTime.UtcNow;
@@ -98,6 +152,32 @@ namespace AuthService.Services.Implementations
             };
         }
 
+   
+        
+        private async Task SendNotificationAsync(int userId, string type, string title, string message, string? actionUrl = null)
+        {
+            try
+            {
+                await _notificationClient.SendNotificationAsync(userId, type, title, message, actionUrl);
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"Failed to send notification to user {userId}: {ex.Message}");
+            }
+        }
+
+        private async Task SendNotificationToRoleAsync(string role, string type, string title, string message, string? actionUrl = null)
+        {
+            try
+            {
+                await _notificationClient.SendNotificationToRoleAsync(role, type, title, message, actionUrl);
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"Failed to send notification to role {role}: {ex.Message}");
+            }
+        }
+
         public async Task<RefreshTokenResponseDto?> RefreshAsync(RefreshTokenRequestDto dto)
         {
             return new RefreshTokenResponseDto
@@ -106,6 +186,30 @@ namespace AuthService.Services.Implementations
                 RefreshToken = GenerateRefreshToken(),
                 ExpiresAt = DateTime.UtcNow.AddMinutes(60)
             };
+        }
+
+        private bool VerifyPassword(string password, string passwordHash)
+        {
+            if (string.IsNullOrWhiteSpace(passwordHash))
+                return false;
+
+            try
+            {
+                if (BCrypt.Net.BCrypt.Verify(password, passwordHash))
+                {
+                    return true;
+                }
+            }
+            catch
+            {
+           
+            }
+
+            using var sha256 = SHA256.Create();
+            var saltedPassword = "logjistika_salt_" + password;
+            var hashedBytes = sha256.ComputeHash(Encoding.UTF8.GetBytes(saltedPassword));
+            var shaHash = Convert.ToBase64String(hashedBytes);
+            return shaHash == passwordHash;
         }
 
         public async Task<UserResponseDto?> GetUserByIdAsync(int id)
@@ -202,9 +306,21 @@ namespace AuthService.Services.Implementations
                 }
                 catch
                 {
-                 
+       
                 }
             }
+
+         
+            await SendNotificationAsync(userId, "RoleAssignment",
+                $"New Role Assigned: {role.Name}",
+                $"You have been assigned the '{role.Name}' role.",
+                $"/profile");
+
+     
+            await SendNotificationToRoleAsync("Admin", "RoleAssignment",
+                "Role Assigned to User",
+                $"User '{user.FirstName} {user.LastName}' ({user.Email}) has been assigned the '{role.Name}' role.",
+                $"/admin/users/{userId}");
 
             return true;
         }
@@ -217,6 +333,64 @@ namespace AuthService.Services.Implementations
             return true;
         }
 
+  
+        public async Task<List<int>> GetUserIdsByRoleAsync(string roleName)
+        {
+            var users = await _userRepository.GetAllAsync();
+            var userIds = new List<int>();
+            
+            foreach (var user in users)
+            {
+                var userWithRoles = await _userRepository.GetUserWithRolesAsync(user.Id);
+                if (userWithRoles?.UserRoles?.Any(ur => ur.Role.Name == roleName) == true)
+                {
+                    userIds.Add(user.Id);
+                }
+            }
+            
+            return userIds;
+        }
+
+        public async Task<List<int>> GetUserIdsByRolesAsync(List<string> roleNames)
+        {
+            var users = await _userRepository.GetAllAsync();
+            var userIds = new List<int>();
+            
+            foreach (var user in users)
+            {
+                var userWithRoles = await _userRepository.GetUserWithRolesAsync(user.Id);
+                if (userWithRoles?.UserRoles?.Any(ur => roleNames.Contains(ur.Role.Name)) == true)
+                {
+                    userIds.Add(user.Id);
+                }
+            }
+            
+            return userIds.Distinct().ToList();
+        }
+
+        public async Task<UserDetailsDto?> GetUserDetailsByIdAsync(int id)
+        {
+            var user = await _userRepository.GetUserWithRolesAsync(id);
+            if (user == null) return null;
+            
+            return new UserDetailsDto
+            {
+                Id = user.Id,
+                Email = user.Email,
+                FirstName = user.FirstName,
+                LastName = user.LastName,
+                IsActive = user.IsActive,
+                Roles = user.UserRoles?.Select(ur => ur.Role.Name).ToList() ?? new List<string>()
+            };
+        }
+
+        public async Task<bool> UserExistsAsync(string email)
+        {
+            return await _userRepository.ExistsAsync(email);
+        }
+
+      
+        
         private string GenerateAccessToken(User? user)
         {
             var jwtSettings = _configuration.GetSection("Jwt");
@@ -272,4 +446,14 @@ namespace AuthService.Services.Implementations
             };
         }
     }
-}
+  
+    
+    public class UserDetailsDto
+    {
+        public int Id { get; set; }
+        public required string Email { get; set; }
+        public required string FirstName { get; set; }
+        public required string LastName { get; set; }
+        public bool IsActive { get; set; }
+        public List<string> Roles { get; set; } = new();
+    }}

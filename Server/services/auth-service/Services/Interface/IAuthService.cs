@@ -14,5 +14,10 @@ namespace AuthService.Services.Interfaces
         Task<bool> DeleteUserAsync(int id);
         Task<bool> AssignRoleToUserAsync(int userId, int roleId);
         Task<bool> RemoveRoleFromUserAsync(int userId, int roleId);
+        
+        Task<List<int>> GetUserIdsByRoleAsync(string roleName);
+        Task<List<int>> GetUserIdsByRolesAsync(List<string> roleNames);
+        Task<UserDetailsDto?> GetUserDetailsByIdAsync(int id);
+        Task<bool> UserExistsAsync(string email);
     }
 }

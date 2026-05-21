@@ -1,8 +1,8 @@
 namespace NotificationService.DTOs
 {
-    public class SendNotificationDto
+    public class SendNotificationToUsersDto
     {
-        public int UserId { get; set; }
+        public List<int> UserIds { get; set; } = new List<int>();
         public string Type { get; set; } = string.Empty;
         public string Title { get; set; } = string.Empty;
         public string Message { get; set; } = string.Empty;

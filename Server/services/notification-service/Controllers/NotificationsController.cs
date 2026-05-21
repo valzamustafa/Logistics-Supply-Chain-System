@@ -43,6 +43,20 @@ namespace NotificationService.Controllers
             return Ok(notification);
         }
 
+        [HttpPost("send-to-role")]
+        public async Task<IActionResult> SendToRole([FromBody] SendNotificationToRoleDto dto)
+        {
+            var notifications = await _service.SendNotificationToRoleAsync(dto);
+            return Ok(notifications);
+        }
+
+        [HttpPost("send-bulk")]
+        public async Task<IActionResult> SendBulk([FromBody] SendNotificationToUsersDto dto)
+        {
+            var notifications = await _service.SendNotificationToUsersAsync(dto);
+            return Ok(notifications);
+        }
+
         [HttpPut("{id}/read")]
         public async Task<IActionResult> MarkAsRead(int id)
         {

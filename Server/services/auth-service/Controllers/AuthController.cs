@@ -1,12 +1,14 @@
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
+using System.Linq;
 using System.Security.Claims;
 using AuthService.Data;
 using AuthService.DTOs;
 using AuthService.Models;
 using AuthService.Repositories.Interfaces;
 using AuthService.Services.Interfaces;
+using BuildingBlocks;
 
 namespace AuthService.Controllers
 {
@@ -17,16 +19,18 @@ namespace AuthService.Controllers
         private readonly IAuthService _authService;
         private readonly IRoleRepository _roleRepository;
         private readonly AuthDbContext _dbContext;
+        private readonly INotificationClient _notificationClient;
 
-        public AuthController(IAuthService authService, IRoleRepository roleRepository, AuthDbContext dbContext)
+        public AuthController(IAuthService authService, IRoleRepository roleRepository, AuthDbContext dbContext, INotificationClient notificationClient)
         {
             _authService = authService;
             _roleRepository = roleRepository;
             _dbContext = dbContext;
+            _notificationClient = notificationClient;
         }
 
         [HttpPost("register")]
-        [AllowAnonymous]
+        [Authorize(Roles = "Admin,Manager")]
         public async Task<IActionResult> Register([FromBody] RegisterDto dto)
         {
             if (!ModelState.IsValid)
@@ -35,6 +39,16 @@ namespace AuthService.Controllers
             var response = await _authService.RegisterAsync(dto);
             if (response == null)
                 return BadRequest(new { message = "User with this email already exists" });
+
+           
+            var fullName = $"{response.FirstName} {response.LastName}";
+            await _notificationClient.SendNotificationToRoleAsync(
+                "Admin",
+                "UserRegistered",
+                "New User Registered",
+                $"New user '{fullName}' ({response.Email}) has been registered with role {dto.Role}.",
+                $"/admin/users"
+            );
 
             return Ok(response);
         }
@@ -77,7 +91,7 @@ namespace AuthService.Controllers
             return Ok(user);
         }
 
-        [Authorize(Roles = "Admin")]
+        [Authorize(Roles = "Admin,Manager")]
         [HttpGet("users")]
         public async Task<IActionResult> GetAllUsers()
         {
@@ -85,7 +99,7 @@ namespace AuthService.Controllers
             return Ok(users);
         }
 
-        [Authorize(Roles = "Admin")]
+        [Authorize(Roles = "Admin,Manager")]
         [HttpGet("{id}")]
         public async Task<IActionResult> GetUser(int id)
         {
@@ -95,47 +109,105 @@ namespace AuthService.Controllers
             return Ok(user);
         }
 
-        [Authorize(Roles = "Admin")]
+        [Authorize(Roles = "Admin,Manager")]
         [HttpPut("{id}")]
         public async Task<IActionResult> UpdateUser(int id, [FromBody] UpdateUserDto dto)
         {
             var user = await _authService.UpdateUserAsync(id, dto);
             if (user == null)
                 return NotFound();
+            
+            var fullName = $"{user.FirstName} {user.LastName}";
+            await _notificationClient.SendNotificationToRoleAsync(
+                "Admin",
+                "UserUpdated",
+                "User Profile Updated",
+                $"User profile for '{fullName}' (ID: {user.Id}) has been updated.",
+                $"/admin/users/{user.Id}"
+            );
+            
             return Ok(user);
         }
 
-        [Authorize(Roles = "Admin")]
+        [Authorize(Roles = "Admin,Manager")]
         [HttpDelete("{id}")]
         public async Task<IActionResult> DeleteUser(int id)
         {
+            var user = await _authService.GetUserByIdAsync(id);
+            if (user == null)
+                return NotFound();
+                
             var deleted = await _authService.DeleteUserAsync(id);
             if (!deleted)
                 return NotFound();
+            
+            var fullName = $"{user.FirstName} {user.LastName}";
+            await _notificationClient.SendNotificationToRoleAsync(
+                "Admin",
+                "UserDeleted",
+                "User Removed",
+                $"User '{fullName}' (ID: {user.Id}) has been removed from the system.",
+                $"/admin/users"
+            );
+            
             return NoContent();
         }
 
-        [Authorize(Roles = "Admin")]
+        [Authorize(Roles = "Admin,Manager")]
         [HttpPost("{userId}/roles/{roleId}")]
         public async Task<IActionResult> AssignRole(int userId, int roleId)
         {
+            var user = await _authService.GetUserByIdAsync(userId);
+            var role = await _roleRepository.GetByIdAsync(roleId);
+            
+            if (user == null || role == null)
+                return BadRequest(new { message = "User or Role not found" });
+                
             var result = await _authService.AssignRoleToUserAsync(userId, roleId);
             if (!result)
                 return BadRequest(new { message = "Failed to assign role" });
+            
+         
+            var userFullName = $"{user.FirstName} {user.LastName}";
+            await _notificationClient.SendNotificationToRoleAsync(
+                "Admin",
+                "RoleAssigned",
+                "Role Assigned to User",
+                $"Role '{role.Name}' has been assigned to user '{userFullName}'.",
+                $"/admin/users/{userId}"
+            );
+            
             return Ok(new { message = "Role assigned successfully" });
         }
 
-        [Authorize(Roles = "Admin")]
+        [Authorize(Roles = "Admin,Manager")]
         [HttpDelete("{userId}/roles/{roleId}")]
         public async Task<IActionResult> RemoveRole(int userId, int roleId)
         {
+            var user = await _authService.GetUserByIdAsync(userId);
+            var role = await _roleRepository.GetByIdAsync(roleId);
+            
+            if (user == null || role == null)
+                return BadRequest(new { message = "User or Role not found" });
+                
             var result = await _authService.RemoveRoleFromUserAsync(userId, roleId);
             if (!result)
                 return BadRequest(new { message = "Failed to remove role" });
+            
+          
+            var userFullName = $"{user.FirstName} {user.LastName}";
+            await _notificationClient.SendNotificationToRoleAsync(
+                "Admin",
+                "RoleRemoved",
+                "Role Removed from User",
+                $"Role '{role.Name}' has been removed from user '{userFullName}'.",
+                $"/admin/users/{userId}"
+            );
+            
             return Ok(new { message = "Role removed successfully" });
         }
 
-        [Authorize(Roles = "Admin")]
+        [Authorize(Roles = "Admin,Manager")]
         [HttpGet("permissions")]
         public async Task<IActionResult> GetPermissions()
         {
@@ -178,7 +250,7 @@ namespace AuthService.Controllers
             return Ok(new { message = "Permissions updated successfully", permissions = dto.Permissions });
         }
 
-        [Authorize(Roles = "Admin")]
+        [Authorize(Roles = "Admin,Manager")]
         [HttpGet("roles")]
         public async Task<IActionResult> GetAllRoles()
         {
@@ -228,14 +300,96 @@ namespace AuthService.Controllers
             return NoContent();
         }
 
-        [Authorize]
-        [HttpGet("email/{email}")]
+      
+        
+        [AllowAnonymous]
+        [HttpGet("users/by-email/{email}")]
         public async Task<IActionResult> GetUserByEmail(string email)
         {
-            var user = await _authService.GetUserByEmailAsync(email);
+            if (string.IsNullOrEmpty(email))
+                return BadRequest(new { message = "Email is required" });
+
+            var user = await _dbContext.Users
+                .Include(u => u.UserRoles)
+                .ThenInclude(ur => ur.Role)
+                .FirstOrDefaultAsync(u => u.Email != null && u.Email.ToLower() == email.ToLower());
+
             if (user == null)
-                return NotFound();
-            return Ok(user);
+                return NotFound(new { message = $"User with email '{email}' not found" });
+
+            return Ok(new 
+            { 
+                Id = user.Id, 
+                Email = user.Email,
+                FirstName = user.FirstName,
+                LastName = user.LastName
+            });
+        }
+
+        [AllowAnonymous]
+        [HttpGet("roles/{roleName}/users")]
+        public async Task<IActionResult> GetUsersByRole(string roleName)
+        {
+            var userIds = await _dbContext.Users
+                .Where(u => u.UserRoles.Any(ur => ur.Role.Name == roleName))
+                .Select(u => u.Id)
+                .ToListAsync();
+
+            return Ok(userIds);
+        }
+
+    
+        [AllowAnonymous]
+        [HttpPost("roles/users/by-roles")]
+        public async Task<IActionResult> GetUsersByRoles([FromBody] List<string> roleNames)
+        {
+            if (roleNames == null || !roleNames.Any())
+                return BadRequest(new { message = "At least one role name is required" });
+
+            var userIds = await _dbContext.Users
+                .Where(u => u.UserRoles.Any(ur => roleNames.Contains(ur.Role.Name)))
+                .Select(u => u.Id)
+                .Distinct()
+                .ToListAsync();
+
+            return Ok(userIds);
+        }
+
+    
+        [AllowAnonymous]
+        [HttpGet("users/details/{id}")]
+        public async Task<IActionResult> GetUserDetailsById(int id)
+        {
+            var user = await _dbContext.Users
+                .Include(u => u.UserRoles)
+                .ThenInclude(ur => ur.Role)
+                .FirstOrDefaultAsync(u => u.Id == id);
+
+            if (user == null)
+                return NotFound(new { message = $"User with ID '{id}' not found" });
+
+            return Ok(new 
+            { 
+                Id = user.Id, 
+                Email = user.Email,
+                FirstName = user.FirstName,
+                LastName = user.LastName,
+                Roles = user.UserRoles.Select(ur => ur.Role.Name).ToList()
+            });
+        }
+
+
+        [AllowAnonymous]
+        [HttpGet("users/exists/{email}")]
+        public async Task<IActionResult> UserExists(string email)
+        {
+            if (string.IsNullOrEmpty(email))
+                return BadRequest(new { message = "Email is required" });
+
+            var exists = await _dbContext.Users
+                .AnyAsync(u => u.Email != null && u.Email.ToLower() == email.ToLower());
+
+            return Ok(new { exists, email });
         }
     }
 }

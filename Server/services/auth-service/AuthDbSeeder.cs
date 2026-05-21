@@ -1,8 +1,6 @@
 using AuthService.Data;
 using AuthService.Models;
 using Microsoft.EntityFrameworkCore;
-using System.Security.Cryptography;
-using System.Text;
 
 namespace AuthService
 {
@@ -10,123 +8,44 @@ namespace AuthService
     {
         public static async Task SeedDataAsync(AuthDbContext context)
         {
-           
+      
             if (!await context.Roles.AnyAsync())
             {
                 var roles = new[]
                 {
-                    new Role { Name = "Admin", Description = "Administrator with full access" },
-                    new Role { Name = "Manager", Description = "Manager with operational access" },
-                    new Role { Name = "Driver", Description = "Driver for shipment delivery" },
-                    new Role { Name = "WarehouseStaff", Description = "Warehouse staff for inventory management" },
-                    new Role { Name = "Supplier", Description = "Supplier role for vendor dashboard and order management" },
-                    new Role { Name = "User", Description = "Regular user" }
+                    new Role { Name = "Admin", Description = "Administrator with full access", CreatedBy = 1, UpdatedBy = 1, CreatedAt = DateTime.UtcNow, UpdatedAt = DateTime.UtcNow },
+                    new Role { Name = "Manager", Description = "Manager with operational access", CreatedBy = 1, UpdatedBy = 1, CreatedAt = DateTime.UtcNow, UpdatedAt = DateTime.UtcNow },
+                    new Role { Name = "Driver", Description = "Driver for shipment delivery", CreatedBy = 1, UpdatedBy = 1, CreatedAt = DateTime.UtcNow, UpdatedAt = DateTime.UtcNow },
+                    new Role { Name = "WarehouseStaff", Description = "Warehouse staff for inventory management", CreatedBy = 1, UpdatedBy = 1, CreatedAt = DateTime.UtcNow, UpdatedAt = DateTime.UtcNow },
+                    new Role { Name = "Supplier", Description = "Supplier role for vendor dashboard and order management", CreatedBy = 1, UpdatedBy = 1, CreatedAt = DateTime.UtcNow, UpdatedAt = DateTime.UtcNow },
+                    new Role { Name = "User", Description = "Regular user", CreatedBy = 1, UpdatedBy = 1, CreatedAt = DateTime.UtcNow, UpdatedAt = DateTime.UtcNow }
                 };
                 
-                context.Roles.AddRange(roles);
+                await context.Roles.AddRangeAsync(roles);
                 await context.SaveChangesAsync();
             }
 
-            
-            if (!await context.Users.AnyAsync())
+    
+            if (!await context.Permissions.AnyAsync())
             {
-                var roles = await context.Roles.ToListAsync();
-                var adminRole = roles.FirstOrDefault(r => r.Name == "Admin");
-                var managerRole = roles.FirstOrDefault(r => r.Name == "Manager");
-                var driverRole = roles.FirstOrDefault(r => r.Name == "Driver");
-                var warehouseRole = roles.FirstOrDefault(r => r.Name == "WarehouseStaff");
-                var userRole = roles.FirstOrDefault(r => r.Name == "User");
-
-                var users = new[]
+                var permissions = new[]
                 {
-                  
-                    new User
-                    {
-                        FirstName = "Admin",
-                        LastName = "User",
-                        Email = "admin@logjistika.com",
-                        PasswordHash = HashPassword("Admin123!"),
-                        IsActive = true,
-                        CreatedAt = DateTime.UtcNow
-                    },
-               
-                    new User
-                    {
-                        FirstName = "John",
-                        LastName = "Manager",
-                        Email = "manager@logjistika.com",
-                        PasswordHash = HashPassword("Manager123!"),
-                        IsActive = true,
-                        CreatedAt = DateTime.UtcNow
-                    },
-                   
-                    new User
-                    {
-                        FirstName = "Mike",
-                        LastName = "Driver",
-                        Email = "driver1@logjistika.com",
-                        PasswordHash = HashPassword("Driver123!"),
-                        IsActive = true,
-                        CreatedAt = DateTime.UtcNow
-                    },
-                    
-                    new User
-                    {
-                        FirstName = "Sarah",
-                        LastName = "Driver",
-                        Email = "driver2@logjistika.com",
-                        PasswordHash = HashPassword("Driver123!"),
-                        IsActive = true,
-                        CreatedAt = DateTime.UtcNow
-                    },
-                    
-                    new User
-                    {
-                        FirstName = "Robert",
-                        LastName = "Warehouse",
-                        Email = "warehouse@logjistika.com",
-                        PasswordHash = HashPassword("Warehouse123!"),
-                        IsActive = true,
-                        CreatedAt = DateTime.UtcNow
-                    },
-                 
-                    new User
-                    {
-                        FirstName = "Jane",
-                        LastName = "Customer",
-                        Email = "customer@logjistika.com",
-                        PasswordHash = HashPassword("Customer123!"),
-                        IsActive = true,
-                        CreatedAt = DateTime.UtcNow
-                    }
+                    new Permission { Name = "view_users", Description = "Can view users", CreatedBy = 1, UpdatedBy = 1, CreatedAt = DateTime.UtcNow, UpdatedAt = DateTime.UtcNow },
+                    new Permission { Name = "create_users", Description = "Can create users", CreatedBy = 1, UpdatedBy = 1, CreatedAt = DateTime.UtcNow, UpdatedAt = DateTime.UtcNow },
+                    new Permission { Name = "edit_users", Description = "Can edit users", CreatedBy = 1, UpdatedBy = 1, CreatedAt = DateTime.UtcNow, UpdatedAt = DateTime.UtcNow },
+                    new Permission { Name = "delete_users", Description = "Can delete users", CreatedBy = 1, UpdatedBy = 1, CreatedAt = DateTime.UtcNow, UpdatedAt = DateTime.UtcNow },
+                    new Permission { Name = "view_warehouses", Description = "Can view warehouses", CreatedBy = 1, UpdatedBy = 1, CreatedAt = DateTime.UtcNow, UpdatedAt = DateTime.UtcNow },
+                    new Permission { Name = "manage_warehouses", Description = "Can manage warehouses", CreatedBy = 1, UpdatedBy = 1, CreatedAt = DateTime.UtcNow, UpdatedAt = DateTime.UtcNow },
+                    new Permission { Name = "view_inventory", Description = "Can view inventory", CreatedBy = 1, UpdatedBy = 1, CreatedAt = DateTime.UtcNow, UpdatedAt = DateTime.UtcNow },
+                    new Permission { Name = "manage_inventory", Description = "Can manage inventory", CreatedBy = 1, UpdatedBy = 1, CreatedAt = DateTime.UtcNow, UpdatedAt = DateTime.UtcNow },
+                    new Permission { Name = "view_orders", Description = "Can view orders", CreatedBy = 1, UpdatedBy = 1, CreatedAt = DateTime.UtcNow, UpdatedAt = DateTime.UtcNow },
+                    new Permission { Name = "manage_orders", Description = "Can manage orders", CreatedBy = 1, UpdatedBy = 1, CreatedAt = DateTime.UtcNow, UpdatedAt = DateTime.UtcNow },
+                    new Permission { Name = "view_shipments", Description = "Can view shipments", CreatedBy = 1, UpdatedBy = 1, CreatedAt = DateTime.UtcNow, UpdatedAt = DateTime.UtcNow },
+                    new Permission { Name = "manage_shipments", Description = "Can manage shipments", CreatedBy = 1, UpdatedBy = 1, CreatedAt = DateTime.UtcNow, UpdatedAt = DateTime.UtcNow }
                 };
-
-                context.Users.AddRange(users);
+                
+                await context.Permissions.AddRangeAsync(permissions);
                 await context.SaveChangesAsync();
-
-               
-                var createdUsers = context.Users.ToList();
-                var userRoles = new List<UserRole>();
-
-                userRoles.Add(new UserRole { UserId = createdUsers[0].Id, RoleId = adminRole?.Id ?? 1 });
-                userRoles.Add(new UserRole { UserId = createdUsers[1].Id, RoleId = managerRole?.Id ?? 2 });
-                userRoles.Add(new UserRole { UserId = createdUsers[2].Id, RoleId = driverRole?.Id ?? 3 });
-                userRoles.Add(new UserRole { UserId = createdUsers[3].Id, RoleId = driverRole?.Id ?? 3 });
-                userRoles.Add(new UserRole { UserId = createdUsers[4].Id, RoleId = warehouseRole?.Id ?? 4 });
-                userRoles.Add(new UserRole { UserId = createdUsers[5].Id, RoleId = userRole?.Id ?? 5 });
-
-                context.UserRoles.AddRange(userRoles);
-                await context.SaveChangesAsync();
-            }
-        }
-
-        private static string HashPassword(string password)
-        {
-            using (var sha256 = SHA256.Create())
-            {
-                var saltedPassword = "logjistika_salt_" + password;
-                var hashedBytes = sha256.ComputeHash(Encoding.UTF8.GetBytes(saltedPassword));
-                return Convert.ToBase64String(hashedBytes);
             }
         }
     }

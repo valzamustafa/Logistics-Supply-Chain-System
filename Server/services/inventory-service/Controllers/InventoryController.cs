@@ -1,6 +1,7 @@
 using Microsoft.AspNetCore.Mvc;
 using InventoryService.DTOs;
 using InventoryService.Services.Interfaces;
+using BuildingBlocks;
 
 namespace InventoryService.Controllers
 {
@@ -9,10 +10,12 @@ namespace InventoryService.Controllers
     public class InventoryController : ControllerBase
     {
         private readonly IInventoryService _inventoryService;
+        private readonly INotificationClient _notificationClient;
 
-        public InventoryController(IInventoryService inventoryService)
+        public InventoryController(IInventoryService inventoryService, INotificationClient notificationClient)
         {
             _inventoryService = inventoryService;
+            _notificationClient = notificationClient;
         }
 
         [HttpGet]
@@ -42,6 +45,16 @@ namespace InventoryService.Controllers
         public async Task<IActionResult> UpdateStock([FromBody] UpdateStockDto request)
         {
             var result = await _inventoryService.UpdateStockAsync(request);
+            
+           
+            await _notificationClient.SendNotificationToRoleAsync(
+                "Warehouse",
+                "StockUpdated",
+                "Stock Updated",
+                $"Stock updated for Product {request.ProductId} in Warehouse {request.WarehouseId}. New quantity: {request.Quantity} units.",
+                $"/inventory?productId={request.ProductId}&warehouseId={request.WarehouseId}"
+            );
+            
             return Ok(result);
         }
 
@@ -59,48 +72,96 @@ namespace InventoryService.Controllers
             return Ok(new { isAvailable });
         }
 
-       
+     
         [HttpPost("reserve")]
         public async Task<IActionResult> ReserveStock([FromBody] StockOperationRequest request)
         {
             var result = await _inventoryService.ReserveStockAsync(
                 request.ProductId, request.WarehouseId, request.Quantity, 
                 request.ReferenceType, request.ReferenceId);
+            
+            if (result)
+            {
+                await _notificationClient.SendNotificationToRoleAsync(
+                    "Warehouse",
+                    "StockReserved",
+                    "Stock Reserved",
+                    $"{request.Quantity} units of Product {request.ProductId} have been reserved in Warehouse {request.WarehouseId} for {request.ReferenceType} #{request.ReferenceId}.",
+                    $"/inventory?productId={request.ProductId}&warehouseId={request.WarehouseId}"
+                );
+            }
+            
             return Ok(new { success = result });
         }
 
-       
+     
         [HttpPost("release")]
         public async Task<IActionResult> ReleaseStock([FromBody] StockOperationRequest request)
         {
             var result = await _inventoryService.ReleaseStockAsync(
                 request.ProductId, request.WarehouseId, request.Quantity,
                 request.ReferenceType, request.ReferenceId);
+            
+            if (result)
+            {
+                await _notificationClient.SendNotificationToRoleAsync(
+                    "Warehouse",
+                    "StockReleased",
+                    "Stock Released",
+                    $"{request.Quantity} units of Product {request.ProductId} have been released from reservation in Warehouse {request.WarehouseId}.",
+                    $"/inventory?productId={request.ProductId}&warehouseId={request.WarehouseId}"
+                );
+            }
+            
             return Ok(new { success = result });
         }
 
-      
+       
         [HttpPost("deduct")]
         public async Task<IActionResult> DeductStock([FromBody] StockDeductRequest request)
         {
             var result = await _inventoryService.DeductStockAsync(
                 request.ProductId, request.WarehouseId, request.Quantity,
                 request.ReferenceType, request.ReferenceId, request.Notes);
+            
+            if (result)
+            {
+                await _notificationClient.SendNotificationToRoleAsync(
+                    "Warehouse",
+                    "StockDeducted",
+                    "Stock Deducted",
+                    $"{request.Quantity} units deducted from Product {request.ProductId} in Warehouse {request.WarehouseId}. Reason: {request.Notes ?? request.ReferenceType}",
+                    $"/inventory?productId={request.ProductId}&warehouseId={request.WarehouseId}"
+                );
+            }
+            
             return Ok(new { success = result });
         }
 
-
+      
         [HttpPost("restore")]
         public async Task<IActionResult> RestoreStock([FromBody] StockDeductRequest request)
         {
             var result = await _inventoryService.RestoreStockAsync(
                 request.ProductId, request.WarehouseId, request.Quantity,
                 request.ReferenceType, request.ReferenceId, request.Notes);
+            
+            if (result)
+            {
+                await _notificationClient.SendNotificationToRoleAsync(
+                    "Warehouse",
+                    "StockRestored",
+                    "Stock Restored",
+                    $"{request.Quantity} units restored to Product {request.ProductId} in Warehouse {request.WarehouseId}. Reason: {request.Notes ?? request.ReferenceType}",
+                    $"/inventory?productId={request.ProductId}&warehouseId={request.WarehouseId}"
+                );
+            }
+            
             return Ok(new { success = result });
         }
     }
 
-   
+
     public class StockOperationRequest
     {
         public int ProductId { get; set; }
