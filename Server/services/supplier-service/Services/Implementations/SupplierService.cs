@@ -4,6 +4,9 @@ using SupplierService.DTOs;
 using SupplierService.Models;
 using SupplierService.Repositories.Interfaces;
 using SupplierService.Services.Interfaces;
+using System.Net.Http.Json;
+using System.Text;
+using System.Text.Json;
 
 namespace SupplierService.Services.Implementations
 {
@@ -11,11 +14,19 @@ namespace SupplierService.Services.Implementations
     {
         private readonly ISupplierRepository _repository;
         private readonly SupplierDbContext _context;
+        private readonly IHttpClientFactory _httpClientFactory;
+        private readonly IConfiguration _configuration;
+        private readonly BuildingBlocks.INotificationClient _notificationClient;
 
-        public SupplierService(ISupplierRepository repository, SupplierDbContext context)
+        public SupplierService(ISupplierRepository repository, SupplierDbContext context, 
+            IHttpClientFactory httpClientFactory, IConfiguration configuration,
+            BuildingBlocks.INotificationClient notificationClient)
         {
             _repository = repository;
             _context = context;
+            _httpClientFactory = httpClientFactory;
+            _configuration = configuration;
+            _notificationClient = notificationClient;
         }
 
         public async Task<IEnumerable<SupplierDto>> GetAllSuppliersAsync()
@@ -187,6 +198,18 @@ namespace SupplierService.Services.Implementations
             _context.SupplierOrders.Add(order);
             await _context.SaveChangesAsync();
             
+            if (supplier.Email != null)
+            {
+                var userId = await GetUserIdByEmailAsync(supplier.Email);
+                if (userId.HasValue)
+                {
+                    await SendNotificationAsync(userId.Value, "SupplierOrder", 
+                        "New Supplier Order Created",
+                        $"A new supplier order #{order.OrderNumber} has been created. Total amount: ${totalAmount:F2}",
+                        $"/supplier/orders/{order.Id}");
+                }
+            }
+            
             return new SupplierOrderDto
             {
                 Id = order.Id,
@@ -212,11 +235,25 @@ namespace SupplierService.Services.Implementations
             var order = await _context.SupplierOrders.FindAsync(id);
             if (order == null) return null;
 
+            var oldStatus = order.Status;
             order.Status = status;
             order.UpdatedAt = DateTime.UtcNow;
             await _context.SaveChangesAsync();
 
             var supplier = await _repository.GetByIdAsync(order.SupplierId);
+            
+            if (supplier?.Email != null)
+            {
+                var userId = await GetUserIdByEmailAsync(supplier.Email);
+                if (userId.HasValue)
+                {
+                    await SendNotificationAsync(userId.Value, "OrderStatus", 
+                        $"Supplier Order Status Updated to {status}",
+                        $"Your supplier order #{order.OrderNumber} status has changed from {oldStatus} to {status}.",
+                        $"/supplier/orders/{order.Id}");
+                }
+            }
+
             return new SupplierOrderDto
             {
                 Id = order.Id,
@@ -301,6 +338,32 @@ namespace SupplierService.Services.Implementations
 
             _context.PurchaseOrders.Add(purchaseOrder);
             await _context.SaveChangesAsync();
+            
+      
+            if (supplier.Email != null)
+            {
+                var userId = await GetUserIdByEmailAsync(supplier.Email);
+                if (userId.HasValue)
+                {
+                    await SendNotificationAsync(userId.Value, "PurchaseOrder", 
+                        "New Purchase Order Created",
+                        $"A new purchase order #{purchaseOrder.PONumber} has been created for your company. Total amount: ${purchaseOrder.TotalAmount:F2}",
+                        $"/supplier/orders/{purchaseOrder.Id}");
+                }
+            }
+            
+        
+            await SendNotificationToRoleAsync("WarehouseStaff", "PurchaseOrder",
+                "New Purchase Order Created",
+                $"Purchase order #{purchaseOrder.PONumber} has been created for warehouse #{dto.WarehouseId}",
+                $"/warehouse/purchase-orders/{purchaseOrder.Id}");
+            
+        
+            await SendNotificationToRoleAsync("Manager", "PurchaseOrder",
+                "New Purchase Order Created",
+                $"Purchase order #{purchaseOrder.PONumber} has been created for supplier {supplier.Name}",
+                $"/admin/purchase-orders/{purchaseOrder.Id}");
+            
             return MapToPurchaseOrderDto(purchaseOrder);
         }
 
@@ -354,6 +417,26 @@ namespace SupplierService.Services.Implementations
             };
 
             var created = await _repository.CreateSupplierProductAsync(supplierProduct);
+            
+            
+            
+            if (supplier.Email != null)
+            {
+                var userId = await GetUserIdByEmailAsync(supplier.Email);
+                if (userId.HasValue)
+                {
+                    await SendNotificationAsync(userId.Value, "Product", 
+                        "Product Added to Catalog",
+                        $"Your product (ID: {dto.ProductId}) has been successfully added to your supplier catalog with SKU: {dto.SupplierSKU ?? "N/A"}",
+                        $"/supplier/products");
+                }
+            }
+            
+            await SendNotificationToRoleAsync("Manager", "Product",
+                "New Supplier Product Added",
+                $"Supplier {supplier.Name} has added a new product (ID: {dto.ProductId}) to their catalog",
+                $"/admin/suppliers/{supplierId}/products");
+            
             return new SupplierProductDto
             {
                 Id = created.Id,
@@ -371,38 +454,38 @@ namespace SupplierService.Services.Implementations
             return supplier == null ? null : MapToDto(supplier);
         }
 
-      public async Task<SupplierDashboardDto?> GetSupplierDashboardAsync(string email)
-{
-    var supplier = await _context.Suppliers
-        .FirstOrDefaultAsync(s => s.Email != null && s.Email.ToLower() == email.ToLower());
-    
-    if (supplier == null)
-    {
-        return null;
-    }
+        public async Task<SupplierDashboardDto?> GetSupplierDashboardAsync(string email)
+        {
+            var supplier = await _context.Suppliers
+                .FirstOrDefaultAsync(s => s.Email != null && s.Email.ToLower() == email.ToLower());
+            
+            if (supplier == null)
+            {
+                return null;
+            }
 
-    var purchaseOrders = await _context.PurchaseOrders
-        .Include(o => o.Items)
-        .Where(o => o.SupplierId == supplier.Id)
-        .ToListAsync();
+            var purchaseOrders = await _context.PurchaseOrders
+                .Include(o => o.Items)
+                .Where(o => o.SupplierId == supplier.Id)
+                .ToListAsync();
 
-    var orderDtos = purchaseOrders.Select(MapToPurchaseOrderDto).ToList();
-    var warehouseIds = purchaseOrders
-        .Select(o => o.WarehouseId)
-        .Distinct()
-        .ToList();
+            var orderDtos = purchaseOrders.Select(MapToPurchaseOrderDto).ToList();
+            var warehouseIds = purchaseOrders
+                .Select(o => o.WarehouseId)
+                .Distinct()
+                .ToList();
 
-    return new SupplierDashboardDto
-    {
-        SupplierId = supplier.Id,
-        SupplierName = supplier.Name,
-        SupplierEmail = supplier.Email,
-        SupplierContactPerson = supplier.ContactPerson,
-        SupplierPhone = supplier.Phone,
-        WarehouseIds = warehouseIds,
-        Orders = orderDtos
-    };
-}
+            return new SupplierDashboardDto
+            {
+                SupplierId = supplier.Id,
+                SupplierName = supplier.Name,
+                SupplierEmail = supplier.Email,
+                SupplierContactPerson = supplier.ContactPerson,
+                SupplierPhone = supplier.Phone,
+                WarehouseIds = warehouseIds,
+                Orders = orderDtos
+            };
+        }
 
         public async Task<SupplierDto> EnsureSupplierProfileAsync(string email, string name, string? contactPerson = null)
         {
@@ -450,6 +533,13 @@ namespace SupplierService.Services.Implementations
 
             _context.SupplierRequests.Add(request);
             await _context.SaveChangesAsync();
+            
+      
+            await SendNotificationToRoleAsync("Admin", "SupplierRequest",
+                "New Supplier Request",
+                $"A new supplier request has been submitted for product: {dto.ProductName}. Quantity needed: {dto.QuantityNeeded}",
+                $"/admin/supplier-requests/{request.Id}");
+            
             return MapToSupplierRequestDto(request);
         }
 
@@ -542,6 +632,12 @@ namespace SupplierService.Services.Implementations
             
             invitation.Status = "Accepted";
             await _context.SaveChangesAsync();
+            
+
+            await SendNotificationToRoleAsync("Admin", "SupplierRegistration",
+                "New Supplier Registered",
+                $"A new supplier has registered: {supplier.Name} ({supplier.Email})",
+                $"/admin/suppliers/{supplier.Id}");
 
             return MapToDto(supplier);
         }
@@ -568,6 +664,13 @@ namespace SupplierService.Services.Implementations
 
             _context.EmergencyPurchases.Add(emergency);
             await _context.SaveChangesAsync();
+            
+    
+            await SendNotificationToRoleAsync("Manager", "EmergencyPurchase",
+                "Emergency Purchase Created",
+                $"Emergency purchase created for {dto.Quantity}x {dto.ProductName}. Total: ${emergency.TotalAmount:F2}",
+                $"/admin/emergency-purchases/{emergency.Id}");
+            
             return MapToEmergencyPurchaseDto(emergency);
         }
 
@@ -584,68 +687,98 @@ namespace SupplierService.Services.Implementations
             return MapToEmergencyPurchaseDto(emergency);
         }
 
-    
-
-
-public async Task<SupplierDto?> AssignSupplierToWarehouseAsync(int supplierId, int warehouseId)
-{
-    var supplier = await _repository.GetByIdAsync(supplierId);
-    if (supplier == null) return null;
-
-    var existingAssignment = await _context.SupplierWarehouseAssignments
-        .FirstOrDefaultAsync(a => a.SupplierId == supplierId && a.WarehouseId == warehouseId);
-    
-    if (existingAssignment == null)
-    {
-        var assignment = new SupplierWarehouseAssignment
+        public async Task<SupplierDto?> AssignSupplierToWarehouseAsync(int supplierId, int warehouseId)
         {
-            SupplierId = supplierId,
-            WarehouseId = warehouseId,
-            IsActive = true,
-            AssignedDate = DateTime.UtcNow,
-            CreatedBy = 1,
-            UpdatedBy = 1,
-            CreatedAt = DateTime.UtcNow,
-            UpdatedAt = DateTime.UtcNow
-        };
-        _context.SupplierWarehouseAssignments.Add(assignment);
-        await _context.SaveChangesAsync();
-    }
+            var supplier = await _repository.GetByIdAsync(supplierId);
+            if (supplier == null) return null;
+
+            var existingAssignment = await _context.SupplierWarehouseAssignments
+                .FirstOrDefaultAsync(a => a.SupplierId == supplierId && a.WarehouseId == warehouseId);
+            
+            if (existingAssignment == null)
+            {
+                var assignment = new SupplierWarehouseAssignment
+                {
+                    SupplierId = supplierId,
+                    WarehouseId = warehouseId,
+                    IsActive = true,
+                    AssignedDate = DateTime.UtcNow,
+                    CreatedBy = 1,
+                    UpdatedBy = 1,
+                    CreatedAt = DateTime.UtcNow,
+                    UpdatedAt = DateTime.UtcNow
+                };
+                _context.SupplierWarehouseAssignments.Add(assignment);
+                await _context.SaveChangesAsync();
+                
     
-    return MapToDto(supplier);
-}
-public async Task<PaymentResponseDto?> GetPaymentByIdAsync(int id)
-{
-    var payment = await _context.Payments.FindAsync(id);
-    if (payment == null) return null;
+                if (supplier.Email != null)
+                {
+                    var userId = await GetUserIdByEmailAsync(supplier.Email);
+                    if (userId.HasValue)
+                    {
+                        await SendNotificationAsync(userId.Value, "WarehouseAssignment", 
+                            "Assigned to New Warehouse",
+                            $"You have been assigned to warehouse #{warehouseId}. You can now receive and fulfill purchase orders for this warehouse.",
+                            $"/supplier/dashboard");
+                    }
+                }
+            }
+            
+            return MapToDto(supplier);
+        }
 
-    return new PaymentResponseDto
-    {
-        Id = payment.Id,
-        PurchaseOrderId = payment.PurchaseOrderId,
-        Amount = payment.Amount,
-        PaymentMethod = payment.PaymentMethod,
-        Status = payment.Status,
-        TransactionId = payment.TransactionId,
-        PaymentDate = payment.PaymentDate
-    };
-}
-     // SupplierService.cs - Shto këto metoda
+        public async Task<PaymentResponseDto?> GetPaymentByIdAsync(int id)
+        {
+            var payment = await _context.Payments.FindAsync(id);
+            if (payment == null) return null;
 
-public async Task<PurchaseOrderDto?> ConfirmShipmentAsync(int id, ConfirmShipmentRequestDto dto)
-{
-    var purchaseOrder = await _context.PurchaseOrders.FindAsync(id);
-    if (purchaseOrder == null) return null;
+            return new PaymentResponseDto
+            {
+                Id = payment.Id,
+                PurchaseOrderId = payment.PurchaseOrderId,
+                Amount = payment.Amount,
+                PaymentMethod = payment.PaymentMethod,
+                Status = payment.Status,
+                TransactionId = payment.TransactionId,
+                PaymentDate = payment.PaymentDate
+            };
+        }
 
-    purchaseOrder.Status = "Shipped";
-    purchaseOrder.ActualDeliveryDate = dto.ActualDeliveryDate ?? DateTime.UtcNow;
-    purchaseOrder.Notes = dto.Notes ?? purchaseOrder.Notes;
-    purchaseOrder.UpdatedAt = DateTime.UtcNow;
-    
-    await _context.SaveChangesAsync();
-    return MapToPurchaseOrderDto(purchaseOrder);
-}
+        public async Task<PurchaseOrderDto?> ConfirmShipmentAsync(int id, ShipmentConfirmationDto dto)
+        {
+            var purchaseOrder = await _context.PurchaseOrders.FindAsync(id);
+            if (purchaseOrder == null) return null;
 
+            var oldStatus = purchaseOrder.Status;
+            purchaseOrder.Status = "Shipped";
+            purchaseOrder.ActualDeliveryDate = dto.ActualDeliveryDate ?? DateTime.UtcNow;
+            purchaseOrder.Notes = dto.Notes ?? purchaseOrder.Notes;
+            purchaseOrder.UpdatedAt = DateTime.UtcNow;
+            
+            await _context.SaveChangesAsync();
+            
+      
+            var supplier = await _repository.GetByIdAsync(purchaseOrder.SupplierId);
+            if (supplier?.Email != null)
+            {
+                var userId = await GetUserIdByEmailAsync(supplier.Email);
+                if (userId.HasValue)
+                {
+                    await SendNotificationAsync(userId.Value, "Shipment", 
+                        "Shipment Confirmed",
+                        $"Your shipment for purchase order #{purchaseOrder.PONumber} has been confirmed. Status: Shipped",
+                        $"/supplier/orders/{purchaseOrder.Id}");
+                }
+            }
+            
+            await SendNotificationToRoleAsync("WarehouseStaff", "Shipment",
+                "Order Shipped",
+                $"Purchase order #{purchaseOrder.PONumber} has been shipped by the supplier. Prepare for receiving.",
+                $"/warehouse/purchase-orders/{purchaseOrder.Id}");
+            
+            return MapToPurchaseOrderDto(purchaseOrder);
+        }
 
         public async Task<PurchaseOrderDto?> ReceivePurchaseOrderAsync(ReceivePurchaseOrderDto dto)
         {
@@ -653,21 +786,75 @@ public async Task<PurchaseOrderDto?> ConfirmShipmentAsync(int id, ConfirmShipmen
                 .FirstOrDefaultAsync(po => po.PONumber == dto.PONumber);
             if (purchaseOrder == null) return null;
 
+            var oldStatus = purchaseOrder.Status;
             purchaseOrder.Status = "Received";
             purchaseOrder.ActualDeliveryDate = dto.ActualDeliveryDate ?? DateTime.UtcNow;
             await _context.SaveChangesAsync();
+            
+    
+            var supplier = await _repository.GetByIdAsync(purchaseOrder.SupplierId);
+            if (supplier?.Email != null)
+            {
+                var userId = await GetUserIdByEmailAsync(supplier.Email);
+                if (userId.HasValue)
+                {
+                    await SendNotificationAsync(userId.Value, "OrderStatus", 
+                        "Order Received",
+                        $"Your purchase order #{purchaseOrder.PONumber} has been received by the warehouse. Thank you for your delivery!",
+                        $"/supplier/orders/{purchaseOrder.Id}");
+                }
+            }
+            
             return MapToPurchaseOrderDto(purchaseOrder);
         }
-                public async Task<PurchaseOrderDto?> UpdatePurchaseOrderStatusAsync(int id, UpdatePurchaseOrderStatusDto dto)
+
+        public async Task<PurchaseOrderDto?> UpdatePurchaseOrderStatusAsync(int id, UpdatePurchaseOrderStatusDto dto)
         {
             var purchaseOrder = await _context.PurchaseOrders.FindAsync(id);
             if (purchaseOrder == null) return null;
 
+            var oldStatus = purchaseOrder.Status;
             purchaseOrder.Status = dto.Status;
             purchaseOrder.Notes = dto.Notes ?? purchaseOrder.Notes;
             purchaseOrder.UpdatedAt = DateTime.UtcNow;
             
             await _context.SaveChangesAsync();
+            
+  
+            
+            var supplier = await _repository.GetByIdAsync(purchaseOrder.SupplierId);
+            
+            var statusMessages = new Dictionary<string, string>
+            {
+                ["Processing"] = "Your purchase order is now being processed by the warehouse.",
+                ["Shipped"] = "Your purchase order has been shipped! Expected delivery date: soon.",
+                ["Delivered"] = "Your purchase order has been delivered to the warehouse successfully.",
+                ["Cancelled"] = "Your purchase order has been cancelled. Please contact support for details.",
+                ["Completed"] = "Your purchase order has been completed successfully. Thank you for your business!",
+                ["Purchased"] = "Payment has been processed for your purchase order."
+            };
+            
+            if (statusMessages.ContainsKey(dto.Status) && supplier?.Email != null)
+            {
+                var userId = await GetUserIdByEmailAsync(supplier.Email);
+                if (userId.HasValue)
+                {
+                    await SendNotificationAsync(userId.Value, "OrderStatus", 
+                        $"Order Status Updated to {dto.Status}",
+                        $"{statusMessages[dto.Status]} Order #{purchaseOrder.PONumber} status changed from {oldStatus} to {dto.Status}.",
+                        $"/supplier/orders/{purchaseOrder.Id}");
+                }
+            }
+            
+
+            if (dto.Status == "Shipped")
+            {
+                await SendNotificationToRoleAsync("WarehouseStaff", "Shipment",
+                    "Order Shipped by Supplier",
+                    $"Purchase order #{purchaseOrder.PONumber} has been marked as shipped by the supplier.",
+                    $"/warehouse/purchase-orders/{purchaseOrder.Id}");
+            }
+            
             return MapToPurchaseOrderDto(purchaseOrder);
         }
 
@@ -700,6 +887,29 @@ public async Task<PurchaseOrderDto?> ConfirmShipmentAsync(int id, ConfirmShipmen
             }
 
             await _context.SaveChangesAsync();
+
+            var supplier = await _repository.GetByIdAsync(purchaseOrder.SupplierId);
+            if (supplier?.Email != null)
+            {
+                var userId = await GetUserIdByEmailAsync(supplier.Email);
+                if (userId.HasValue)
+                {
+                    await SendNotificationAsync(userId.Value, "Payment", 
+                        "Payment Received",
+                        $"Payment of ${dto.Amount:F2} has been received for purchase order #{purchaseOrder.PONumber}. Payment method: {dto.PaymentMethod}",
+                        $"/supplier/orders/{purchaseOrder.Id}");
+                }
+            }
+            
+            await SendNotificationToRoleAsync("WarehouseStaff", "Payment",
+                "Payment Completed",
+                $"Payment of ${dto.Amount:F2} has been processed for PO #{purchaseOrder.PONumber}. You can now arrange shipment.",
+                $"/warehouse/purchase-orders/{purchaseOrder.Id}");
+            
+            await SendNotificationToRoleAsync("Manager", "Payment",
+                "Payment Received",
+                $"Payment of ${dto.Amount:F2} has been received for PO #{purchaseOrder.PONumber} from supplier {supplier?.Name}",
+                $"/admin/purchase-orders/{purchaseOrder.Id}");
 
             return new PaymentResponseDto
             {
@@ -762,21 +972,61 @@ public async Task<PurchaseOrderDto?> ConfirmShipmentAsync(int id, ConfirmShipmen
             return System.Text.Encoding.UTF8.GetBytes(pdfContent);
         }
 
-        public async Task<PurchaseOrderDto?> ConfirmShipmentAsync(int id, ShipmentConfirmationDto dto)
+     
+        
+        public async Task SendNotificationAsync(int userId, string type, string title, string message, string? actionUrl = null)
         {
-            var purchaseOrder = await _context.PurchaseOrders.FindAsync(id);
-            if (purchaseOrder == null) return null;
+            try
+            {
+                await _notificationClient.SendNotificationAsync(userId, type, title, message, actionUrl);
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"Failed to send notification to user {userId}: {ex.Message}");
+            }
+        }
 
-            purchaseOrder.Status = "Shipped";
-            purchaseOrder.ActualDeliveryDate = dto.ActualDeliveryDate ?? DateTime.UtcNow;
-            purchaseOrder.UpdatedAt = DateTime.UtcNow;
-            
-            await _context.SaveChangesAsync();
-            return MapToPurchaseOrderDto(purchaseOrder);
+        public async Task SendNotificationToRoleAsync(string role, string type, string title, string message, string? actionUrl = null)
+        {
+            try
+            {
+                await _notificationClient.SendNotificationToRoleAsync(role, type, title, message, actionUrl);
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"Failed to send notification to role {role}: {ex.Message}");
+            }
+        }
+
+        private async Task<int?> GetUserIdByEmailAsync(string email)
+        {
+            try
+            {
+                var authServiceUrl = _configuration["AuthServiceUrl"] ?? "http://localhost:5001";
+                using var client = _httpClientFactory.CreateClient();
+                var response = await client.GetAsync($"{authServiceUrl}/api/auth/users/by-email/{Uri.EscapeDataString(email)}");
+                
+                if (response.IsSuccessStatusCode)
+                {
+                    var user = await response.Content.ReadFromJsonAsync<UserIdResponse>();
+                    return user?.Id;
+                }
+                return null;
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"Failed to get user ID for email {email}: {ex.Message}");
+                return null;
+            }
+        }
+
+        private class UserIdResponse
+        {
+            public int Id { get; set; }
         }
 
        
-    
+        
         private SupplierDto MapToDto(Supplier supplier)
         {
             return new SupplierDto

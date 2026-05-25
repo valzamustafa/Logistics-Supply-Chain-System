@@ -63,9 +63,14 @@ public class ReportsController : ControllerBase
     [Authorize(Roles = "Admin")]
     public async Task<IActionResult> Delete(int id)
     {
+        var report = await _reportService.GetByIdAsync(id);
+        if (report == null)
+            return NotFound();
+            
         var deleted = await _reportService.DeleteAsync(id);
         if (!deleted)
             return NotFound();
+        
         return NoContent();
     }
 

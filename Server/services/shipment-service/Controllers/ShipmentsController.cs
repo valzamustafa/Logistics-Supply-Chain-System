@@ -5,9 +5,12 @@ using System.Security.Claims;
 using ShipmentService.DTOs;
 using ShipmentService.Services.Interfaces;
 using ShipmentService.Repositories.Interfaces;
+using BuildingBlocks;
 using System.Net.Http;
 using System.Text;
 using System.Text.Json;
+using Microsoft.AspNetCore.SignalR;
+using ShipmentService.Hubs;
 
 namespace ShipmentService.Controllers;
 
@@ -21,19 +24,25 @@ public class ShipmentsController : ControllerBase
     private readonly IHttpClientFactory _httpClientFactory;
     private readonly ILogger<ShipmentsController> _logger;
     private readonly IConfiguration _configuration;
+    private readonly INotificationClient _notificationClient;
+    private readonly IHubContext<DashboardHub> _hubContext;
     
     public ShipmentsController(
         IShipmentService shipmentService, 
         IDriverRepository driverRepository,
         IHttpClientFactory httpClientFactory,
         ILogger<ShipmentsController> logger,
-        IConfiguration configuration)
+        IConfiguration configuration,
+        INotificationClient notificationClient,
+        IHubContext<DashboardHub> hubContext)
     {
         _shipmentService = shipmentService;
         _driverRepository = driverRepository;
         _httpClientFactory = httpClientFactory;
         _logger = logger;
         _configuration = configuration;
+        _notificationClient = notificationClient;
+        _hubContext = hubContext;
     }
     
     [HttpGet]
@@ -63,11 +72,38 @@ public class ShipmentsController : ControllerBase
     [HttpPost]
     public async Task<IActionResult> Create([FromBody] CreateShipmentDto request)
     {
-        if (!HasShipmentPermission())
-            return StatusCode(StatusCodes.Status403Forbidden, new { message = "You do not have permission to create shipments." });
+        try
+        {
+            _logger.LogInformation("Create shipment request received: OrderId={OrderId}, Items={ItemCount}, DriverId={DriverId}", 
+                request.OrderId, request.Items?.Count ?? 0, request.DriverId);
 
-        var shipment = await _shipmentService.CreateAsync(request);
-        return CreatedAtAction(nameof(GetById), new { id = shipment.Id }, shipment);
+            if (!ModelState.IsValid)
+            {
+                _logger.LogWarning("Invalid model state: {Errors}", 
+                    string.Join("; ", ModelState.Values.SelectMany(v => v.Errors.Select(e => e.ErrorMessage))));
+                return BadRequest(new { message = "Invalid request data", errors = ModelState });
+            }
+
+            if (!HasShipmentPermission())
+                return StatusCode(StatusCodes.Status403Forbidden, new { message = "You do not have permission to create shipments." });
+
+            var shipment = await _shipmentService.CreateAsync(request);
+            _logger.LogInformation("Shipment created successfully: Id={ShipmentId}, TrackingNumber={TrackingNumber}", 
+                shipment.Id, shipment.TrackingNumber);
+            await _hubContext.Clients.All.SendAsync("ReceiveNewShipment", shipment);
+            return CreatedAtAction(nameof(GetById), new { id = shipment.Id }, shipment);
+        }
+        catch (InvalidOperationException ex)
+        {
+            _logger.LogWarning(ex, "Invalid operation while creating shipment: {Message}", ex.Message);
+            return BadRequest(new { message = ex.Message });
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Unhandled exception creating shipment: {Message}", ex.Message);
+            return StatusCode(StatusCodes.Status500InternalServerError, 
+                new { message = "Error creating shipment", error = ex.Message });
+        }
     }
     
     [Authorize(Roles = "Driver")]
@@ -97,6 +133,8 @@ public class ShipmentsController : ControllerBase
         var shipment = await _shipmentService.StartDeliveryAsync(id);
         if (shipment == null)
             return NotFound();
+        
+        await _hubContext.Clients.All.SendAsync("ReceiveShipmentUpdate", shipment);
         return Ok(shipment);
     }
     
@@ -107,6 +145,8 @@ public class ShipmentsController : ControllerBase
         var shipment = await _shipmentService.CompleteDeliveryAsync(id, dto.Proof);
         if (shipment == null)
             return NotFound();
+        
+        await _hubContext.Clients.All.SendAsync("ReceiveShipmentUpdate", shipment);
         return Ok(shipment);
     }
     
@@ -116,15 +156,58 @@ public class ShipmentsController : ControllerBase
     {
         try
         {
-           
+         
             var shipmentModel = await _shipmentService.UpdateStatusAsync(id, request.Status);
             
             if (shipmentModel == null)
                 return NotFound(new { message = "Shipment not found" });
             
+            var purchaseOrderStatus = request.Status switch
+            {
+                "Pending" => "Pending",
+                "In Transit" => "Shipped",
+                "Delivered" => "Delivered",
+                "Out for Delivery" => "Shipped",
+                "Failed Delivery" => "Pending",
+                _ => "Shipped"
+            };
+
           
-            await UpdateSupplierPurchaseOrderStatus(shipmentModel, request);
+            await UpdateSupplierPurchaseOrderStatus(shipmentModel, request, purchaseOrderStatus);
             
+        
+            var statusMessage = request.Status switch
+            {
+                "Pending" => "waiting for processing",
+                "In Transit" => "in transit with driver",
+                "Delivered" => "successfully delivered",
+                _ => $"status updated to {request.Status}"
+            };
+
+            try
+            {
+                await _notificationClient.SendNotificationToRoleAsync(
+                    "Manager",
+                    "ShipmentStatusUpdated",
+                    "Shipment Status Updated",
+                    $"Shipment #{shipmentModel.Id} for Order {shipmentModel.OrderId} is now {statusMessage}.",
+                    $"/shipments/{shipmentModel.Id}"
+                );
+            }
+            catch (Exception ex)
+            {
+                _logger.LogWarning(ex, "Failed to send shipment status notification for shipment {ShipmentId}", shipmentModel.Id);
+            }
+
+            await _hubContext.Clients.All.SendAsync("ReceiveShipmentUpdate", shipmentModel);
+            await _hubContext.Clients.All.SendAsync("ReceiveOrderUpdate", new {
+                orderId = shipmentModel.OrderId,
+                purchaseOrderId = shipmentModel.PurchaseOrderId,
+                status = request.Status,
+                purchaseOrderStatus = purchaseOrderStatus,
+                shipmentId = shipmentModel.Id
+            });
+
             return Ok(shipmentModel);
         }
         catch (Exception ex)
@@ -134,49 +217,50 @@ public class ShipmentsController : ControllerBase
         }
     }
 
-    private async Task UpdateSupplierPurchaseOrderStatus(ShipmentService.Models.Shipment shipment, UpdateShipmentStatusDto request)
+    private async Task UpdateSupplierPurchaseOrderStatus(ShipmentService.Models.Shipment shipment, UpdateShipmentStatusDto request, string purchaseOrderStatus)
     {
         try
         {
-            
             var supplierApiUrl = _configuration["Services:SupplierService"] ?? "http://localhost:5000";
-            var endpoint = $"{supplierApiUrl}/api/purchaseorders/{shipment.OrderId}/confirm-shipment";
+            
+            var purchaseOrderId = shipment.PurchaseOrderId ?? shipment.OrderId;
             
             var updateData = new
             {
+                status = purchaseOrderStatus,
                 actualDeliveryDate = request.Status == "Delivered" ? DateTime.UtcNow : (DateTime?)null,
-                notes = $"Shipment {shipment.TrackingNumber} status updated to {request.Status}. Location: {request.Location ?? "Warehouse"}. {request.Notes ?? ""}",
-                trackingNumber = shipment.TrackingNumber,
-                location = request.Location
+                notes = $"Shipment {shipment.TrackingNumber} status: {request.Status}. Location: {request.Location ?? "N/A"}. {request.Notes ?? ""}"
             };
             
             var client = _httpClientFactory.CreateClient();
             client.DefaultRequestHeaders.Add("X-Internal-Request", "true");
             client.Timeout = TimeSpan.FromSeconds(10);
             
+            var endpoint = $"{supplierApiUrl}/api/purchaseorders/{purchaseOrderId}/update-status";
+            
             var content = new StringContent(
                 JsonSerializer.Serialize(updateData),
                 Encoding.UTF8,
                 "application/json");
             
-            var response = await client.PostAsync(endpoint, content);
+            var response = await client.PutAsync(endpoint, content);
             
             if (!response.IsSuccessStatusCode)
             {
                 var errorBody = await response.Content.ReadAsStringAsync();
-                _logger.LogWarning("Failed to update supplier order for shipment {TrackingNumber}. Status: {StatusCode}, Error: {Error}", 
-                    shipment.TrackingNumber, response.StatusCode, errorBody);
+                _logger.LogWarning("Failed to update purchase order {PurchaseOrderId} for shipment {TrackingNumber}. Status: {StatusCode}, Error: {Error}", 
+                    shipment.PurchaseOrderId, shipment.TrackingNumber, response.StatusCode, errorBody);
             }
             else
             {
                 var responseBody = await response.Content.ReadAsStringAsync();
-                _logger.LogInformation("Successfully updated supplier order for shipment {TrackingNumber} to status {Status}. Response: {Response}", 
-                    shipment.TrackingNumber, request.Status, responseBody);
+                _logger.LogInformation("Successfully updated purchase order {PurchaseOrderId} to status {Status} from shipment {TrackingNumber}", 
+                    shipment.PurchaseOrderId, purchaseOrderStatus, shipment.TrackingNumber);
             }
         }
         catch (HttpRequestException ex)
         {
-            _logger.LogError(ex, "HTTP error when updating supplier order for shipment {TrackingNumber}", shipment.TrackingNumber);
+            _logger.LogError(ex, "HTTP error when updating purchase order for shipment {TrackingNumber}", shipment.TrackingNumber);
         }
         catch (Exception ex)
         {
@@ -271,7 +355,7 @@ public async Task<IActionResult> NotifySupplier(int id, [FromBody] NotifySupplie
         if (shipment == null)
             return NotFound();
         
-   
+
         var supplierApiUrl = _configuration["Services:SupplierService"] ?? "http://localhost:5000";
         var endpoint = $"{supplierApiUrl}/api/purchaseorders/{shipment.OrderId}/confirm-shipment";
         
@@ -319,6 +403,7 @@ public class NotifySupplierDto
         try
         {
             var shipment = await _shipmentService.AssignDriverAsync(id, request.DriverId);
+            await _hubContext.Clients.All.SendAsync("ReceiveShipmentUpdate", shipment);
             return Ok(shipment);
         }
         catch (Exception ex)
@@ -335,7 +420,7 @@ public class NotifySupplierDto
         if (shipment == null)
             return NotFound();
         
-   
+
         return Ok(shipment);
     }
 

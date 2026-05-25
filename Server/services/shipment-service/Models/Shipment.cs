@@ -14,6 +14,9 @@ public class Shipment
     [Required]
     public int OrderId { get; set; }
     
+  
+    public int? PurchaseOrderId { get; set; }
+    
     public int? DriverId { get; set; }
     public int? VehicleId { get; set; }
     
@@ -34,13 +37,14 @@ public string? CustomerFeedback { get; set; }
     public string? DeliveryLocation { get; set; }
     public decimal? Distance { get; set; }
     public string? ETA { get; set; }
+    public bool InventoryDeducted { get; set; } = false;
     
     public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
     public DateTime? UpdatedAt { get; set; }
     public int? CreatedBy { get; set; }
     public int? UpdatedBy { get; set; }
     
-
+   
     public virtual Driver? Driver { get; set; }
     public virtual Vehicle? Vehicle { get; set; }
     public virtual ICollection<ShipmentItem> Items { get; set; } = new List<ShipmentItem>();

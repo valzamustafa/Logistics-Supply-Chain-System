@@ -34,7 +34,7 @@ namespace SupplierService.Controllers
             return CreatedAtAction(nameof(GetById), new { id = purchaseOrder.Id }, purchaseOrder);
         }
 
-      
+     
         [HttpPost("{id}/confirm-shipment")]
         public async Task<IActionResult> ConfirmShipment(int id, [FromBody] ShipmentConfirmationDto dto)
         {
@@ -65,6 +65,32 @@ namespace SupplierService.Controllers
         {
             var purchaseOrder = await _service.ReceivePurchaseOrderAsync(dto);
             return purchaseOrder == null ? NotFound() : Ok(purchaseOrder);
+        }
+
+       
+        [HttpPut("{id}/update-status")]
+        public async Task<IActionResult> UpdateStatus(int id, [FromBody] UpdatePurchaseOrderStatusDto dto)
+        {
+            try
+            {
+                var purchaseOrder = await _service.UpdatePurchaseOrderStatusAsync(id, dto);
+                
+                if (purchaseOrder == null)
+                {
+                    _logger.LogWarning("Purchase order with ID {PurchaseOrderId} not found", id);
+                    return NotFound(new { message = $"Purchase order with ID {id} not found" });
+                }
+                
+                _logger.LogInformation("Purchase order {PONumber} status updated to {Status} from driver shipment", 
+                    purchaseOrder.PONumber, purchaseOrder.Status);
+                
+                return Ok(purchaseOrder);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error updating purchase order status for ID {PurchaseOrderId}", id);
+                return StatusCode(500, new { message = "Error updating purchase order", error = ex.Message });
+            }
         }
     }
 }

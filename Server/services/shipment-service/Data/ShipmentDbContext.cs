@@ -18,7 +18,7 @@ public class ShipmentDbContext : DbContext
     {
         base.OnModelCreating(modelBuilder);
         
-        // Configure relationships
+       
         modelBuilder.Entity<Shipment>()
             .HasOne(s => s.Driver)
             .WithMany(d => d.Shipments)
@@ -37,13 +37,21 @@ public class ShipmentDbContext : DbContext
             .HasForeignKey(si => si.ShipmentId)
             .OnDelete(DeleteBehavior.Cascade);
             
-        // Add indexes
+       
         modelBuilder.Entity<Shipment>()
             .HasIndex(s => s.TrackingNumber)
             .IsUnique();
             
         modelBuilder.Entity<Shipment>()
             .HasIndex(s => s.OrderId);
+
+        modelBuilder.Entity<Shipment>()
+            .HasIndex(s => s.PurchaseOrderId);
+
+        modelBuilder.Entity<Shipment>()
+            .Property(s => s.InventoryDeducted)
+            .IsRequired()
+            .HasDefaultValue(false);
             
         modelBuilder.Entity<Driver>()
             .HasIndex(d => d.UserId)

@@ -1,4 +1,3 @@
-
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.Data.SqlClient;
@@ -9,13 +8,16 @@ using ShipmentService.Repositories;
 using ShipmentService.Repositories.Interfaces;
 using ShipmentService.Services;
 using ShipmentService.Services.Interfaces;
+using ShipmentService.Filters;
+using ShipmentService.Hubs;
+using BuildingBlocks;
 using System.Security.Claims;
 using System.Text;
 
 var builder = WebApplication.CreateBuilder(args);
 
 
-builder.Services.AddControllers()
+builder.Services.AddControllers(options => options.Filters.Add<NotificationActionFilter>())
     .AddJsonOptions(options =>
     {
         options.JsonSerializerOptions.ReferenceHandler = System.Text.Json.Serialization.ReferenceHandler.IgnoreCycles;
@@ -23,6 +25,7 @@ builder.Services.AddControllers()
     });
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();
+builder.Services.AddSignalR();
 
 
 var connectionString = builder.Configuration.GetConnectionString("DefaultConnection");
@@ -98,9 +101,41 @@ builder.Services.AddScoped<IDriverRepository, DriverRepository>();
 builder.Services.AddScoped<IVehicleRepository, VehicleRepository>();
 
 
+builder.Services.AddHttpClient<BuildingBlocks.INotificationClient, BuildingBlocks.NotificationClient>(client =>
+{
+    client.Timeout = TimeSpan.FromSeconds(10);
+});
+
+
 builder.Services.AddHttpClient();
+builder.Services.AddScoped<NotificationActionFilter>();
 
 var app = builder.Build();
+
+
+app.UseExceptionHandler(appBuilder =>
+{
+    appBuilder.Run(async context =>
+    {
+        var logger = context.RequestServices.GetRequiredService<ILogger<Program>>();
+        var ex = context.Features.Get<Microsoft.AspNetCore.Diagnostics.IExceptionHandlerFeature>();
+        
+        if (ex?.Error != null)
+        {
+            logger.LogError(ex.Error, "Unhandled exception in {Path}", context.Request.Path);
+        }
+
+        context.Response.StatusCode = StatusCodes.Status500InternalServerError;
+        context.Response.ContentType = "application/json";
+        
+        await context.Response.WriteAsJsonAsync(new 
+        { 
+            message = "Internal server error", 
+            error = ex?.Error?.Message ?? "Unknown error",
+            detail = app.Environment.IsDevelopment() ? ex?.Error?.StackTrace : null
+        });
+    });
+});
 
 
 if (app.Environment.IsDevelopment())
@@ -110,9 +145,11 @@ if (app.Environment.IsDevelopment())
 }
 
 app.UseCors("AllowFrontend");
+app.UseWebSockets();
 app.UseAuthentication();
 app.UseAuthorization();
 app.MapControllers();
+app.MapHub<DashboardHub>("/dashboardHub");
 
 
 using (var scope = app.Services.CreateScope())
@@ -128,8 +165,31 @@ using (var scope = app.Services.CreateScope())
                 .SqlQueryRaw<int>("SELECT CASE WHEN OBJECT_ID(N'[Shipments]', N'U') IS NULL THEN 0 ELSE 1 END AS [Value]")
                 .SingleAsync();
 
-            if (hasShipmentTables == 0)
+            var needsRecreate = hasShipmentTables == 0;
+
+            if (!needsRecreate)
             {
+                try
+                {
+                    var hasPurchaseOrderId = await dbContext.Database
+                        .SqlQueryRaw<int>("SELECT CASE WHEN EXISTS(SELECT * FROM INFORMATION_SCHEMA.COLUMNS WHERE TABLE_NAME = 'Shipments' AND COLUMN_NAME = 'PurchaseOrderId') THEN 1 ELSE 0 END AS [Value]")
+                        .SingleAsync();
+
+                    if (hasPurchaseOrderId == 0)
+                    {
+                        needsRecreate = true;
+                    }
+                }
+                catch (Exception ex)
+                {
+                    Console.WriteLine($"Schema validation failed: {ex.Message}");
+                    needsRecreate = true;
+                }
+            }
+
+            if (needsRecreate)
+            {
+                Console.WriteLine("Recreating ShipmentServiceDB because schema is out of date or missing required columns.");
                 await dbContext.Database.EnsureDeletedAsync();
             }
         }

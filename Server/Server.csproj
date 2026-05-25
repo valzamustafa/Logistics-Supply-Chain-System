@@ -28,6 +28,10 @@
   <ItemGroup>
     <Compile Remove="api-gateway/**/*.cs" />
     <Compile Remove="services/**/*.cs" />
+    <Compile Include="services\report-service\Filter\NotificationActionFilter.cs" />
+    <Compile Include="services\shipment-service\Filters\NotificationActionFilter.cs" />
+    <Compile Include="services\supplier-service\Filters\NotificationActionFilter.cs" />
+    <Compile Include="services\tracking-services\Filters\NotificationActionFilter.cs" />
     <None Remove="api-gateway/**" />
     <None Remove="services/**" />
   </ItemGroup>

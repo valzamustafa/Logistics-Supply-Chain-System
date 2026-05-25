@@ -1,3 +1,4 @@
+
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Diagnostics;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
@@ -10,10 +11,12 @@ using SupplierService.Repositories.Interfaces;
 using SupplierService.Repositories.Implementations;
 using SupplierService.Services.Interfaces;
 using SupplierService.Services.Implementations;
+using SupplierService.Filters;
+using BuildingBlocks;
 
 var builder = WebApplication.CreateBuilder(args);
 
-builder.Services.AddControllers();
+builder.Services.AddControllers(options => options.Filters.Add<NotificationActionFilter>());
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();
 
@@ -21,8 +24,16 @@ builder.Services.AddDbContext<SupplierDbContext>(options =>
     options.UseSqlServer(builder.Configuration.GetConnectionString("SupplierDB"))
            .ConfigureWarnings(warnings => warnings.Ignore(RelationalEventId.PendingModelChangesWarning)));
 
+builder.Services.AddHttpClient();
+builder.Services.AddScoped<NotificationActionFilter>();
 builder.Services.AddScoped<ISupplierRepository, SupplierRepository>();
 builder.Services.AddScoped<ISupplierService, SupplierService.Services.Implementations.SupplierService>();
+
+
+builder.Services.AddHttpClient<INotificationClient, NotificationClient>(client =>
+{
+    client.Timeout = TimeSpan.FromSeconds(10);
+});
 
 builder.Services.AddCors(options =>
 {

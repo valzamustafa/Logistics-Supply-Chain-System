@@ -4,14 +4,22 @@ using Microsoft.AspNetCore.Authorization;
 using System.Text;
 using Microsoft.IdentityModel.Tokens;
 using TrackingService.Data;
+using TrackingService.Filters;
 using TrackingService.Repositories.Interfaces;
 using TrackingService.Repositories.Implementations;
 using TrackingService.Services.Interfaces;
 using TrackingService.Business;
+using BuildingBlocks;
 
 var builder = WebApplication.CreateBuilder(args);
 
-builder.Services.AddControllers();
+builder.Services.AddControllers(options => options.Filters.Add<NotificationActionFilter>());
+builder.Services.AddHttpClient();
+
+builder.Services.AddHttpClient<INotificationClient, NotificationClient>(client =>
+{
+    client.Timeout = TimeSpan.FromSeconds(10);
+});
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();
 
@@ -22,6 +30,11 @@ builder.Services.AddScoped<ITrackingRepository, TrackingRepository>();
 builder.Services.AddScoped<ITrackingService, TrackingService.Business.TrackingService>();
 builder.Services.AddSingleton<MongoDbContext>();
 
+
+builder.Services.AddHttpClient<INotificationClient, NotificationClient>(client =>
+{
+    client.Timeout = TimeSpan.FromSeconds(10);
+});
 
 builder.Services.AddCors(options =>
 {
@@ -35,6 +48,7 @@ builder.Services.AddCors(options =>
 });
 
 
+var jwtKey = builder.Configuration["Jwt:Key"];
 var jwtIssuer = builder.Configuration["Jwt:Issuer"];
 var jwtAudience = builder.Configuration["Jwt:Audience"];
 
