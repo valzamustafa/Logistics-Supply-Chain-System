@@ -3,16 +3,19 @@ using ReportService.DTOs;
 using ReportService.Models;
 using ReportService.Repositories.Interfaces;
 using ReportService.Services.Interfaces;
+using BuildingBlocks;
 
 namespace ReportService.Business
 {
     public class ReportService : IReportService
     {
         private readonly IReportRepository _repository;
+        private readonly INotificationClient _notificationClient;
 
-        public ReportService(IReportRepository repository)
+        public ReportService(IReportRepository repository, INotificationClient notificationClient)
         {
             _repository = repository;
+            _notificationClient = notificationClient;
         }
 
         public async Task<IEnumerable<ReportDto>> GetAllReportsAsync()
@@ -63,6 +66,22 @@ namespace ReportService.Business
                 ExecutedAt = DateTime.UtcNow
             });
 
+            await _notificationClient.SendNotificationToRoleAsync(
+                "Admin",
+                "ReportGenerated",
+                "Report Generated",
+                $"Report '{created.Name}' (Type: {created.Type}) has been generated successfully. ID: {created.Id}.",
+                $"/reports/{created.Id}"
+            );
+
+            await _notificationClient.SendNotificationToRoleAsync(
+                "Manager",
+                "ReportGenerated",
+                "Report Generated",
+                $"Report '{created.Name}' (Type: {created.Type}) has been generated successfully. ID: {created.Id}.",
+                $"/reports/{created.Id}"
+            );
+
             return MapToDto(created);
         }
 
@@ -95,6 +114,15 @@ namespace ReportService.Business
                 return false;
 
             await _repository.DeleteAsync(id);
+
+            await _notificationClient.SendNotificationToRoleAsync(
+                "Admin",
+                "ReportDeleted",
+                "Report Deleted",
+                $"Report '{report.Name}' (Type: {report.Type}) has been deleted.",
+                "/reports"
+            );
+
             return true;
         }
 

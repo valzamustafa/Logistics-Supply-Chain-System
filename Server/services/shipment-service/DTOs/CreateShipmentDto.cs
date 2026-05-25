@@ -6,6 +6,7 @@ public class CreateShipmentDto
     public int? WarehouseId { get; set; }
     public int? DriverId { get; set; }
     public int? VehicleId { get; set; }
+    public int? PurchaseOrderId { get; set; }
     public DateTime EstimatedDeliveryDate { get; set; }
     public string? ShippingAddress { get; set; }
     public List<CreateShipmentItemDto> Items { get; set; } = new();
@@ -21,7 +22,7 @@ public class UpdateShipmentStatusDto
 {
     public string Status { get; set; } = string.Empty;
     public string? Location { get; set; }
-     public string? Notes { get; set; }
+    public string? Notes { get; set; }
 }
 
 

@@ -2,16 +2,19 @@ using TrackingService.DTOs;
 using TrackingService.Models;
 using TrackingService.Repositories.Interfaces;
 using TrackingService.Services.Interfaces;
+using BuildingBlocks;
 
 namespace TrackingService.Business
 {
     public class TrackingService : ITrackingService
     {
         private readonly ITrackingRepository _repository;
+        private readonly INotificationClient _notificationClient;
 
-        public TrackingService(ITrackingRepository repository)
+        public TrackingService(ITrackingRepository repository, INotificationClient notificationClient)
         {
             _repository = repository;
+            _notificationClient = notificationClient;
         }
 
         public async Task<TrackingDto?> GetByShipmentIdAsync(int shipmentId)
@@ -42,6 +45,15 @@ namespace TrackingService.Business
             };
 
             var created = await _repository.CreateAsync(tracking);
+
+            await _notificationClient.SendNotificationToRoleAsync(
+                "Manager",
+                "TrackingCreated",
+                "Shipment Tracking Started",
+                $"Tracking initiated for Shipment {dto.ShipmentId}. Current status: {dto.Status}.",
+                $"/tracking/shipment/{dto.ShipmentId}"
+            );
+
             return MapToDto(created);
         }
 
@@ -57,6 +69,23 @@ namespace TrackingService.Business
             tracking.UpdatedAt = DateTime.UtcNow;
 
             var updated = await _repository.UpdateAsync(tracking);
+
+            await _notificationClient.SendNotificationToRoleAsync(
+                "Manager",
+                "TrackingStatusUpdated",
+                "Tracking Status Updated",
+                $"Shipment {shipmentId} status: {dto.Status}. Location: {dto.Location}.",
+                $"/tracking/shipment/{shipmentId}"
+            );
+
+            await _notificationClient.SendNotificationToRoleAsync(
+                "Customer",
+                "ShipmentTrackingUpdate",
+                "Your Shipment is on the Way",
+                $"Your shipment status: {dto.Status}. {dto.Location}.",
+                $"/tracking/{shipmentId}"
+            );
+
             return MapToDto(updated);
         }
 
@@ -73,6 +102,23 @@ namespace TrackingService.Business
             tracking.UpdatedAt = DateTime.UtcNow;
 
             var updated = await _repository.UpdateAsync(tracking);
+
+            await _notificationClient.SendNotificationToRoleAsync(
+                "Manager",
+                "ShipmentDelivered",
+                "Shipment Delivered",
+                $"Shipment {shipmentId} has been delivered. Delivery location: {dto.Location}.",
+                $"/tracking/shipment/{shipmentId}"
+            );
+
+            await _notificationClient.SendNotificationToRoleAsync(
+                "Customer",
+                "DeliveryConfirmed",
+                "Your Package Delivered",
+                $"Your shipment has been successfully delivered. Delivered at: {dto.ActualDeliveryDate}.",
+                "/myorders"
+            );
+
             return MapToDto(updated);
         }
 

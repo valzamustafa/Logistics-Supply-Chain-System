@@ -4,15 +4,23 @@ using Microsoft.AspNetCore.Authorization;
 using System.Text;
 using Microsoft.IdentityModel.Tokens;
 using ReportService.Data;
+using ReportService.Filters;
 using ReportService.Repositories.Interfaces;
 using ReportService.Repositories.Implementations;
 using ReportService.Services.Interfaces;
 using ReportService.Business;
 using ReportService.Hubs;
+using BuildingBlocks;
 
 var builder = WebApplication.CreateBuilder(args);
 
-builder.Services.AddControllers();
+builder.Services.AddControllers(options => options.Filters.Add<NotificationActionFilter>());
+builder.Services.AddHttpClient();
+
+builder.Services.AddHttpClient<INotificationClient, NotificationClient>(client =>
+{
+    client.Timeout = TimeSpan.FromSeconds(10);
+});
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();
 builder.Services.AddSignalR();
@@ -35,6 +43,11 @@ builder.Services.AddDbContext<ReportDbContext>(options =>
 builder.Services.AddScoped<IReportRepository, ReportRepository>();
 builder.Services.AddScoped<IReportService, ReportService.Business.ReportService>();
 
+
+builder.Services.AddHttpClient<INotificationClient, NotificationClient>(client =>
+{
+    client.Timeout = TimeSpan.FromSeconds(10);
+});
 
 var jwtKey = builder.Configuration["Jwt:Key"];
 var jwtIssuer = builder.Configuration["Jwt:Issuer"];
@@ -59,7 +72,7 @@ builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
             IssuerSigningKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(jwtKey))
         };
         
-      
+     
         options.Events = new JwtBearerEvents
         {
             OnMessageReceived = context =>

@@ -130,7 +130,9 @@ services:
     restart: unless-stopped
 
   shipment-service:
-    build: ./services/shipment-service
+    build:
+      context: .
+      dockerfile: ./services/shipment-service/Dockerfile
     container_name: shipment-service
     depends_on:
       mssql:
@@ -180,6 +182,7 @@ services:
       - Jwt__Key=YourSuperSecretKeyForJWTThatIsAtLeast32CharactersLong123!
       - Jwt__Issuer=Logjistika
       - Jwt__Audience=LogjistikaClients
+      - AuthServiceUrl=http://auth-service:80
     ports:
       - "5009:80"
     networks:
@@ -249,6 +252,7 @@ services:
   api-gateway:
     build: ./api-gateway
     container_name: api-gateway
+
     depends_on:
       - auth-service
       - product-service
