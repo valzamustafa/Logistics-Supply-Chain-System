@@ -1,6 +1,9 @@
 import { useState, useEffect } from 'react';
 import { useAuth } from '../../hooks/useAuth';
 import { api } from '../../services/api';
+import { useToast } from '../../hooks/useToast';
+import { ConfirmModal } from '../../components/ConfirmModal';
+import { notificationService } from '../../services/notificationService';
 
 interface Role {
   id: number;
@@ -19,7 +22,8 @@ interface Permission {
 }
 
 export function RolesPage() {
-  const { token } = useAuth();
+  const { token, user } = useAuth();
+  const { showToast } = useToast();
   const [roles, setRoles] = useState<Role[]>([]);
   const [selectedRole, setSelectedRole] = useState<Role | null>(null);
   const [permissions, setPermissions] = useState<Permission[]>([]);
@@ -28,6 +32,7 @@ export function RolesPage() {
   const [showAddModal, setShowAddModal] = useState(false);
   const [newRole, setNewRole] = useState({ name: '', description: '', permissions: [] as string[] });
   const [editRole, setEditRole] = useState({ id: 0, name: '', description: '' });
+  const [confirmDialog, setConfirmDialog] = useState<{ title: string; message: string; onConfirm: () => Promise<void> } | null>(null);
 
   useEffect(() => {
     loadRoles();
@@ -58,7 +63,7 @@ export function RolesPage() {
 
   const handleCreateRole = async () => {
     if (!newRole.name.trim()) {
-      alert('Role name is required');
+      showToast('error', 'Role name is required');
       return;
     }
 
@@ -71,10 +76,11 @@ export function RolesPage() {
       setRoles([...roles, created]);
       setShowAddModal(false);
       setNewRole({ name: '', description: '', permissions: [] });
-      alert('Role created successfully');
+      showToast('success', 'Role created successfully');
+      if (user?.id) await notificationService.sendNotification({ userId: user.id, type: 'Role', title: 'Role Created', message: `Role ${created.name} created`, actionUrl: '/admin/roles' }).catch(() => {});
     } catch (error) {
       console.error('Failed to create role:', error);
-      alert('Failed to create role');
+      showToast('error', 'Failed to create role');
     }
   };
 
@@ -87,39 +93,47 @@ export function RolesPage() {
       setRoles(roles.map(r => r.id === updated.id ? updated : r));
       if (selectedRole?.id === updated.id) setSelectedRole(updated);
       setShowEditModal(false);
-      alert('Role updated successfully');
+      showToast('success', 'Role updated successfully');
+      if (user?.id) await notificationService.sendNotification({ userId: user.id, type: 'Role', title: 'Role Updated', message: `Role ${updated.name} updated`, actionUrl: '/admin/roles' }).catch(() => {});
     } catch (error) {
       console.error('Failed to update role:', error);
-      alert('Failed to update role');
+      showToast('error', 'Failed to update role');
     }
   };
 
-  const handleDeleteRole = async (roleId: number, roleName: string) => {
+  const handleDeleteRole = (roleId: number, roleName: string) => {
     if (roleName === 'Admin') {
-      alert('Cannot delete Admin role');
+      showToast('error', 'Cannot delete Admin role');
       return;
     }
-    if (window.confirm(`Are you sure you want to delete role "${roleName}"?`)) {
-      try {
-        await api.delete(`/api/auth/roles/${roleId}`);
-        setRoles(roles.filter(r => r.id !== roleId));
-        if (selectedRole?.id === roleId) setSelectedRole(null);
-        alert('Role deleted successfully');
-      } catch (error) {
-        console.error('Failed to delete role:', error);
-        alert('Failed to delete role');
+
+    setConfirmDialog({
+      title: 'Delete Role',
+      message: `Are you sure you want to delete role "${roleName}"?`,
+      onConfirm: async () => {
+        try {
+          await api.delete(`/api/auth/roles/${roleId}`);
+          setRoles(roles.filter(r => r.id !== roleId));
+          if (selectedRole?.id === roleId) setSelectedRole(null);
+          showToast('success', 'Role deleted successfully');
+          if (user?.id) await notificationService.sendNotification({ userId: user.id, type: 'Role', title: 'Role Deleted', message: `Role ${roleName} deleted`, actionUrl: '/admin/roles' }).catch(() => {});
+        } catch (error) {
+          console.error('Failed to delete role:', error);
+          showToast('error', 'Failed to delete role');
+        }
       }
-    }
+    });
   };
 
   const handleUpdatePermissions = async (roleId: number, permissionNames: string[]) => {
     try {
       await api.put(`/api/auth/roles/${roleId}/permissions`, { permissions: permissionNames });
       setRoles(roles.map(r => r.id === roleId ? { ...r, permissions: permissionNames } : r));
-      alert('Permissions updated successfully');
+      showToast('success', 'Permissions updated successfully');
+      if (user?.id) await notificationService.sendNotification({ userId: user.id, type: 'Role', title: 'Permissions Updated', message: `Permissions updated for role`, actionUrl: '/admin/roles' }).catch(() => {});
     } catch (error) {
       console.error('Failed to update permissions:', error);
-      alert('Failed to update permissions');
+      showToast('error', 'Failed to update permissions');
     }
   };
 
@@ -299,6 +313,19 @@ export function RolesPage() {
             </div>
           </div>
         </div>
+      )}
+      {confirmDialog && (
+        <ConfirmModal
+          title={confirmDialog.title}
+          message={confirmDialog.message}
+          confirmLabel="Confirm"
+          cancelLabel="Cancel"
+          onConfirm={async () => {
+            await confirmDialog.onConfirm();
+            setConfirmDialog(null);
+          }}
+          onCancel={() => setConfirmDialog(null)}
+        />
       )}
     </div>
   );

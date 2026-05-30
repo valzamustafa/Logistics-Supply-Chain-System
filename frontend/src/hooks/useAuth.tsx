@@ -36,14 +36,18 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       const storedToken = getLocalStorageItem('token');
       const storedUser = getLocalStorageItem('user');
 
+      if (!storedToken && storedUser) {
+        removeLocalStorageItem('user');
+      }
+
       if (storedToken && storedUser) {
         try {
-          // Verifiko nëse token-i është ende valid
+          
           const userData = await getCurrentUser(storedToken);
           setToken(storedToken);
           setUser(userData);
         } catch (error) {
-          // Token-i ka skaduar - pastro localStorage
+          
           console.error('Token validation failed:', error);
           removeLocalStorageItem('token');
           removeLocalStorageItem('user');
@@ -71,16 +75,16 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   };
 
   return (
-      <AuthContext.Provider value={{
-        user,
-        token,
-        isAuthenticated: !!token && !!user,
-        isLoading,
-        login,
-        logout
-      }}>
-        {children}
-      </AuthContext.Provider>
+    <AuthContext.Provider value={{
+      user,
+      token,
+      isAuthenticated: !!token && !!user,
+      isLoading,
+      login,
+      logout
+    }}>
+      {children}
+    </AuthContext.Provider>
   );
 }
 

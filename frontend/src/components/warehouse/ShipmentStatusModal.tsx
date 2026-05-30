@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from 'react';
 import { X, Truck, Package, MapPin, Building2, AlertCircle } from 'lucide-react';
 import { shipmentService, Shipment } from '../../services/shipmentService';
@@ -29,6 +28,7 @@ export function ShipmentStatusModal({ shipment, onClose, onSuccess }: ShipmentSt
     'Returned'
   ];
 
+
   useEffect(() => {
     const fetchPurchaseOrders = async () => {
       setLoadingPOs(true);
@@ -36,6 +36,7 @@ export function ShipmentStatusModal({ shipment, onClose, onSuccess }: ShipmentSt
         const pos = await supplierService.getAllPurchaseOrders();
         setPurchaseOrders(pos);
         
+        // Find PO that matches this shipment's order ID
         const matchingPO = pos.find(po => po.id === shipment.orderId || po.poNumber?.includes(String(shipment.orderId)));
         if (matchingPO) {
           setSelectedPO(matchingPO);
@@ -56,18 +57,19 @@ export function ShipmentStatusModal({ shipment, onClose, onSuccess }: ShipmentSt
     setError(null);
 
     try {
-    
+     
       await shipmentService.updateStatus(shipment.id, { 
         status, 
         location: location || undefined 
       });
 
-      
+     
       if (selectedPO) {
         try {
-          
+         
           const supplierStatus = mapToSupplierStatus(status);
           
+      
           await supplierService.confirmShipment(selectedPO.id, {
             actualDeliveryDate: status === 'Delivered' ? new Date().toISOString() : null,
             notes: `Shipment ${shipment.trackingNumber} status updated to ${status}. Location: ${location || 'Warehouse'}`
@@ -123,7 +125,7 @@ export function ShipmentStatusModal({ shipment, onClose, onSuccess }: ShipmentSt
             </div>
           )}
 
-          {/* Shipment Info */}
+      
           <div className="bg-slate-900/50 rounded-lg p-3 space-y-2">
             <div>
               <label className="text-xs text-slate-400">Tracking Number</label>
@@ -144,7 +146,7 @@ export function ShipmentStatusModal({ shipment, onClose, onSuccess }: ShipmentSt
             )}
           </div>
 
-          {/* Status Select */}
+  
           <div>
             <label className="block text-sm font-medium text-slate-300 mb-2">
               Status *
@@ -161,7 +163,7 @@ export function ShipmentStatusModal({ shipment, onClose, onSuccess }: ShipmentSt
             </select>
           </div>
 
-          {/* Location */}
+    
           <div>
             <label className="block text-sm font-medium text-slate-300 mb-2">
               <div className="flex items-center gap-1">
@@ -178,7 +180,7 @@ export function ShipmentStatusModal({ shipment, onClose, onSuccess }: ShipmentSt
             />
           </div>
 
-          {/* Info Box */}
+
           <div className="bg-blue-500/10 border border-blue-500/30 rounded-lg p-3">
             <p className="text-blue-400 text-xs">
               <Truck className="w-3 h-3 inline mr-1" />
@@ -188,7 +190,7 @@ export function ShipmentStatusModal({ shipment, onClose, onSuccess }: ShipmentSt
             </p>
           </div>
 
-          {/* Buttons */}
+    
           <div className="flex gap-3 pt-4">
             <button
               type="button"
