@@ -1,3 +1,4 @@
+
 using Microsoft.EntityFrameworkCore;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.Authorization;
@@ -8,13 +9,14 @@ using OrderService.Repositories.Interfaces;
 using OrderService.Repositories.Implementations;
 using OrderService.Services.Interfaces;
 using OrderService.Business;
+using OrderService.Filters;
+using BuildingBlocks;
 
 var builder = WebApplication.CreateBuilder(args);
 
-builder.Services.AddControllers();
+builder.Services.AddControllers(options => options.Filters.Add<NotificationActionFilter>());
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();
-
 
 builder.Services.AddCors(options =>
 {
@@ -46,6 +48,13 @@ builder.Services.AddScoped<IOrderService, OrderService.Business.OrderService>();
 
 
 builder.Services.AddHttpClient();
+builder.Services.AddScoped<NotificationActionFilter>();
+
+
+builder.Services.AddHttpClient<INotificationClient, NotificationClient>(client =>
+{
+    client.Timeout = TimeSpan.FromSeconds(10);
+});
 
 
 var jwtKey = builder.Configuration["Jwt:Key"];
@@ -71,7 +80,6 @@ builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
             IssuerSigningKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(jwtKey))
         };
         
-       
         options.Events = new JwtBearerEvents
         {
             OnMessageReceived = context =>

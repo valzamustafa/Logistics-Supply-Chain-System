@@ -1,4 +1,5 @@
-using System;
+
+ using System;
 using System.IO;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.Http;
@@ -7,6 +8,7 @@ using Microsoft.EntityFrameworkCore;
 using ProductService.Data;
 using ProductService.Models;
 using ProductService.Services.Interfaces;
+using BuildingBlocks;
 
 namespace ProductService.Controllers
 {
@@ -17,12 +19,14 @@ namespace ProductService.Controllers
         private readonly IProductService _productService;
         private readonly ProductDbContext _dbContext;
         private readonly IWebHostEnvironment _environment;
+        private readonly INotificationClient _notificationClient;
 
-        public ProductsController(IProductService productService, ProductDbContext dbContext, IWebHostEnvironment environment)
+        public ProductsController(IProductService productService, ProductDbContext dbContext, IWebHostEnvironment environment, INotificationClient notificationClient)
         {
             _productService = productService;
             _dbContext = dbContext;
             _environment = environment;
+            _notificationClient = notificationClient;
         }
 
         [HttpGet]
@@ -83,6 +87,24 @@ namespace ProductService.Controllers
             try
             {
                 var created = await _productService.CreateProductAsync(product);
+                
+               
+                await _notificationClient.SendNotificationToRoleAsync(
+                    "Admin",
+                    "ProductCreated",
+                    "New Product Added",
+                    $"Product '{created.Name}' (SKU: {created.SKU}) has been added to inventory with price ${created.Price:F2}.",
+                    $"/products/{created.Id}"
+                );
+                
+                await _notificationClient.SendNotificationToRoleAsync(
+                    "Manager",
+                    "ProductCreated",
+                    "New Product Added",
+                    $"Product '{created.Name}' (SKU: {created.SKU}) has been added to inventory with price ${created.Price:F2}.",
+                    $"/products/{created.Id}"
+                );
+                
                 return CreatedAtAction(nameof(GetById), new { id = created.Id }, created);
             }
             catch (InvalidOperationException ex)
@@ -112,6 +134,24 @@ namespace ProductService.Controllers
             try
             {
                 var updated = await _productService.UpdateProductAsync(product);
+                
+                
+                await _notificationClient.SendNotificationToRoleAsync(
+                    "Admin",
+                    "ProductUpdated",
+                    "Product Updated",
+                    $"Product '{updated.Name}' (SKU: {updated.SKU}) has been updated. New price: ${updated.Price:F2}.",
+                    $"/products/{updated.Id}"
+                );
+                
+                await _notificationClient.SendNotificationToRoleAsync(
+                    "Manager",
+                    "ProductUpdated",
+                    "Product Updated",
+                    $"Product '{updated.Name}' (SKU: {updated.SKU}) has been updated. New price: ${updated.Price:F2}.",
+                    $"/products/{updated.Id}"
+                );
+                
                 return Ok(updated);
             }
             catch (InvalidOperationException ex)
@@ -123,9 +163,31 @@ namespace ProductService.Controllers
         [HttpDelete("{id}")]
         public async Task<IActionResult> Delete(int id)
         {
+            var product = await _productService.GetProductByIdAsync(id);
+            if (product == null)
+                return NotFound();
+                
             var deleted = await _productService.DeleteProductAsync(id);
             if (!deleted)
                 return NotFound();
+            
+         
+            await _notificationClient.SendNotificationToRoleAsync(
+                "Admin",
+                "ProductDeleted",
+                "Product Removed",
+                $"Product '{product.Name}' (SKU: {product.SKU}) has been removed from inventory.",
+                "/products"
+            );
+            
+            await _notificationClient.SendNotificationToRoleAsync(
+                "Manager",
+                "ProductDeleted",
+                "Product Removed",
+                $"Product '{product.Name}' (SKU: {product.SKU}) has been removed from inventory.",
+                "/products"
+            );
+            
             return NoContent();
         }
 
@@ -197,7 +259,7 @@ namespace ProductService.Controllers
         [HttpPost("categories")]
         public async Task<IActionResult> CreateCategory([FromBody] Category category)
         {
-          
+            
             return BadRequest(new { message = "Category creation is not implemented." });
         }
     }
