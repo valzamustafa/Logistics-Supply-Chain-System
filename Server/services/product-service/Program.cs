@@ -1,3 +1,4 @@
+
 using System;
 using System.IO;
 using Microsoft.EntityFrameworkCore;
@@ -6,17 +7,19 @@ using Microsoft.Extensions.FileProviders;
 using System.Text;
 using System.Text.Json.Serialization;
 using Microsoft.IdentityModel.Tokens;
-using Microsoft.AspNetCore.Authorization; // Shto këtë për AuthorizationPolicyBuilder
+using Microsoft.AspNetCore.Authorization;
 using ProductService.Data;
 using ProductService.Models;
 using ProductService.Repositories.Interfaces;
 using ProductService.Repositories.Implementations;
 using ProductService.Services.Interfaces;
 using ProductService.Services.Implementations;
+using ProductService.Filters;
+using BuildingBlocks;
 
 var builder = WebApplication.CreateBuilder(args);
 
-builder.Services.AddControllers()
+builder.Services.AddControllers(options => options.Filters.Add<NotificationActionFilter>())
     .AddJsonOptions(options =>
     {
         options.JsonSerializerOptions.ReferenceHandler = ReferenceHandler.IgnoreCycles;
@@ -27,8 +30,16 @@ builder.Services.AddSwaggerGen();
 builder.Services.AddDbContext<ProductDbContext>(options =>
     options.UseSqlServer(builder.Configuration.GetConnectionString("ProductDB")));
 
+builder.Services.AddHttpClient();
+builder.Services.AddScoped<NotificationActionFilter>();
 builder.Services.AddScoped<IProductRepository, ProductRepository>();
 builder.Services.AddScoped<IProductService, ProductService.Services.Implementations.ProductService>();
+
+
+builder.Services.AddHttpClient<BuildingBlocks.INotificationClient, BuildingBlocks.NotificationClient>(client =>
+{
+    client.Timeout = TimeSpan.FromSeconds(10);
+});
 
 
 builder.Services.AddCors(options =>
@@ -102,7 +113,7 @@ using (var scope = app.Services.CreateScope())
 {
     var dbContext = scope.ServiceProvider.GetRequiredService<ProductDbContext>();
     
-    
+   
     await dbContext.Database.EnsureCreatedAsync();
 
     if (!dbContext.Categories.Any())
