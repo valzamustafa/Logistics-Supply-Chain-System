@@ -1,7 +1,7 @@
-
 import { useAuth } from '../hooks/useAuth';
 import { useNavigate } from 'react-router-dom';
-import { LogOut, Bell, User } from 'lucide-react';
+import { LogOut } from 'lucide-react';
+import { NotificationDropdown } from './NotificationDropdown';
 
 export function Header() {
   const { user, logout } = useAuth();
@@ -29,10 +29,8 @@ export function Header() {
         </div>
 
         <div className="flex items-center gap-4">
-          <button className="p-2 text-slate-400 hover:text-white transition rounded-lg hover:bg-slate-700">
-            <Bell className="w-5 h-5" />
-          </button>
-          
+          <NotificationDropdown />
+
           <div className="text-right">
             <p className="text-sm font-semibold text-white">{displayName}</p>
             <p className="text-xs text-slate-400">{user?.email}</p>

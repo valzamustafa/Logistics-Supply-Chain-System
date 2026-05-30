@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from 'react';
 import { useAuth } from '../hooks/useAuth';
 import { productService, Product, Category } from '../services/productService';
@@ -38,7 +37,7 @@ export function ProductsPage() {
     setAddingToCart(product.id);
     try {
       await addToCart(product, 1);
-   
+
     } catch (error) {
       console.error('Failed to add to cart:', error);
     } finally {
@@ -48,11 +47,12 @@ export function ProductsPage() {
 
   const getFilteredProducts = () => {
     let filtered = products;
-  
+    
+
     if (selectedCategory !== null) {
       filtered = filtered.filter(p => p.categoryId === selectedCategory);
     }
-    
+
     if (searchTerm.trim()) {
       const term = searchTerm.toLowerCase();
       filtered = filtered.filter(p => 
@@ -88,15 +88,15 @@ export function ProductsPage() {
 
   return (
     <div className="p-6">
-      {/* Header */}
+  
       <div className="mb-6">
         <h1 className="text-2xl font-bold text-white mb-2">Products Catalog</h1>
         <p className="text-slate-400">Browse and add products to your cart</p>
       </div>
 
-      {/* Search and Filter Bar */}
+
       <div className="mb-6 flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
-        {/* Search */}
+     
         <div className="relative flex-1 max-w-md">
           <input
             type="text"
@@ -108,7 +108,7 @@ export function ProductsPage() {
           <span className="absolute left-3 top-2.5 text-slate-400">🔍</span>
         </div>
         
-        {/* Cart Summary */}
+      
         <div className="flex items-center gap-4 px-4 py-2 rounded-lg bg-slate-800 border border-slate-700">
           <div className="flex items-center gap-2">
             <span className="text-white">🛒</span>
@@ -126,7 +126,7 @@ export function ProductsPage() {
         </div>
       </div>
 
-      {/* Category Filters */}
+     
       <div className="mb-6 flex gap-2 flex-wrap">
         <button
           onClick={() => setSelectedCategory(null)}

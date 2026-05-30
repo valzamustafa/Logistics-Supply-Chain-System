@@ -1,4 +1,3 @@
-
 import React from 'react';
 import { Order } from '../services/orderService';
 
@@ -13,7 +12,7 @@ export const Invoice: React.FC<InvoiceProps> = ({ order, bankAccount }) => {
   };
 
   const calculateTax = () => {
-    return calculateSubtotal() * 0.18; 
+    return calculateSubtotal() * 0.18; // 18% TVSH
   };
 
   const calculateTotal = () => {
@@ -21,7 +20,7 @@ export const Invoice: React.FC<InvoiceProps> = ({ order, bankAccount }) => {
   };
 
   const downloadPDF = async () => {
-    
+    // Thirr API për gjenerim PDF
     const response = await fetch(`/api/orders/${order.id}/invoice`, {
       method: 'GET',
       headers: {

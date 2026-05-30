@@ -1,31 +1,30 @@
 import { useEffect, useMemo, useState } from 'react';
-import { supplierService, Supplier, SupplierOrderDto, CreateSupplierDto, CreateSupplierOrderDto, CreateSupplierOrderItemDto, SupplierProductDto } from '../services/supplierService';
+import { supplierService, Supplier, PurchaseOrderDto, CreatePurchaseOrderDto, SupplierProductDto } from '../services/supplierService';
 import { productService, Product } from '../services/productService';
+import { warehouseService, Warehouse } from '../services/warehouseService';
+import { dashboardSignalRService, OrderUpdateEvent } from '../services/dashboardSignalRService';
+import { notificationService } from '../services/notificationService';
+import { useAuth } from '../hooks/useAuth';
 
 export function SuppliersPage() {
-  const [tab, setTab] = useState<'suppliers' | 'orders'>('suppliers');
+  const { user } = useAuth();
+  const [tab, setTab] = useState<'suppliers' | 'orders'>('orders');
   const [suppliers, setSuppliers] = useState<Supplier[]>([]);
-  const [orders, setOrders] = useState<SupplierOrderDto[]>([]);
+  const [orders, setOrders] = useState<PurchaseOrderDto[]>([]);
   const [products, setProducts] = useState<Product[]>([]);
   const [supplierProducts, setSupplierProducts] = useState<SupplierProductDto[]>([]);
+  const [warehouses, setWarehouses] = useState<Warehouse[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState<string | null>(null);
 
-  const [supplierForm, setSupplierForm] = useState<CreateSupplierDto>({
-    name: '',
-    contactPerson: '',
-    email: '',
-    phone: '',
-    address: '',
-  });
-
-  const [orderForm, setOrderForm] = useState<CreateSupplierOrderDto>({
+  const [orderForm, setOrderForm] = useState<CreatePurchaseOrderDto>({
     supplierId: 0,
+    warehouseId: 0,
     items: [{ productId: 0, quantity: 1, unitPrice: 0 }],
   });
 
-  const [selectedOrder, setSelectedOrder] = useState<SupplierOrderDto | null>(null);
+  const [selectedOrder, setSelectedOrder] = useState<PurchaseOrderDto | null>(null);
 
   const filteredProducts = useMemo(() => {
     if (!orderForm.supplierId) return [];
@@ -36,14 +35,16 @@ export function SuppliersPage() {
   const loadData = async () => {
     try {
       setLoading(true);
-      const [supplierData, orderData, productData] = await Promise.all([
+      const [supplierData, orderData, productData, warehouseData] = await Promise.all([
         supplierService.getAll(),
-        supplierService.getAllOrders(),
+        supplierService.getAllPurchaseOrders(),
         productService.getAll(true),
+        warehouseService.getAll(),
       ]);
       setSuppliers(supplierData);
       setOrders(orderData);
       setProducts(productData);
+      setWarehouses(warehouseData);
       setError(null);
     } catch (err) {
       console.error('Failed to load supplier page data:', err);
@@ -55,6 +56,36 @@ export function SuppliersPage() {
 
   useEffect(() => {
     loadData();
+  }, []);
+
+  const handleOrderUpdate = (update: OrderUpdateEvent) => {
+    setOrders((current) => current.map((order) =>
+      order.id === update.orderId ? { ...order, status: update.purchaseOrderStatus || update.status } : order
+    ));
+  };
+
+  useEffect(() => {
+    let removeOrderUpdate: () => void = () => {};
+    let connected = false;
+
+    const initSignalR = async () => {
+      try {
+        await dashboardSignalRService.connect();
+        connected = true;
+        removeOrderUpdate = dashboardSignalRService.onOrderUpdate(handleOrderUpdate);
+      } catch (err) {
+        console.error('Suppliers page SignalR connection failed:', err);
+      }
+    };
+
+    initSignalR();
+
+    return () => {
+      removeOrderUpdate();
+      if (connected) {
+        dashboardSignalRService.disconnect().catch(() => {});
+      }
+    };
   }, []);
 
   useEffect(() => {
@@ -76,24 +107,9 @@ export function SuppliersPage() {
     loadSupplierProducts();
   }, [orderForm.supplierId]);
 
-  const handleCreateSupplier = async () => {
-    try {
-      setLoading(true);
-      await supplierService.create(supplierForm);
-      setSupplierForm({ name: '', contactPerson: '', email: '', phone: '', address: '' });
-      setSuccess('Supplier created successfully');
-      await loadData();
-    } catch (err) {
-      console.error('Failed to create supplier:', err);
-      setError('Failed to create supplier');
-    } finally {
-      setLoading(false);
-    }
-  };
-
   const handleCreateOrder = async () => {
-    if (!orderForm.supplierId || orderForm.items.length === 0) {
-      setError('Select a supplier and add at least one item to create an order');
+    if (!orderForm.supplierId || !orderForm.warehouseId || orderForm.items.length === 0) {
+      setError('Select a supplier, warehouse, and add at least one item to create a purchase order');
       return;
     }
 
@@ -105,14 +121,49 @@ export function SuppliersPage() {
 
     try {
       setLoading(true);
-      await supplierService.createOrder(orderForm);
-      setOrderForm({ supplierId: 0, items: [{ productId: 0, quantity: 1, unitPrice: 0 }] });
+      
+      // Calculate total amount for notification
+      const totalAmount = orderForm.items.reduce((sum, item) => sum + (item.quantity * item.unitPrice), 0);
+      const selectedSupplier = suppliers.find(s => s.id === orderForm.supplierId);
+      const selectedWarehouse = warehouses.find(w => w.id === orderForm.warehouseId);
+      
+     
+      const createdOrder = await supplierService.createPurchaseOrder(orderForm);
+      
+   
+      if (user?.id) {
+        await notificationService.sendNotification({
+          userId: user.id,
+          type: 'PurchaseOrder',
+          title: 'Purchase Order Created Successfully',
+          message: `Purchase order #${createdOrder.poNumber} has been created successfully for supplier ${selectedSupplier?.name}. Total amount: $${totalAmount.toFixed(2)}. Warehouse: ${selectedWarehouse?.name}.`,
+          actionUrl: `/warehouse/purchase-orders/${createdOrder.id}`
+        });
+      }
+      
+  
+      if (selectedSupplier?.email) {
+        
+        console.log(`Purchase order created for supplier: ${selectedSupplier.email}`);
+      }
+      
+      setOrderForm({ supplierId: 0, warehouseId: 0, items: [{ productId: 0, quantity: 1, unitPrice: 0 }] });
       setSelectedOrder(null);
-      setSuccess('Supplier order created successfully');
+      setSuccess(`Purchase order #${createdOrder.poNumber} created successfully. The supplier has been notified.`);
       await loadData();
     } catch (err) {
-      console.error('Failed to create supplier order:', err);
-      setError('Failed to create supplier order');
+      console.error('Failed to create purchase order:', err);
+      setError('Failed to create purchase order');
+      
+      if (user?.id) {
+        await notificationService.sendNotification({
+          userId: user.id,
+          type: 'Error',
+          title: 'Purchase Order Creation Failed',
+          message: `Failed to create purchase order. Error: ${err instanceof Error ? err.message : 'Unknown error'}. Please try again.`,
+          actionUrl: '/suppliers'
+        });
+      }
     } finally {
       setLoading(false);
     }
@@ -132,7 +183,11 @@ export function SuppliersPage() {
     }));
   };
 
-  const updateOrderItem = (index: number, key: keyof CreateSupplierOrderItemDto, value: string | number) => {
+  const updateOrderItem = (
+    index: number,
+    key: keyof CreatePurchaseOrderDto['items'][number],
+    value: string | number
+  ) => {
     setOrderForm((prev) => ({
       ...prev,
       items: prev.items.map((item, idx) =>
@@ -162,8 +217,8 @@ export function SuppliersPage() {
     <div className="p-6 space-y-6 bg-slate-900 min-h-screen">
       <div className="flex flex-col gap-4 md:flex-row md:justify-between md:items-center">
         <div>
-          <h1 className="text-3xl font-bold text-white">Suppliers</h1>
-          <p className="text-slate-400 mt-1">Manage suppliers, review purchase orders, and connect warehouse reorder requests to supplier orders.</p>
+          <h1 className="text-3xl font-bold text-white">Purchase Orders</h1>
+          <p className="text-slate-400 mt-1">Manage purchase orders and connect warehouse reorder requests with suppliers.</p>
         </div>
         <div className="flex gap-2">
           <button
@@ -257,11 +312,23 @@ export function SuppliersPage() {
                             onClick={() => setSelectedOrder(order)}
                             className="border-b border-slate-700 hover:bg-slate-900/40 transition cursor-pointer"
                           >
-                            <td className="p-3 text-white font-medium">{order.orderNumber}</td>
-                            <td className="p-3">{order.supplierName || 'Unknown'}</td>
+                            <td className="p-3 text-white font-medium">{order.poNumber}</td>
+                            <td className="p-3">{suppliers.find((supplier) => supplier.id === order.supplierId)?.name || `Supplier #${order.supplierId}`}</td>
                             <td className="p-3">{new Date(order.orderDate).toLocaleDateString()}</td>
                             <td className="p-3">${order.totalAmount.toFixed(2)}</td>
-                            <td className="p-3">{order.status}</td>
+                            <td className="p-3">
+                              <span className={`px-2 py-1 rounded-full text-xs font-semibold ${
+                                order.status === 'Pending' ? 'bg-yellow-500/20 text-yellow-400' :
+                                order.status === 'Processing' ? 'bg-blue-500/20 text-blue-400' :
+                                order.status === 'Shipped' ? 'bg-purple-500/20 text-purple-400' :
+                                order.status === 'Delivered' ? 'bg-green-500/20 text-green-400' :
+                                order.status === 'Completed' ? 'bg-emerald-500/20 text-emerald-400' :
+                                order.status === 'Cancelled' ? 'bg-red-500/20 text-red-400' :
+                                'bg-slate-500/20 text-slate-400'
+                              }`}>
+                                {order.status}
+                              </span>
+                            </td>
                           </tr>
                         ))
                       )}
@@ -273,74 +340,40 @@ export function SuppliersPage() {
           </div>
 
           <div className="space-y-6">
+ 
             <div className="rounded-xl border border-slate-700 bg-slate-800 p-6">
-              <h2 className="text-xl font-semibold text-white mb-4">Create Supplier</h2>
+              <h2 className="text-xl font-semibold text-white mb-4">Create Purchase Order</h2>
               <div className="space-y-3 text-sm text-slate-300">
-                <label className="block">
-                  <span className="text-slate-300">Name</span>
-                  <input
-                    value={supplierForm.name}
-                    onChange={(e) => setSupplierForm({ ...supplierForm, name: e.target.value })}
-                    className="mt-1 w-full rounded-lg border border-slate-700 bg-slate-900 px-3 py-2 text-white outline-none"
-                  />
-                </label>
-                <label className="block">
-                  <span className="text-slate-300">Contact Person</span>
-                  <input
-                    value={supplierForm.contactPerson ?? ''}
-                    onChange={(e) => setSupplierForm({ ...supplierForm, contactPerson: e.target.value })}
-                    className="mt-1 w-full rounded-lg border border-slate-700 bg-slate-900 px-3 py-2 text-white outline-none"
-                  />
-                </label>
-                <label className="block">
-                  <span className="text-slate-300">Email</span>
-                  <input
-                    value={supplierForm.email ?? ''}
-                    onChange={(e) => setSupplierForm({ ...supplierForm, email: e.target.value })}
-                    className="mt-1 w-full rounded-lg border border-slate-700 bg-slate-900 px-3 py-2 text-white outline-none"
-                  />
-                </label>
-                <label className="block">
-                  <span className="text-slate-300">Phone</span>
-                  <input
-                    value={supplierForm.phone ?? ''}
-                    onChange={(e) => setSupplierForm({ ...supplierForm, phone: e.target.value })}
-                    className="mt-1 w-full rounded-lg border border-slate-700 bg-slate-900 px-3 py-2 text-white outline-none"
-                  />
-                </label>
-                <label className="block">
-                  <span className="text-slate-300">Address</span>
-                  <textarea
-                    value={supplierForm.address ?? ''}
-                    onChange={(e) => setSupplierForm({ ...supplierForm, address: e.target.value })}
-                    className="mt-1 w-full rounded-lg border border-slate-700 bg-slate-900 px-3 py-2 text-white outline-none"
-                  />
-                </label>
-                <button
-                  onClick={handleCreateSupplier}
-                  className="w-full rounded-lg bg-cyan-600 px-4 py-2 text-white hover:bg-cyan-500 transition"
-                >
-                  Save Supplier
-                </button>
-              </div>
-            </div>
+                <div className="grid gap-3 sm:grid-cols-2">
+                  <label className="block">
+                    <span className="text-slate-300">Supplier</span>
+                    <select
+                      value={orderForm.supplierId}
+                      onChange={(e) => setOrderForm({ ...orderForm, supplierId: Number(e.target.value) })}
+                      className="mt-1 w-full rounded-lg border border-slate-700 bg-slate-900 px-3 py-2 text-white outline-none focus:border-cyan-500"
+                    >
+                      <option value={0}>Select supplier</option>
+                      {suppliers.map((supplier) => (
+                        <option key={supplier.id} value={supplier.id}>{supplier.name}</option>
+                      ))}
+                    </select>
+                  </label>
 
-            <div className="rounded-xl border border-slate-700 bg-slate-800 p-6">
-              <h2 className="text-xl font-semibold text-white mb-4">Create Supplier Order</h2>
-              <div className="space-y-3 text-sm text-slate-300">
-                <label className="block">
-                  <span className="text-slate-300">Supplier</span>
-                  <select
-                    value={orderForm.supplierId}
-                    onChange={(e) => setOrderForm({ ...orderForm, supplierId: Number(e.target.value) })}
-                    className="mt-1 w-full rounded-lg border border-slate-700 bg-slate-900 px-3 py-2 text-white outline-none"
-                  >
-                    <option value={0}>Select supplier</option>
-                    {suppliers.map((supplier) => (
-                      <option key={supplier.id} value={supplier.id}>{supplier.name}</option>
-                    ))}
-                  </select>
-                </label>
+                  <label className="block">
+                    <span className="text-slate-300">Warehouse</span>
+                    <select
+                      value={orderForm.warehouseId}
+                      onChange={(e) => setOrderForm({ ...orderForm, warehouseId: Number(e.target.value) })}
+                      className="mt-1 w-full rounded-lg border border-slate-700 bg-slate-900 px-3 py-2 text-white outline-none focus:border-cyan-500"
+                    >
+                      <option value={0}>Select warehouse</option>
+                      {warehouses.map((warehouse) => (
+                        <option key={warehouse.id} value={warehouse.id}>{warehouse.name}</option>
+                      ))}
+                    </select>
+                  </label>
+                </div>
+                
                 {orderForm.items.map((item, index) => (
                   <div key={index} className="rounded-lg border border-slate-700 bg-slate-900 p-3">
                     <div className="grid gap-3 sm:grid-cols-3">
@@ -349,7 +382,7 @@ export function SuppliersPage() {
                         <select
                           value={item.productId}
                           onChange={(e) => updateOrderItem(index, 'productId', Number(e.target.value))}
-                          className="mt-1 w-full rounded-lg border border-slate-700 bg-slate-950 px-3 py-2 text-white outline-none"
+                          className="mt-1 w-full rounded-lg border border-slate-700 bg-slate-950 px-3 py-2 text-white outline-none focus:border-cyan-500"
                         >
                           <option value={0}>Select product</option>
                           {filteredProducts.map((product) => (
@@ -367,7 +400,7 @@ export function SuppliersPage() {
                           min={1}
                           value={item.quantity}
                           onChange={(e) => updateOrderItem(index, 'quantity', Number(e.target.value))}
-                          className="mt-1 w-full rounded-lg border border-slate-700 bg-slate-950 px-3 py-2 text-white outline-none"
+                          className="mt-1 w-full rounded-lg border border-slate-700 bg-slate-950 px-3 py-2 text-white outline-none focus:border-cyan-500"
                         />
                       </label>
                       <label className="block">
@@ -378,51 +411,89 @@ export function SuppliersPage() {
                           step="0.01"
                           value={item.unitPrice}
                           onChange={(e) => updateOrderItem(index, 'unitPrice', Number(e.target.value))}
-                          className="mt-1 w-full rounded-lg border border-slate-700 bg-slate-950 px-3 py-2 text-white outline-none"
+                          className="mt-1 w-full rounded-lg border border-slate-700 bg-slate-950 px-3 py-2 text-white outline-none focus:border-cyan-500"
                         />
                       </label>
                     </div>
                     {orderForm.items.length > 1 && (
                       <button
                         onClick={() => removeOrderItem(index)}
-                        className="mt-3 text-sm text-red-400 hover:text-red-300"
+                        className="mt-3 text-sm text-red-400 hover:text-red-300 transition"
                       >
                         Remove item
                       </button>
                     )}
                   </div>
                 ))}
+                
                 <button
                   onClick={addOrderItem}
                   className="rounded-lg bg-slate-700 px-4 py-2 text-slate-200 hover:bg-slate-600 transition"
                 >
-                  Add order item
+                  + Add order item
                 </button>
+                
                 <button
                   onClick={handleCreateOrder}
-                  className="w-full rounded-lg bg-cyan-600 px-4 py-2 text-white hover:bg-cyan-500 transition"
+                  disabled={loading}
+                  className="w-full rounded-lg bg-cyan-600 px-4 py-2 text-white hover:bg-cyan-500 transition disabled:opacity-50 disabled:cursor-not-allowed"
                 >
-                  Create Order
+                  {loading ? 'Creating...' : 'Create Order'}
                 </button>
               </div>
             </div>
 
             {selectedOrder && (
               <div className="rounded-xl border border-slate-700 bg-slate-800 p-6">
-                <h2 className="text-xl font-semibold text-white mb-4">Selected Order</h2>
-                <p className="text-slate-300">Order {selectedOrder.orderNumber}</p>
-                <p className="text-slate-300">Supplier: {selectedOrder.supplierName}</p>
-                <p className="text-slate-300">Status: {selectedOrder.status}</p>
-                <div className="mt-4 space-y-2">
+                <div className="flex justify-between items-center mb-4">
+                  <h2 className="text-xl font-semibold text-white">Order Details</h2>
+                  <button
+                    onClick={() => setSelectedOrder(null)}
+                    className="text-slate-400 hover:text-white transition"
+                  >
+                    ✕
+                  </button>
+                </div>
+                <div className="space-y-2 text-slate-300">
+                  <p><span className="text-slate-400">Order Number:</span> <span className="text-white font-mono">{selectedOrder.poNumber}</span></p>
+                  <p><span className="text-slate-400">Supplier:</span> {suppliers.find((supplier) => supplier.id === selectedOrder.supplierId)?.name || `Supplier #${selectedOrder.supplierId}`}</p>
+                  <p><span className="text-slate-400">Warehouse:</span> {warehouses.find((warehouse) => warehouse.id === selectedOrder.warehouseId)?.name || `Warehouse #${selectedOrder.warehouseId}`}</p>
+                  <p><span className="text-slate-400">Order Date:</span> {new Date(selectedOrder.orderDate).toLocaleString()}</p>
+                  <p><span className="text-slate-400">Status:</span> 
+                    <span className={`ml-2 px-2 py-1 rounded-full text-xs font-semibold ${
+                      selectedOrder.status === 'Pending' ? 'bg-yellow-500/20 text-yellow-400' :
+                      selectedOrder.status === 'Processing' ? 'bg-blue-500/20 text-blue-400' :
+                      selectedOrder.status === 'Shipped' ? 'bg-purple-500/20 text-purple-400' :
+                      selectedOrder.status === 'Delivered' ? 'bg-green-500/20 text-green-400' :
+                      selectedOrder.status === 'Completed' ? 'bg-emerald-500/20 text-emerald-400' :
+                      'bg-slate-500/20 text-slate-400'
+                    }`}>
+                      {selectedOrder.status}
+                    </span>
+                  </p>
+                  <p><span className="text-slate-400">Total Amount:</span> <span className="text-white font-bold">${selectedOrder.totalAmount.toFixed(2)}</span></p>
+                </div>
+                
+                <h3 className="text-lg font-semibold text-white mt-4 mb-2">Items</h3>
+                <div className="space-y-2">
                   {selectedOrder.items.map((item) => (
                     <div key={item.id} className="rounded-lg bg-slate-900 p-3 text-slate-200">
-                      <p className="text-sm">Product ID: {item.productId}</p>
-                      <p className="text-sm">Quantity: {item.quantity}</p>
-                      <p className="text-sm">Unit Price: ${item.unitPrice.toFixed(2)}</p>
-                      <p className="text-sm">Total: ${item.totalPrice.toFixed(2)}</p>
+                      <div className="grid grid-cols-2 gap-2 text-sm">
+                        <p><span className="text-slate-400">Product ID:</span> {item.productId}</p>
+                        <p><span className="text-slate-400">Quantity:</span> {item.quantity}</p>
+                        <p><span className="text-slate-400">Unit Price:</span> ${item.unitPrice.toFixed(2)}</p>
+                        <p><span className="text-slate-400">Total:</span> <span className="text-cyan-400">${item.totalPrice.toFixed(2)}</span></p>
+                      </div>
                     </div>
                   ))}
                 </div>
+                
+                {selectedOrder.notes && (
+                  <div className="mt-4 p-3 bg-slate-900 rounded-lg">
+                    <p className="text-slate-400 text-sm">Notes:</p>
+                    <p className="text-slate-200 text-sm">{selectedOrder.notes}</p>
+                  </div>
+                )}
               </div>
             )}
           </div>

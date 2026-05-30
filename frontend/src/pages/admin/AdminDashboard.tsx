@@ -10,6 +10,8 @@ import { inventoryService } from '../../services/inventoryService';
 import { warehouseService } from '../../services/warehouseService';
 import { reportService } from '../../services/reportService';
 import * as signalR from '@microsoft/signalr';
+import { useToast } from '../../hooks/useToast';
+import { notificationService } from '../../services/notificationService';
 
 interface AdminLiveTrackingInfo {
   trackingNumber?: string;
@@ -22,6 +24,7 @@ interface AdminLiveTrackingInfo {
 
 export function AdminDashboard() {
   const { user } = useAuth();
+  const { showToast } = useToast();
   const navigate = useNavigate();
   const [shipments, setShipments] = useState<Shipment[]>([]);
   const [selectedShipment, setSelectedShipment] = useState<Shipment | null>(null);
@@ -72,8 +75,9 @@ export function AdminDashboard() {
   }, []);
 
   const setupSignalR = async () => {
+    const dashboardHubUrl = import.meta.env.VITE_DASHBOARD_HUB_URL || 'http://localhost:5008/dashboardHub';
     const connection = new signalR.HubConnectionBuilder()
-      .withUrl('http://localhost:5000/dashboardHub')
+      .withUrl(dashboardHubUrl)
       .withAutomaticReconnect()
       .build();
 
@@ -195,13 +199,13 @@ export function AdminDashboard() {
       }
     } catch (error) {
       console.error('Failed to update shipment status:', error);
-      alert('Failed to update shipment status');
+      showToast('error', 'Failed to update shipment status');
     }
   };
 
   const createShipment = async () => {
     if (!newShipment.orderId || !newShipment.estimatedDeliveryDate) {
-      alert('Please fill in all required fields');
+      showToast('error', 'Please fill in all required fields');
       return;
     }
 
@@ -229,16 +233,17 @@ export function AdminDashboard() {
         shippingAddress: '',
         items: []
       });
-      alert('Shipment created successfully!');
+      showToast('success', 'Shipment created successfully!');
+      if (user?.id) await notificationService.sendNotification({ userId: user.id, type: 'Shipment', title: 'Shipment Created', message: `Shipment ${created.trackingNumber} created`, actionUrl: '/admin' }).catch(() => {});
     } catch (error) {
       console.error('Failed to create shipment:', error);
-      alert('Failed to create shipment');
+      showToast('error', 'Failed to create shipment');
     }
   };
 
   const createDriver = async () => {
     if (!newDriver.userId || !newDriver.licenseNumber) {
-      alert('Please fill in all required fields');
+      showToast('error', 'Please fill in all required fields');
       return;
     }
     try {
@@ -246,16 +251,17 @@ export function AdminDashboard() {
       setShowDriverModal(false);
       setNewDriver({ userId: 0, licenseNumber: '', phoneNumber: '', isAvailable: true });
       await loadAllData();
-      alert('Driver created successfully!');
+      showToast('success', 'Driver created successfully!');
+      if (user?.id) await notificationService.sendNotification({ userId: user.id, type: 'Driver', title: 'Driver Created', message: `Driver created`, actionUrl: '/admin' }).catch(() => {});
     } catch (error) {
       console.error('Failed to create driver:', error);
-      alert('Failed to create driver');
+      showToast('error', 'Failed to create driver');
     }
   };
 
   const createVehicle = async () => {
     if (!newVehicle.plateNumber || !newVehicle.model) {
-      alert('Please fill in all required fields');
+      showToast('error', 'Please fill in all required fields');
       return;
     }
     try {
@@ -263,10 +269,11 @@ export function AdminDashboard() {
       setShowVehicleModal(false);
       setNewVehicle({ plateNumber: '', model: '', capacity: 0, isAvailable: true });
       await loadAllData();
-      alert('Vehicle created successfully!');
+      showToast('success', 'Vehicle created successfully!');
+      if (user?.id) await notificationService.sendNotification({ userId: user.id, type: 'Vehicle', title: 'Vehicle Created', message: `Vehicle ${newVehicle.plateNumber} created`, actionUrl: '/admin' }).catch(() => {});
     } catch (error) {
       console.error('Failed to create vehicle:', error);
-      alert('Failed to create vehicle');
+      showToast('error', 'Failed to create vehicle');
     }
   };
 
@@ -329,7 +336,7 @@ export function AdminDashboard() {
         </div>
       </div>
 
-      {/* Stats Cards */}
+
       <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-7">
         <StatCard label="Shipments" value={stats.totalShipments} icon="📦" />
         <StatCard label="Active" value={stats.activeShipments} icon="🚚" />
@@ -382,7 +389,7 @@ export function AdminDashboard() {
           </div>
         </div>
 
-        {/* Shipment Details */}
+    
         <div className="lg:col-span-2 space-y-6">
           {selectedShipment ? (
             <>
@@ -443,7 +450,7 @@ export function AdminDashboard() {
                 </div>
               </div>
 
-              {/* Live Tracking Map */}
+      
               <div className="rounded-3xl border border-slate-700 bg-slate-900/80 p-6">
                 <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between mb-4">
                   <div>
@@ -739,7 +746,7 @@ export function AdminDashboard() {
         </div>
       )}
 
-      {/* Vehicle Modal */}
+
       {showVehicleModal && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50" onClick={() => setShowVehicleModal(false)}>
           <div className="w-full max-w-md rounded-3xl border border-slate-700 bg-slate-900 p-6" onClick={(e) => e.stopPropagation()}>
@@ -791,7 +798,7 @@ export function AdminDashboard() {
   );
 }
 
-// Helper Components
+
 function StatCard({ label, value, icon }: { label: string; value: number; icon: string }) {
   return (
     <div className="rounded-3xl border border-slate-700 bg-slate-900/80 p-5">

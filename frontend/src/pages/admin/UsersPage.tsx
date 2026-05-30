@@ -1,6 +1,9 @@
 import { useState, useEffect } from 'react';
 import { useAuth } from '../../hooks/useAuth';
 import { api } from '../../services/api';
+import { useToast } from '../../hooks/useToast';
+import { ConfirmModal } from '../../components/ConfirmModal';
+import { notificationService } from '../../services/notificationService';
 
 interface User {
   id: number;
@@ -19,7 +22,8 @@ interface Role {
 }
 
 export function UsersPage() {
-  const { token } = useAuth();
+  const { token, user } = useAuth();
+  const { showToast } = useToast();
   const [users, setUsers] = useState<User[]>([]);
   const [roles, setRoles] = useState<Role[]>([]);
   const [loading, setLoading] = useState(true);
@@ -42,6 +46,7 @@ export function UsersPage() {
     isActive: true
   });
   const [selectedRoleId, setSelectedRoleId] = useState(0);
+  const [confirmDialog, setConfirmDialog] = useState<{ title: string; message: string; onConfirm: () => Promise<void> } | null>(null);
 
   useEffect(() => {
     loadUsers();
@@ -71,7 +76,7 @@ export function UsersPage() {
 
   const handleCreateUser = async () => {
     if (!newUser.email || !newUser.password) {
-      alert('Email and password are required');
+      showToast('error', 'Email and password are required');
       return;
     }
 
@@ -90,11 +95,20 @@ export function UsersPage() {
       await loadUsers();
       setShowModal(false);
       setNewUser({ firstName: '', lastName: '', email: '', password: '', roleId: 0 });
-      alert('User created successfully');
+      showToast('success', 'User created successfully');
+      if (user?.id) {
+        await notificationService.sendNotification({
+          userId: user.id,
+          type: 'UserManagement',
+          title: 'User Created',
+          message: `User ${user.email} created user ${user.email}`,
+          actionUrl: '/admin/users'
+        }).catch(() => {});
+      }
     } catch (error) {
       console.error('Failed to create user:', error);
       const message = error instanceof Error ? error.message : 'Failed to create user';
-      alert(message);
+      showToast('error', message);
     }
   };
 
@@ -108,24 +122,46 @@ export function UsersPage() {
       });
       await loadUsers();
       setShowEditModal(false);
-      alert('User updated successfully');
+      showToast('success', 'User updated successfully');
+      if (user?.id) {
+        await notificationService.sendNotification({
+          userId: user.id,
+          type: 'UserManagement',
+          title: 'User Updated',
+          message: `User updated successfully`,
+          actionUrl: '/admin/users'
+        }).catch(() => {});
+      }
     } catch (error) {
       console.error('Failed to update user:', error);
-      alert('Failed to update user');
+      showToast('error', 'Failed to update user');
     }
   };
 
-  const handleDeleteUser = async (id: number) => {
-    if (window.confirm('Are you sure you want to delete this user?')) {
-      try {
-        await api.delete(`/api/auth/${id}`);
-        await loadUsers();
-        alert('User deleted successfully');
-      } catch (error) {
-        console.error('Failed to delete user:', error);
-        alert('Failed to delete user');
+  const handleDeleteUser = (id: number) => {
+    setConfirmDialog({
+      title: 'Delete User',
+      message: 'Are you sure you want to delete this user?',
+      onConfirm: async () => {
+        try {
+          await api.delete(`/api/auth/${id}`);
+          await loadUsers();
+          showToast('success', 'User deleted successfully');
+          if (user?.id) {
+            await notificationService.sendNotification({
+              userId: user.id,
+              type: 'UserManagement',
+              title: 'User Deleted',
+              message: `User deleted successfully`,
+              actionUrl: '/admin/users'
+            }).catch(() => {});
+          }
+        } catch (error) {
+          console.error('Failed to delete user:', error);
+          showToast('error', 'Failed to delete user');
+        }
       }
-    }
+    });
   };
 
   const handleAssignRole = async () => {
@@ -136,26 +172,50 @@ export function UsersPage() {
         setShowRoleModal(false);
         setSelectedUser(null);
         setSelectedRoleId(0);
-        alert('Role assigned successfully');
+        showToast('success', 'Role assigned successfully');
+        if (user?.id) {
+          await notificationService.sendNotification({
+            userId: user.id,
+            type: 'UserManagement',
+            title: 'Role Assigned',
+            message: `Role assigned successfully`,
+            actionUrl: '/admin/users'
+          }).catch(() => {});
+        }
       } catch (error) {
         console.error('Failed to assign role:', error);
-        alert('Failed to assign role');
+        showToast('error', 'Failed to assign role');
       }
     }
   };
 
-  const handleRemoveRole = async (userId: number, roleName: string) => {
+  const handleRemoveRole = (userId: number, roleName: string) => {
     const role = roles.find(r => r.name === roleName);
-    if (role && window.confirm(`Remove ${roleName} role from this user?`)) {
-      try {
-        await api.delete(`/api/auth/${userId}/roles/${role.id}`);
-        await loadUsers();
-        alert('Role removed successfully');
-      } catch (error) {
-        console.error('Failed to remove role:', error);
-        alert('Failed to remove role');
+    if (!role) return;
+
+    setConfirmDialog({
+      title: 'Remove Role',
+      message: `Remove ${roleName} role from this user?`,
+      onConfirm: async () => {
+        try {
+          await api.delete(`/api/auth/${userId}/roles/${role.id}`);
+          await loadUsers();
+          showToast('success', 'Role removed successfully');
+          if (user?.id) {
+            await notificationService.sendNotification({
+              userId: user.id,
+              type: 'UserManagement',
+              title: 'Role Removed',
+              message: `Role removed successfully`,
+              actionUrl: '/admin/users'
+            }).catch(() => {});
+          }
+        } catch (error) {
+          console.error('Failed to remove role:', error);
+          showToast('error', 'Failed to remove role');
+        }
       }
-    }
+    });
   };
 
   const getRoleColor = (role: string) => {
@@ -333,6 +393,19 @@ export function UsersPage() {
             </div>
           </div>
         </div>
+      )}
+      {confirmDialog && (
+        <ConfirmModal
+          title={confirmDialog.title}
+          message={confirmDialog.message}
+          confirmLabel="Confirm"
+          cancelLabel="Cancel"
+          onConfirm={async () => {
+            await confirmDialog.onConfirm();
+            setConfirmDialog(null);
+          }}
+          onCancel={() => setConfirmDialog(null)}
+        />
       )}
     </div>
   );

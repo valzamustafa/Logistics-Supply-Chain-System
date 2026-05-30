@@ -1,6 +1,8 @@
 import { useEffect, useState } from 'react';
 import { Plus, Edit2, Trash2, Search, ChevronDown, AlertCircle, X } from 'lucide-react';
 import { useAuth } from '../hooks/useAuth';
+import { useToast } from '../hooks/useToast';
+import { ConfirmModal } from '../components/ConfirmModal';
 import { API_BASE_URL } from '../services/api';
 import { productService, Product, ProductImage, Category } from '../services/productService';
 import { supplierService } from '../services/supplierService';
@@ -21,8 +23,10 @@ export function ProductsPage() {
   const [categoryFilter, setCategoryFilter] = useState<number | null>(null);
   const [statusFilter, setStatusFilter] = useState<'all' | 'active' | 'inactive'>('all');
   const [saveError, setSaveError] = useState<string | null>(null);
+  const [confirmDialog, setConfirmDialog] = useState<{ title: string; message: string; onConfirm: () => Promise<void> } | null>(null);
 
   const { user, isLoading } = useAuth();
+  const { showToast } = useToast();
   const isSupplier = !!user?.roles.includes('Supplier');
   const showProductImages = !user?.roles.includes('User');
   const getProductImageSrc = (imageUrl: string) =>
@@ -199,15 +203,21 @@ export function ProductsPage() {
     }
   };
 
-  const handleDelete = async (id: number) => {
-    if (!confirm('Are you sure you want to delete this product?')) return;
-    try {
-      await productService.delete(id);
-      await fetchProducts();
-    } catch (err) {
-      console.error('Failed to delete product:', err);
-      setError('Failed to delete product');
-    }
+  const handleDelete = (id: number) => {
+    setConfirmDialog({
+      title: 'Delete Product',
+      message: 'Are you sure you want to delete this product?',
+      onConfirm: async () => {
+        try {
+          await productService.delete(id);
+          await fetchProducts();
+          showToast('success', 'Product deleted successfully');
+        } catch (err) {
+          console.error('Failed to delete product:', err);
+          showToast('error', 'Failed to delete product');
+        }
+      }
+    });
   };
 
   const filteredProducts = products.filter((product) => {
@@ -274,7 +284,7 @@ export function ProductsPage() {
         </div>
       )}
 
-      {/* Search & Filter Bar */}
+  
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
         <div className="relative">
           <Search className="absolute left-3 top-3 w-4 h-4 text-slate-400" />
@@ -309,7 +319,7 @@ export function ProductsPage() {
         </select>
       </div>
 
-      {/* Products Table */}
+ 
       <div className="rounded-xl border border-slate-700 overflow-hidden">
         <div className="overflow-x-auto">
           <table className="w-full">
@@ -395,7 +405,7 @@ export function ProductsPage() {
         </div>
       </div>
 
-      {/* Modal */}
+
       {showModal && (
         <div className="fixed inset-0 bg-black/50 flex items-center justify-center rounded-lg z-50">
           <div className="bg-slate-800 rounded-xl border border-slate-700 w-96 p-6 space-y-4">
@@ -535,6 +545,19 @@ export function ProductsPage() {
             </div>
           </div>
         </div>
+      )}
+      {confirmDialog && (
+        <ConfirmModal
+          title={confirmDialog.title}
+          message={confirmDialog.message}
+          confirmLabel="Delete"
+          cancelLabel="Cancel"
+          onConfirm={async () => {
+            await confirmDialog.onConfirm();
+            setConfirmDialog(null);
+          }}
+          onCancel={() => setConfirmDialog(null)}
+        />
       )}
     </div>
   );

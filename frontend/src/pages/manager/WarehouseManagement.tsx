@@ -1,8 +1,11 @@
 import { useEffect, useState } from 'react';
-import { Building2, MapPin, Phone, Plus, Edit2, Trash2, Users, Package, TrendingUp, Eye } from 'lucide-react';
+import { Plus } from 'lucide-react';
 import { warehouseService, Warehouse } from '../../services/warehouseService';
 import { inventoryService, InventoryItem } from '../../services/inventoryService';
 import { AssignProductToWarehouseModal } from '../../components/warehouse/AssignProductToWarehouseModal';
+import { WarehouseCard } from '../../components/warehouse/WarehouseCard';
+import { useToast } from '../../hooks/useToast';
+import { ConfirmModal } from '../../components/ConfirmModal';
 
 interface WarehouseStats {
   totalProducts: number;
@@ -20,6 +23,8 @@ export function WarehouseManagement() {
   const [warehouseStats, setWarehouseStats] = useState<Record<number, WarehouseStats>>({});
   const [formData, setFormData] = useState({ name: '', location: '', phone: '' });
   const [showAssignProductModal, setShowAssignProductModal] = useState(false);
+  const [confirmDialog, setConfirmDialog] = useState<{ title: string; message: string; onConfirm: () => Promise<void> } | null>(null);
+  const { showToast } = useToast();
 
   const fetchWarehouses = async () => {
     try {
@@ -28,7 +33,8 @@ export function WarehouseManagement() {
       const data = await warehouseService.getAll();
       console.log('Warehouses fetched:', data);
       setWarehouses(data || []);
-   
+      
+    
       if (data && data.length > 0) {
         const stats: Record<number, WarehouseStats> = {};
         for (const warehouse of data) {
@@ -87,14 +93,21 @@ export function WarehouseManagement() {
     }
   };
 
-  const handleDelete = async (id: number) => {
-    if (!confirm('Are you sure you want to delete this warehouse?')) return;
-    try {
-      await warehouseService.delete(id);
-      await fetchWarehouses();
-    } catch (err) {
-      setError('Failed to delete warehouse');
-    }
+  const handleDelete = (id: number) => {
+    setConfirmDialog({
+      title: 'Delete Warehouse',
+      message: 'Are you sure you want to delete this warehouse?',
+      onConfirm: async () => {
+        try {
+          await warehouseService.delete(id);
+          await fetchWarehouses();
+          showToast('success', 'Warehouse deleted successfully');
+        } catch (err) {
+          setError('Failed to delete warehouse');
+          showToast('error', 'Failed to delete warehouse');
+        }
+      }
+    });
   };
 
   if (loading) {
@@ -139,82 +152,24 @@ export function WarehouseManagement() {
           warehouses.map((warehouse) => {
             const stats = warehouseStats[warehouse.id] || { totalProducts: 0, totalStock: 0, lowStock: 0 };
             return (
-              <div key={warehouse.id} className="rounded-2xl border border-slate-700 bg-slate-800/50 overflow-hidden hover:border-cyan-500/50 transition">
-                <div className="p-5 border-b border-slate-700 bg-slate-800/80">
-                  <div className="flex justify-between items-start">
-                    <div className="flex-1">
-                      <div className="flex items-center gap-2">
-                        <Building2 className="w-5 h-5 text-cyan-400" />
-                        <h3 className="text-lg font-semibold text-white">{warehouse.name}</h3>
-                        <span className={`px-2 py-0.5 rounded-full text-xs ${warehouse.isActive ? 'bg-green-500/20 text-green-400' : 'bg-red-500/20 text-red-400'}`}>
-                          {warehouse.isActive ? 'Active' : 'Inactive'}
-                        </span>
-                      </div>
-                      {warehouse.location && (
-                        <div className="flex items-center gap-1 mt-2 text-sm text-slate-400">
-                          <MapPin className="w-3 h-3" />
-                          {warehouse.location}
-                        </div>
-                      )}
-                      {warehouse.phone && (
-                        <div className="flex items-center gap-1 mt-1 text-sm text-slate-400">
-                          <Phone className="w-3 h-3" />
-                          {warehouse.phone}
-                        </div>
-                      )}
-                    </div>
-                    <div className="flex gap-1">
-                      <button
-                        onClick={() => {
-                          setEditingWarehouse(warehouse);
-                          setFormData({ name: warehouse.name, location: warehouse.location || '', phone: warehouse.phone || '' });
-                          setShowModal(true);
-                        }}
-                        className="p-2 hover:bg-slate-700 rounded-lg transition"
-                      >
-                        <Edit2 className="w-4 h-4 text-slate-400" />
-                      </button>
-                      <button onClick={() => handleDelete(warehouse.id)} className="p-2 hover:bg-red-500/20 rounded-lg transition">
-                        <Trash2 className="w-4 h-4 text-red-400" />
-                      </button>
-                    </div>
-                  </div>
-                </div>
-
-                <div className="p-5">
-                  <div className="grid grid-cols-3 gap-3 mb-4">
-                    <div className="bg-slate-900/50 rounded-xl p-3 text-center">
-                      <Package className="w-5 h-5 text-cyan-400 mx-auto mb-1" />
-                      <p className="text-xl font-bold text-white">{stats.totalProducts}</p>
-                      <p className="text-xs text-slate-400">Products</p>
-                    </div>
-                    <div className="bg-slate-900/50 rounded-xl p-3 text-center">
-                      <TrendingUp className="w-5 h-5 text-green-400 mx-auto mb-1" />
-                      <p className="text-xl font-bold text-white">{stats.totalStock}</p>
-                      <p className="text-xs text-slate-400">Total Stock</p>
-                    </div>
-                    <div className="bg-slate-900/50 rounded-xl p-3 text-center">
-                      <Users className="w-5 h-5 text-yellow-400 mx-auto mb-1" />
-                      <p className="text-xl font-bold text-white">{stats.lowStock}</p>
-                      <p className="text-xs text-slate-400">Low Stock</p>
-                    </div>
-                  </div>
-                  <div className="flex gap-2">
-                    <button
-                      onClick={() => setSelectedWarehouse(warehouse)}
-                      className="flex-1 px-3 py-2 bg-slate-700 hover:bg-slate-600 rounded-lg text-white text-sm transition flex items-center justify-center gap-1"
-                    >
-                      <Eye className="w-4 h-4" /> View Details
-                    </button>
-                  </div>
-                </div>
-              </div>
+              <WarehouseCard
+                key={warehouse.id}
+                warehouse={warehouse}
+                stats={stats}
+                onViewDetails={() => setSelectedWarehouse(warehouse)}
+                onEdit={(warehouse) => {
+                  setEditingWarehouse(warehouse);
+                  setFormData({ name: warehouse.name, location: warehouse.location || '', phone: warehouse.phone || '' });
+                  setShowModal(true);
+                }}
+                onDelete={handleDelete}
+              />
             );
           })
         )}
       </div>
 
-      {/* Warehouse Modal */}
+   
       {showModal && (
         <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50" onClick={() => setShowModal(false)}>
           <div className="bg-slate-800 rounded-xl w-full max-w-md p-6 border border-slate-700" onClick={(e) => e.stopPropagation()}>
@@ -282,7 +237,7 @@ export function WarehouseManagement() {
         </div>
       )}
 
-      {/* Assign Product Modal */}
+    
       {showAssignProductModal && selectedWarehouse && (
         <AssignProductToWarehouseModal
           warehouseId={selectedWarehouse.id}
@@ -292,6 +247,19 @@ export function WarehouseManagement() {
             setShowAssignProductModal(false);
             fetchWarehouses();
           }}
+        />
+      )}
+      {confirmDialog && (
+        <ConfirmModal
+          title={confirmDialog.title}
+          message={confirmDialog.message}
+          confirmLabel="Confirm"
+          cancelLabel="Cancel"
+          onConfirm={async () => {
+            await confirmDialog.onConfirm();
+            setConfirmDialog(null);
+          }}
+          onCancel={() => setConfirmDialog(null)}
         />
       )}
     </div>

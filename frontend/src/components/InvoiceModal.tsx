@@ -1,7 +1,7 @@
-
 import React from 'react';
 import { Order } from '../services/orderService';
 import { useAuth } from '../hooks/useAuth';
+import { useToast } from '../hooks/useToast';
 
 interface InvoiceModalProps {
   order: Order;
@@ -10,6 +10,7 @@ interface InvoiceModalProps {
 
 export const InvoiceModal: React.FC<InvoiceModalProps> = ({ order, onClose }) => {
   const { token } = useAuth();
+  const { showToast } = useToast();
 
   const calculateSubtotal = () => {
     return (order.items || []).reduce((sum, item) => sum + ((item.unitPrice || 0) * (item.quantity || 0)), 0);
@@ -33,6 +34,7 @@ export const InvoiceModal: React.FC<InvoiceModalProps> = ({ order, onClose }) =>
       if (response.ok) {
         const blob = await response.blob();
         
+
         if (blob.type === 'application/pdf' || blob.type === 'application/octet-stream') {
           const url = window.URL.createObjectURL(blob);
           const a = document.createElement('a');
@@ -44,10 +46,10 @@ export const InvoiceModal: React.FC<InvoiceModalProps> = ({ order, onClose }) =>
           document.body.removeChild(a);
         } else {
           console.error('Response is not a PDF:', blob.type);
-          alert('Invalid response format from server');
+          showToast('error', 'Invalid response format from server');
         }
       } else {
-    
+        
         console.warn('PDF download failed, using HTML print fallback');
         printInvoiceAsPDF();
       }
@@ -62,7 +64,7 @@ export const InvoiceModal: React.FC<InvoiceModalProps> = ({ order, onClose }) =>
   const printInvoiceAsPDF = () => {
     const printContent = document.getElementById('invoice-content');
     if (!printContent) {
-      alert('Unable to print invoice. Please try again.');
+      showToast('error', 'Unable to print invoice. Please try again.');
       return;
     }
     
