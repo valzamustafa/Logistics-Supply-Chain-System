@@ -1,4 +1,4 @@
-﻿import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useParams, Link } from 'react-router-dom';
 import { useAuth } from '../hooks/useAuth';
 import { shipmentService, Shipment } from '../services/shipmentService';
@@ -125,7 +125,7 @@ export const TrackShipment: React.FC = () => {
   };
 
   const getStatusBadgeClass = (status?: string) => {
-    if (!status) return 'bg-slate-500/20 text-slate-400';
+    if (!status) return 'bg-slate-500/20 text-slate-500';
     switch (status.toLowerCase()) {
       case 'delivered':
         return 'bg-green-500/20 text-green-400 border border-green-500/30';
@@ -139,7 +139,7 @@ export const TrackShipment: React.FC = () => {
   if (loading) {
     return (
       <div className="flex justify-center items-center h-64">
-        <div className="text-slate-400">Loading shipment tracking...</div>
+        <div className="text-slate-500">Loading shipment tracking...</div>
       </div>
     );
   }
@@ -148,8 +148,8 @@ export const TrackShipment: React.FC = () => {
     <div className="p-6">
       <div className="flex flex-col gap-4 md:flex-row md:items-end md:justify-between mb-6">
         <div>
-          <h1 className="text-2xl font-bold text-white">Track Your Shipment</h1>
-          <p className="text-slate-400">Select a shipment and follow your warehouse driver in real time.</p>
+          <h1 className="text-2xl font-bold text-slate-900">Track Your Shipment</h1>
+          <p className="text-slate-500">Select a shipment and follow your warehouse driver in real time.</p>
         </div>
         <Link
           to="/my-orders"
@@ -162,14 +162,14 @@ export const TrackShipment: React.FC = () => {
       {error && !selectedShipment ? (
         <div className="rounded-2xl border border-red-500/30 bg-red-500/10 p-6 text-red-200">
           <p>{error}</p>
-          <p className="text-sm text-slate-400 mt-2">You can start tracking as soon as your order is assigned to a warehouse and driver.</p>
+          <p className="text-sm text-slate-500 mt-2">You can start tracking as soon as your order is assigned to a warehouse and driver.</p>
         </div>
       ) : (
         <div className="grid grid-cols-1 gap-6 xl:grid-cols-[320px_1fr]">
-          <div className="rounded-2xl border border-slate-700 bg-slate-800/50 p-6 backdrop-blur">
-            <h2 className="text-lg font-semibold text-white mb-4">Your Shipments</h2>
+          <div className="rounded-2xl border border-slate-200 bg-slate-100/90 p-6 backdrop-blur">
+            <h2 className="text-lg font-semibold text-slate-900 mb-4">Your Shipments</h2>
             {shipments.length === 0 ? (
-              <div className="text-slate-400">No shipments available yet.</div>
+              <div className="text-slate-500">No shipments available yet.</div>
             ) : (
               <div className="space-y-3 max-h-[560px] overflow-y-auto">
                 {shipments.map((shipment) => (
@@ -180,19 +180,19 @@ export const TrackShipment: React.FC = () => {
                     className={`w-full text-left rounded-2xl border p-4 transition ${
                       selectedShipment?.id === shipment.id
                         ? 'border-cyan-500 bg-cyan-500/10'
-                        : 'border-slate-700 bg-slate-900/50 hover:border-slate-600 hover:bg-slate-800/70'
+                        : 'border-slate-200 bg-slate-50/50 hover:border-slate-600 hover:bg-white/70'
                     }`}
                   >
                     <div className="flex items-start justify-between gap-3">
                       <div>
-                        <p className="font-medium text-white">{shipment.trackingNumber}</p>
-                        <p className="text-sm text-slate-400">Order {shipment.orderId}</p>
+                        <p className="font-medium text-slate-900">{shipment.trackingNumber}</p>
+                        <p className="text-sm text-slate-500">Order {shipment.orderId}</p>
                       </div>
                       <span className={`rounded-full px-3 py-1 text-xs font-semibold ${getStatusBadgeClass(shipment.status)}`}>
                         {shipment.status}
                       </span>
                     </div>
-                    <div className="mt-3 text-sm text-slate-400">
+                    <div className="mt-3 text-sm text-slate-500">
                       Driver: {shipment.driverName || 'Not assigned yet'}
                     </div>
                   </button>
@@ -203,11 +203,11 @@ export const TrackShipment: React.FC = () => {
 
           {selectedShipment && (
             <div className="space-y-6">
-              <div className="rounded-2xl border border-slate-700 bg-slate-800/50 p-6 backdrop-blur">
+              <div className="rounded-2xl border border-slate-200 bg-slate-100/90 p-6 backdrop-blur">
                 <div className="flex flex-col gap-4 md:flex-row md:items-start md:justify-between">
                   <div>
-                    <h2 className="text-2xl font-bold text-white">{selectedShipment.trackingNumber}</h2>
-                    <p className="text-slate-400">Order #{selectedShipment.orderId}</p>
+                    <h2 className="text-2xl font-bold text-slate-900">{selectedShipment.trackingNumber}</h2>
+                    <p className="text-slate-500">Order #{selectedShipment.orderId}</p>
                   </div>
                   <span className={`rounded-full px-4 py-2 text-sm font-semibold ${getStatusBadgeClass(selectedShipment.status)}`}>
                     {selectedShipment.status}
@@ -217,32 +217,32 @@ export const TrackShipment: React.FC = () => {
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-6">
                   <div className="space-y-3">
                     <div>
-                      <p className="text-sm text-slate-400">Driver</p>
-                      <p className="text-white font-medium">{selectedShipment.driverName || 'Unassigned'}</p>
+                      <p className="text-sm text-slate-500">Driver</p>
+                      <p className="text-slate-900 font-medium">{selectedShipment.driverName || 'Unassigned'}</p>
                     </div>
                     <div>
-                      <p className="text-sm text-slate-400">Vehicle</p>
-                      <p className="text-white font-medium">{selectedShipment.vehiclePlate || 'N/A'}</p>
+                      <p className="text-sm text-slate-500">Vehicle</p>
+                      <p className="text-slate-900 font-medium">{selectedShipment.vehiclePlate || 'N/A'}</p>
                     </div>
                   </div>
                   <div className="space-y-3">
                     <div>
-                      <p className="text-sm text-slate-400">Estimated Delivery</p>
-                      <p className="text-white font-medium">{new Date(selectedShipment.estimatedDeliveryDate).toLocaleDateString()}</p>
+                      <p className="text-sm text-slate-500">Estimated Delivery</p>
+                      <p className="text-slate-900 font-medium">{new Date(selectedShipment.estimatedDeliveryDate).toLocaleDateString()}</p>
                     </div>
                     <div>
-                      <p className="text-sm text-slate-400">Items</p>
-                      <p className="text-white font-medium">{selectedShipment.items?.length || 0} items</p>
+                      <p className="text-sm text-slate-500">Items</p>
+                      <p className="text-slate-900 font-medium">{selectedShipment.items?.length || 0} items</p>
                     </div>
                   </div>
                 </div>
               </div>
 
-              <div className="rounded-2xl border border-slate-700 bg-slate-800/50 p-6 backdrop-blur">
+              <div className="rounded-2xl border border-slate-200 bg-slate-100/90 p-6 backdrop-blur">
                 <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-4 mb-4">
                   <div>
-                    <h3 className="text-lg font-bold text-white">Live Tracking</h3>
-                    <p className="text-slate-400 text-sm">Latest driver location and shipment status.</p>
+                    <h3 className="text-lg font-bold text-slate-900">Live Tracking</h3>
+                    <p className="text-slate-500 text-sm">Latest driver location and shipment status.</p>
                   </div>
                   <button
                     onClick={async () => {
@@ -254,7 +254,7 @@ export const TrackShipment: React.FC = () => {
                         console.error('Failed to refresh live tracking:', err);
                       }
                     }}
-                    className="rounded-2xl bg-slate-700 px-4 py-2 text-sm font-semibold text-white hover:bg-slate-600 transition"
+                    className="rounded-2xl bg-slate-200 px-4 py-2 text-sm font-semibold text-slate-900 hover:bg-slate-100 transition"
                   >
                     Refresh
                   </button>
@@ -264,35 +264,35 @@ export const TrackShipment: React.FC = () => {
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                     <div className="space-y-3">
                       <div>
-                        <p className="text-slate-400 text-sm">Current Location</p>
-                        <p className="text-white">{liveLocation.currentLocation || 'Waiting for driver update'}</p>
+                        <p className="text-slate-500 text-sm">Current Location</p>
+                        <p className="text-slate-900">{liveLocation.currentLocation || 'Waiting for driver update'}</p>
                       </div>
                       <div>
-                        <p className="text-slate-400 text-sm">Last Update</p>
-                        <p className="text-white">{liveLocation.lastLocationUpdate ? new Date(liveLocation.lastLocationUpdate).toLocaleString() : 'No updates yet'}</p>
+                        <p className="text-slate-500 text-sm">Last Update</p>
+                        <p className="text-slate-900">{liveLocation.lastLocationUpdate ? new Date(liveLocation.lastLocationUpdate).toLocaleString() : 'No updates yet'}</p>
                       </div>
                     </div>
                     <div className="space-y-3">
                       <div>
-                        <p className="text-slate-400 text-sm">Driver</p>
-                        <p className="text-white">{liveLocation.driverName || 'Not assigned'}</p>
+                        <p className="text-slate-500 text-sm">Driver</p>
+                        <p className="text-slate-900">{liveLocation.driverName || 'Not assigned'}</p>
                       </div>
                       <div>
-                        <p className="text-slate-400 text-sm">Driver Contact</p>
-                        <p className="text-white">{liveLocation.driverPhone || 'N/A'}</p>
+                        <p className="text-slate-500 text-sm">Driver Contact</p>
+                        <p className="text-slate-900">{liveLocation.driverPhone || 'N/A'}</p>
                       </div>
                       <div>
-                        <p className="text-slate-400 text-sm">Shipment Status</p>
-                        <p className="text-white">{liveLocation.status || selectedShipment.status}</p>
+                        <p className="text-slate-500 text-sm">Shipment Status</p>
+                        <p className="text-slate-900">{liveLocation.status || selectedShipment.status}</p>
                       </div>
                     </div>
                   </div>
                 ) : (
-                  <p className="text-slate-400">Live tracking is loading for this shipment.</p>
+                  <p className="text-slate-500">Live tracking is loading for this shipment.</p>
                 )}
 
                 {liveLocation?.currentLocation ? (
-                  <div className="mt-6 rounded-2xl overflow-hidden border border-slate-700 bg-slate-800/40 h-72">
+                  <div className="mt-6 rounded-2xl overflow-hidden border border-slate-200 bg-slate-100/80 h-72">
                     <iframe
                       title="Shipment map"
                       src={`https://maps.google.com/maps?q=${encodeURIComponent(liveLocation.currentLocation)}&output=embed`}
@@ -301,27 +301,27 @@ export const TrackShipment: React.FC = () => {
                     />
                   </div>
                 ) : (
-                  <div className="mt-6 rounded-2xl border border-slate-700 bg-slate-800/50 p-6 text-center">
-                    <p className="text-slate-400">Driver live location is not available yet.</p>
+                  <div className="mt-6 rounded-2xl border border-slate-200 bg-slate-100/90 p-6 text-center">
+                    <p className="text-slate-500">Driver live location is not available yet.</p>
                     <p className="text-slate-500 text-sm mt-2">The driver must send GPS updates for this shipment before the map appears.</p>
                   </div>
                 )}
               </div>
 
-              <div className="rounded-2xl border border-slate-700 bg-slate-800/50 p-6 backdrop-blur">
+              <div className="rounded-2xl border border-slate-200 bg-slate-100/90 p-6 backdrop-blur">
                 <div className="space-y-3">
                   <div className="flex items-start gap-3">
-                    <div className="text-cyan-400 mt-1">📍</div>
+                    <div className="text-cyan-400 mt-1">??</div>
                     <div>
-                      <p className="text-sm text-slate-400">Shipping Address</p>
-                      <p className="text-white font-medium">{selectedShipment.shippingAddress || 'Address not provided'}</p>
+                      <p className="text-sm text-slate-500">Shipping Address</p>
+                      <p className="text-slate-900 font-medium">{selectedShipment.shippingAddress || 'Address not provided'}</p>
                     </div>
                   </div>
                   <div className="flex items-start gap-3">
-                    <div className="text-cyan-400 mt-1">⏱️</div>
+                    <div className="text-cyan-400 mt-1">??</div>
                     <div>
-                      <p className="text-sm text-slate-400">Estimated Delivery</p>
-                      <p className="text-white font-medium">{new Date(selectedShipment.estimatedDeliveryDate).toLocaleDateString()}</p>
+                      <p className="text-sm text-slate-500">Estimated Delivery</p>
+                      <p className="text-slate-900 font-medium">{new Date(selectedShipment.estimatedDeliveryDate).toLocaleDateString()}</p>
                     </div>
                   </div>
                 </div>
@@ -333,3 +333,8 @@ export const TrackShipment: React.FC = () => {
     </div>
   );
 };
+
+
+
+
+

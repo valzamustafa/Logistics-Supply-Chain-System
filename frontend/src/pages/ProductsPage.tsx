@@ -241,19 +241,19 @@ export function ProductsPage() {
       <div className="flex h-full items-center justify-center">
         <div className="text-center">
           <div className="w-12 h-12 border-4 border-cyan-500 border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
-          <p className="text-slate-400">Loading products...</p>
+          <p className="text-slate-500">Loading products...</p>
         </div>
       </div>
     );
   }
 
   return (
-    <div className="p-6 space-y-6 bg-slate-900 min-h-screen">
+    <div className="p-6 space-y-6 bg-slate-50 min-h-screen">
       {/* Header */}
       <div className="flex justify-between items-center">
         <div>
-          <h1 className="text-3xl font-bold text-white">Products</h1>
-          <p className="text-slate-400 mt-1">Manage product catalog</p>
+          <h1 className="text-3xl font-bold text-slate-900">Products</h1>
+          <p className="text-slate-500 mt-1">Manage product catalog</p>
           {isSupplier && (
             <p className="text-sm text-amber-300 mt-2">
               Supplier product creation is only available from your Supplier dashboard. Manage your products from the supplier section.
@@ -263,7 +263,7 @@ export function ProductsPage() {
         {!isSupplier && (
           <button
             onClick={handleAddClick}
-            className="px-4 py-2 bg-cyan-600 hover:bg-cyan-700 text-white rounded-lg flex items-center gap-2 transition"
+            className="px-4 py-2 bg-cyan-600 hover:bg-cyan-700 text-slate-900 rounded-lg flex items-center gap-2 transition"
           >
             <Plus className="w-4 h-4" />
             Add Product
@@ -284,23 +284,23 @@ export function ProductsPage() {
         </div>
       )}
 
-  
+      {/* Search & Filter Bar */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
         <div className="relative">
-          <Search className="absolute left-3 top-3 w-4 h-4 text-slate-400" />
+          <Search className="absolute left-3 top-3 w-4 h-4 text-slate-500" />
           <input
             type="text"
             placeholder="Search products..."
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
-            className="w-full bg-slate-800 border border-slate-700 rounded-lg pl-10 pr-4 py-2 text-white placeholder-slate-500 focus:border-cyan-500 outline-none"
+            className="w-full bg-white border border-slate-200 rounded-lg pl-10 pr-4 py-2 text-slate-900 placeholder-slate-500 focus:border-cyan-500 outline-none"
           />
         </div>
 
         <select
           value={categoryFilter ?? ''}
           onChange={(e) => setCategoryFilter(e.target.value ? parseInt(e.target.value, 10) : null)}
-          className="bg-slate-800 border border-slate-700 rounded-lg px-4 py-2 text-white focus:border-cyan-500 outline-none"
+          className="bg-white border border-slate-200 rounded-lg px-4 py-2 text-slate-900 focus:border-cyan-500 outline-none"
         >
           <option value="">All Categories</option>
           {categories.map((category) => (
@@ -311,7 +311,7 @@ export function ProductsPage() {
         <select
           value={statusFilter}
           onChange={(e) => setStatusFilter(e.target.value as any)}
-          className="bg-slate-800 border border-slate-700 rounded-lg px-4 py-2 text-white focus:border-cyan-500 outline-none"
+          className="bg-white border border-slate-200 rounded-lg px-4 py-2 text-slate-900 focus:border-cyan-500 outline-none"
         >
           <option value="all">All Status</option>
           <option value="active">Active</option>
@@ -319,39 +319,39 @@ export function ProductsPage() {
         </select>
       </div>
 
- 
-      <div className="rounded-xl border border-slate-700 overflow-hidden">
+      {/* Products Table */}
+      <div className="rounded-xl border border-slate-200 overflow-hidden">
         <div className="overflow-x-auto">
           <table className="w-full">
             <thead>
-              <tr className="bg-slate-800 border-b border-slate-700">
-                <th className="px-6 py-3 text-left text-xs font-semibold text-slate-300">Product</th>
+              <tr className="bg-white border-b border-slate-200">
+                <th className="px-6 py-3 text-left text-xs font-semibold text-slate-500">Product</th>
                 {showProductImages && (
-                  <th className="px-6 py-3 text-left text-xs font-semibold text-slate-300">Image</th>
+                  <th className="px-6 py-3 text-left text-xs font-semibold text-slate-500">Image</th>
                 )}
-                <th className="px-6 py-3 text-left text-xs font-semibold text-slate-300">Category</th>
-                <th className="px-6 py-3 text-left text-xs font-semibold text-slate-300">SKU</th>
-                <th className="px-6 py-3 text-right text-xs font-semibold text-slate-300">Price</th>
-                <th className="px-6 py-3 text-right text-xs font-semibold text-slate-300">Cost</th>
-                <th className="px-6 py-3 text-center text-xs font-semibold text-slate-300">Status</th>
-                <th className="px-6 py-3 text-right text-xs font-semibold text-slate-300">Actions</th>
+                <th className="px-6 py-3 text-left text-xs font-semibold text-slate-500">Category</th>
+                <th className="px-6 py-3 text-left text-xs font-semibold text-slate-500">SKU</th>
+                <th className="px-6 py-3 text-right text-xs font-semibold text-slate-500">Price</th>
+                <th className="px-6 py-3 text-right text-xs font-semibold text-slate-500">Cost</th>
+                <th className="px-6 py-3 text-center text-xs font-semibold text-slate-500">Status</th>
+                <th className="px-6 py-3 text-right text-xs font-semibold text-slate-500">Actions</th>
               </tr>
             </thead>
             <tbody>
               {filteredProducts.length === 0 ? (
                 <tr>
-                  <td colSpan={showProductImages ? 8 : 7} className="px-6 py-8 text-center text-slate-400">
+                  <td colSpan={showProductImages ? 8 : 7} className="px-6 py-8 text-center text-slate-500">
                     No products found
                   </td>
                 </tr>
               ) : (
                 filteredProducts.map((product) => (
-                  <tr key={product.id} className="border-b border-slate-700 hover:bg-slate-800/50 transition">
+                  <tr key={product.id} className="border-b border-slate-200 hover:bg-slate-100/90 transition">
                     <td className="px-6 py-4">
                       <div>
-                        <p className="text-white font-medium">{product.name}</p>
+                        <p className="text-slate-900 font-medium">{product.name}</p>
                         {product.description && (
-                          <p className="text-slate-400 text-sm">{product.description.substring(0, 50)}...</p>
+                          <p className="text-slate-500 text-sm">{product.description.substring(0, 50)}...</p>
                         )}
                       </div>
                     </td>
@@ -364,16 +364,16 @@ export function ProductsPage() {
                             className="h-12 w-12 rounded-lg object-cover"
                           />
                         ) : (
-                          <div className="h-12 w-12 rounded-lg bg-slate-700 flex items-center justify-center text-slate-400 text-sm">
+                          <div className="h-12 w-12 rounded-lg bg-slate-200 flex items-center justify-center text-slate-500 text-sm">
                             No Image
                           </div>
                         )}
                       </td>
                     )}
-                    <td className="px-6 py-4 text-slate-300">{product.categoryName || categories.find((category) => category.id === product.categoryId)?.name || 'Uncategorized'}</td>
-                    <td className="px-6 py-4 text-slate-300">{product.sku}</td>
-                    <td className="px-6 py-4 text-right text-white font-medium">${product.price.toFixed(2)}</td>
-                    <td className="px-6 py-4 text-right text-slate-400">${(product.cost || 0).toFixed(2)}</td>
+                    <td className="px-6 py-4 text-slate-500">{product.categoryName || categories.find((category) => category.id === product.categoryId)?.name || 'Uncategorized'}</td>
+                    <td className="px-6 py-4 text-slate-500">{product.sku}</td>
+                    <td className="px-6 py-4 text-right text-slate-900 font-medium">${product.price.toFixed(2)}</td>
+                    <td className="px-6 py-4 text-right text-slate-500">${(product.cost || 0).toFixed(2)}</td>
                     <td className="px-6 py-4 text-center">
                       <span className={`px-3 py-1 rounded-full text-xs font-medium ${
                         product.isActive
@@ -386,13 +386,13 @@ export function ProductsPage() {
                     <td className="px-6 py-4 text-right flex gap-2 justify-end">
                       <button
                         onClick={() => handleEditClick(product)}
-                        className="p-2 hover:bg-slate-700 rounded transition text-slate-400 hover:text-cyan-400"
+                        className="p-2 hover:bg-slate-200 rounded transition text-slate-500 hover:text-cyan-400"
                       >
                         <Edit2 className="w-4 h-4" />
                       </button>
                       <button
                         onClick={() => handleDelete(product.id)}
-                        className="p-2 hover:bg-red-500/20 rounded transition text-slate-400 hover:text-red-400"
+                        className="p-2 hover:bg-red-500/20 rounded transition text-slate-500 hover:text-red-400"
                       >
                         <Trash2 className="w-4 h-4" />
                       </button>
@@ -405,16 +405,15 @@ export function ProductsPage() {
         </div>
       </div>
 
-
       {showModal && (
         <div className="fixed inset-0 bg-black/50 flex items-center justify-center rounded-lg z-50">
-          <div className="bg-slate-800 rounded-xl border border-slate-700 w-96 p-6 space-y-4">
+          <div className="bg-white rounded-xl border border-slate-200 w-96 p-6 space-y-4">
             <div className="flex justify-between items-center">
-              <h2 className="text-xl font-bold text-white">
+              <h2 className="text-xl font-bold text-slate-900">
                 {isEditing ? 'Edit Product' : 'Add Product'}
               </h2>
               <button onClick={() => setShowModal(false)}>
-                <X className="w-5 h-5 text-slate-400" />
+                <X className="w-5 h-5 text-slate-500" />
               </button>
             </div>
 
@@ -423,7 +422,7 @@ export function ProductsPage() {
               placeholder="Product Name"
               value={formData.name}
               onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-              className="w-full bg-slate-700 border border-slate-600 rounded px-3 py-2 text-white placeholder-slate-400 focus:border-cyan-500 outline-none"
+              className="w-full bg-slate-200 border border-slate-600 rounded px-3 py-2 text-slate-900 placeholder-slate-400 focus:border-cyan-500 outline-none"
             />
 
             <input
@@ -431,14 +430,14 @@ export function ProductsPage() {
               placeholder="SKU"
               value={formData.sku}
               onChange={(e) => setFormData({ ...formData, sku: e.target.value })}
-              className="w-full bg-slate-700 border border-slate-600 rounded px-3 py-2 text-white placeholder-slate-400 focus:border-cyan-500 outline-none"
+              className="w-full bg-slate-200 border border-slate-600 rounded px-3 py-2 text-slate-900 placeholder-slate-400 focus:border-cyan-500 outline-none"
             />
 
             <textarea
               placeholder="Description"
               value={formData.description}
               onChange={(e) => setFormData({ ...formData, description: e.target.value })}
-              className="w-full bg-slate-700 border border-slate-600 rounded px-3 py-2 text-white placeholder-slate-400 focus:border-cyan-500 outline-none"
+              className="w-full bg-slate-200 border border-slate-600 rounded px-3 py-2 text-slate-900 placeholder-slate-400 focus:border-cyan-500 outline-none"
               rows={3}
             />
 
@@ -449,7 +448,7 @@ export function ProductsPage() {
                 step="0.01"
                 value={formData.price}
                 onChange={(e) => setFormData({ ...formData, price: e.target.value })}
-                className="bg-slate-700 border border-slate-600 rounded px-3 py-2 text-white placeholder-slate-400 focus:border-cyan-500 outline-none"
+                className="bg-slate-200 border border-slate-600 rounded px-3 py-2 text-slate-900 placeholder-slate-400 focus:border-cyan-500 outline-none"
               />
               <input
                 type="number"
@@ -457,16 +456,16 @@ export function ProductsPage() {
                 step="0.01"
                 value={formData.cost}
                 onChange={(e) => setFormData({ ...formData, cost: e.target.value })}
-                className="bg-slate-700 border border-slate-600 rounded px-3 py-2 text-white placeholder-slate-400 focus:border-cyan-500 outline-none"
+                className="bg-slate-200 border border-slate-600 rounded px-3 py-2 text-slate-900 placeholder-slate-400 focus:border-cyan-500 outline-none"
               />
             </div>
 
             <div>
-              <label className="block text-sm text-slate-300 mb-2">Category</label>
+              <label className="block text-sm text-slate-500 mb-2">Category</label>
               <select
                 value={formData.categoryId}
                 onChange={(e) => setFormData({ ...formData, categoryId: e.target.value })}
-                className="w-full bg-slate-700 border border-slate-600 rounded px-3 py-2 text-white focus:border-cyan-500 outline-none"
+                className="w-full bg-slate-200 border border-slate-600 rounded px-3 py-2 text-slate-900 focus:border-cyan-500 outline-none"
               >
                 <option value="">Select category</option>
                 {categories.length > 0 ? (
@@ -482,7 +481,7 @@ export function ProductsPage() {
             </div>
 
             <div className="space-y-3">
-              <label className="block text-sm text-slate-300">Product Image</label>
+              <label className="block text-sm text-slate-500">Product Image</label>
               {imagePreview ? (
                 <div className="flex items-center gap-3">
                   <img
@@ -514,12 +513,12 @@ export function ProductsPage() {
                       setImagePreview(URL.createObjectURL(file));
                     }
                   }}
-                  className="w-full bg-slate-700 border border-slate-600 rounded px-3 py-2 text-white focus:border-cyan-500 outline-none"
+                  className="w-full bg-slate-200 border border-slate-600 rounded px-3 py-2 text-slate-900 focus:border-cyan-500 outline-none"
                 />
               )}
             </div>
 
-            <label className="flex items-center gap-2 text-slate-300">
+            <label className="flex items-center gap-2 text-slate-500">
               <input
                 type="checkbox"
                 checked={formData.isActive}
@@ -532,13 +531,13 @@ export function ProductsPage() {
             <div className="flex gap-2 pt-4">
               <button
                 onClick={() => setShowModal(false)}
-                className="flex-1 px-4 py-2 bg-slate-700 hover:bg-slate-600 text-white rounded-lg transition"
+                className="flex-1 px-4 py-2 bg-slate-200 hover:bg-slate-100 text-slate-900 rounded-lg transition"
               >
                 Cancel
               </button>
               <button
                 onClick={handleSave}
-                className="flex-1 px-4 py-2 bg-cyan-600 hover:bg-cyan-700 text-white rounded-lg transition"
+                className="flex-1 px-4 py-2 bg-cyan-600 hover:bg-cyan-700 text-slate-900 rounded-lg transition"
               >
                 {isEditing ? 'Update' : 'Create'}
               </button>
@@ -562,3 +561,8 @@ export function ProductsPage() {
     </div>
   );
 }
+
+
+
+
+

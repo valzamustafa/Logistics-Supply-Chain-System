@@ -170,7 +170,7 @@ export function AdminDashboard() {
     if (normalized.includes('delivered')) return 'bg-green-500/20 text-green-400';
     if (normalized.includes('in transit') || normalized.includes('on route')) return 'bg-blue-500/20 text-blue-400';
     if (normalized.includes('pending')) return 'bg-yellow-500/20 text-yellow-400';
-    return 'bg-slate-500/20 text-slate-400';
+    return 'bg-slate-500/20 text-slate-500';
   };
 
   const getStockStatus = (quantity: number, reorderLevel?: number | null) => {
@@ -182,25 +182,25 @@ export function AdminDashboard() {
 
   if (loading) {
     return (
-      <div className="flex items-center justify-center h-screen bg-slate-950">
+      <div className="flex items-center justify-center h-screen bg-slate-50">
         <div className="text-center">
           <div className="w-16 h-16 border-4 border-cyan-500 border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
-          <p className="text-slate-400">Loading admin dashboard...</p>
+          <p className="text-slate-500">Loading admin dashboard...</p>
         </div>
       </div>
     );
   }
 
   return (
-    <div className="p-6 space-y-6 bg-slate-950 min-h-screen">
+    <div className="p-6 space-y-6 bg-slate-50 min-h-screen">
       <div className="flex flex-col gap-4 xl:flex-row xl:items-center xl:justify-between">
         <div>
-          <h1 className="text-3xl font-bold text-white">Admin Dashboard</h1>
-          <p className="text-slate-400">Monitor shipments, inventory, and system activity in real-time.</p>
+          <h1 className="text-3xl font-bold text-slate-900">Admin Dashboard</h1>
+          <p className="text-slate-500">Monitor shipments, inventory, and system activity in real-time.</p>
         </div>
         <button
           onClick={() => navigate('/shipments')}
-          className="inline-flex items-center rounded-2xl bg-cyan-500 px-5 py-3 text-sm font-semibold text-white transition hover:bg-cyan-400"
+          className="inline-flex items-center rounded-2xl bg-cyan-500 px-5 py-3 text-sm font-semibold text-slate-900 transition hover:bg-cyan-400"
         >
           Add New Shipment
         </button>
@@ -218,11 +218,11 @@ export function AdminDashboard() {
         <StatCard label="Revenue" value={`$${stats.totalRevenue.toFixed(2)}`} icon="💰" />
       </div>
 
-      <div className="flex space-x-1 bg-slate-800 p-1 rounded-2xl">
+      <div className="flex space-x-1 bg-white p-1 rounded-2xl">
         <button
           onClick={() => setActiveTab('dashboard')}
           className={`px-4 py-2 rounded-xl text-sm font-medium transition ${
-            activeTab === 'dashboard' ? 'bg-cyan-500 text-white' : 'text-slate-400 hover:text-white'
+            activeTab === 'dashboard' ? 'bg-cyan-500 text-white' : 'text-slate-500 hover:text-slate-900'
           }`}
         >
           Dashboard
@@ -230,7 +230,7 @@ export function AdminDashboard() {
         <button
           onClick={() => setActiveTab('inventory')}
           className={`px-4 py-2 rounded-xl text-sm font-medium transition ${
-            activeTab === 'inventory' ? 'bg-cyan-500 text-white' : 'text-slate-400 hover:text-white'
+            activeTab === 'inventory' ? 'bg-cyan-500 text-white' : 'text-slate-500 hover:text-slate-900'
           }`}
         >
           Inventory
@@ -238,7 +238,7 @@ export function AdminDashboard() {
         <button
           onClick={() => setActiveTab('shipments')}
           className={`px-4 py-2 rounded-xl text-sm font-medium transition ${
-            activeTab === 'shipments' ? 'bg-cyan-500 text-white' : 'text-slate-400 hover:text-white'
+            activeTab === 'shipments' ? 'bg-cyan-500 text-white' : 'text-slate-500 hover:text-slate-900'
           }`}
         >
           Shipments
@@ -246,7 +246,7 @@ export function AdminDashboard() {
         <button
           onClick={() => setActiveTab('reports')}
           className={`px-4 py-2 rounded-xl text-sm font-medium transition ${
-            activeTab === 'reports' ? 'bg-cyan-500 text-white' : 'text-slate-400 hover:text-white'
+            activeTab === 'reports' ? 'bg-cyan-500 text-white' : 'text-slate-500 hover:text-slate-900'
           }`}
         >
           Reports
@@ -255,14 +255,14 @@ export function AdminDashboard() {
 
       {activeTab === 'dashboard' && (
         <div className="grid gap-6 lg:grid-cols-2">
-          <div className="rounded-3xl border border-slate-700 bg-slate-900/80 p-6">
-            <h2 className="text-xl font-semibold text-white mb-4">Recent Shipments</h2>
+          <div className="rounded-3xl border border-slate-200 bg-slate-50/80 p-6">
+            <h2 className="text-xl font-semibold text-slate-900 mb-4">Recent Shipments</h2>
             <div className="space-y-4 max-h-96 overflow-y-auto">
               {shipments.slice(0, 10).map((shipment) => (
-                <div key={shipment.id} className="flex items-center justify-between p-4 bg-slate-800 rounded-xl">
+                <div key={shipment.id} className="flex items-center justify-between p-4 bg-white rounded-xl">
                   <div>
-                    <p className="font-semibold text-white">{shipment.trackingNumber}</p>
-                    <p className="text-sm text-slate-400">{shipment.shippingAddress}</p>
+                    <p className="font-semibold text-slate-900">{shipment.trackingNumber}</p>
+                    <p className="text-sm text-slate-500">{shipment.shippingAddress}</p>
                   </div>
                   <span className={`rounded-full px-3 py-1 text-xs font-semibold ${getStatusColor(shipment.status)}`}>
                     {shipment.status}
@@ -272,14 +272,14 @@ export function AdminDashboard() {
             </div>
           </div>
 
-          <div className="rounded-3xl border border-slate-700 bg-slate-900/80 p-6">
-            <h2 className="text-xl font-semibold text-white mb-4">Low Stock Alerts</h2>
+          <div className="rounded-3xl border border-slate-200 bg-slate-50/80 p-6">
+            <h2 className="text-xl font-semibold text-slate-900 mb-4">Low Stock Alerts</h2>
             <div className="space-y-4 max-h-96 overflow-y-auto">
               {inventory.filter((item: any) => item.quantity <= (item.reorderLevel || 10)).slice(0, 10).map((item: any) => (
-                <div key={item.id} className="flex items-center justify-between p-4 bg-slate-800 rounded-xl">
+                <div key={item.id} className="flex items-center justify-between p-4 bg-white rounded-xl">
                   <div>
-                    <p className="font-semibold text-white">Product {item.productId}</p>
-                    <p className="text-sm text-slate-400">Warehouse {item.warehouseId}</p>
+                    <p className="font-semibold text-slate-900">Product {item.productId}</p>
+                    <p className="text-sm text-slate-500">Warehouse {item.warehouseId}</p>
                   </div>
                   <span className={`rounded-full px-3 py-1 text-xs font-semibold ${getStockStatus(item.quantity, item.reorderLevel)}`}>
                     {item.quantity} units
@@ -301,7 +301,7 @@ export function AdminDashboard() {
                 setSelectedWarehouse(warehouseId);
                 loadWarehouseInventory(warehouseId);
               }}
-              className="bg-slate-800 border border-slate-700 rounded-xl px-4 py-2 text-white"
+              className="bg-white border border-slate-200 rounded-xl px-4 py-2 text-slate-900"
             >
               <option value="">Select Warehouse</option>
               {warehouses.map((warehouse: any) => (
@@ -314,18 +314,18 @@ export function AdminDashboard() {
 
           <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
             {(selectedWarehouse ? inventory : inventory.slice(0, 20)).map((item: any) => (
-              <div key={item.id} className="rounded-3xl border border-slate-700 bg-slate-900/80 p-6">
+              <div key={item.id} className="rounded-3xl border border-slate-200 bg-slate-50/80 p-6">
                 <div className="flex items-center justify-between mb-4">
-                  <h3 className="text-lg font-semibold text-white">Product {item.productId}</h3>
+                  <h3 className="text-lg font-semibold text-slate-900">Product {item.productId}</h3>
                   <span className={`rounded-full px-3 py-1 text-xs font-semibold ${getStockStatus(item.quantity, item.reorderLevel)}`}>
                     {item.quantity <= (item.reorderLevel || 10) ? 'Low' : 'OK'}
                   </span>
                 </div>
                 <div className="space-y-2">
-                  <p className="text-slate-400">Warehouse: {item.warehouseId}</p>
-                  <p className="text-slate-400">Quantity: {item.quantity}</p>
-                  <p className="text-slate-400">Reorder Level: {item.reorderLevel || 10}</p>
-                  <p className="text-slate-400">Available: {item.quantity ?? item.availableQuantity}</p>
+                  <p className="text-slate-500">Warehouse: {item.warehouseId}</p>
+                  <p className="text-slate-500">Quantity: {item.quantity}</p>
+                  <p className="text-slate-500">Reorder Level: {item.reorderLevel || 10}</p>
+                  <p className="text-slate-500">Available: {item.quantity ?? item.availableQuantity}</p>
                 </div>
               </div>
             ))}
@@ -337,13 +337,13 @@ export function AdminDashboard() {
         <div className="space-y-6">
           <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
             {shipments.map((shipment) => (
-              <div key={shipment.id} className="rounded-3xl border border-slate-700 bg-slate-900/80 p-6">
+              <div key={shipment.id} className="rounded-3xl border border-slate-200 bg-slate-50/80 p-6">
                 <div className="flex items-center justify-between mb-4">
-                  <h3 className="text-lg font-semibold text-white">{shipment.trackingNumber}</h3>
+                  <h3 className="text-lg font-semibold text-slate-900">{shipment.trackingNumber}</h3>
                   <select
                     value={shipment.priority || 1}
                     onChange={(e) => reorderShipment(shipment.id, parseInt(e.target.value))}
-                    className="bg-slate-800 border border-slate-700 rounded px-2 py-1 text-xs"
+                    className="bg-white border border-slate-200 rounded px-2 py-1 text-xs"
                   >
                     <option value={1}>Low</option>
                     <option value={2}>Medium</option>
@@ -351,9 +351,9 @@ export function AdminDashboard() {
                   </select>
                 </div>
                 <div className="space-y-2">
-                  <p className="text-slate-400">Status: <span className={getStatusColor(shipment.status)}>{shipment.status}</span></p>
-                  <p className="text-slate-400">Destination: {shipment.shippingAddress}</p>
-                  <p className="text-slate-400">Driver: {shipment.driverName || 'Unassigned'}</p>
+                  <p className="text-slate-500">Status: <span className={getStatusColor(shipment.status)}>{shipment.status}</span></p>
+                  <p className="text-slate-500">Destination: {shipment.shippingAddress}</p>
+                  <p className="text-slate-500">Driver: {shipment.driverName || 'Unassigned'}</p>
                 </div>
                 <div className="flex gap-2 mt-4">
                   <button
@@ -364,7 +364,7 @@ export function AdminDashboard() {
                   </button>
                   <button
                     onClick={() => updateShipmentStatus(shipment, 'Delivered')}
-                    className="bg-blue-500 text-white px-3 py-1 rounded text-sm hover:bg-blue-400"
+                    className="bg-blue-500 text-slate-900 px-3 py-1 rounded text-sm hover:bg-blue-400"
                   >
                     Deliver
                   </button>
@@ -378,7 +378,7 @@ export function AdminDashboard() {
       {activeTab === 'reports' && (
         <div className="space-y-6">
           <div className="flex justify-between items-center">
-            <h2 className="text-xl font-semibold text-white">Reports</h2>
+            <h2 className="text-xl font-semibold text-slate-900">Reports</h2>
             <button
               onClick={() => reportService.generate({ type: 'inventory', name: 'Inventory Report' })}
               className="bg-cyan-500 text-white px-4 py-2 rounded-xl hover:bg-cyan-400"
@@ -389,10 +389,10 @@ export function AdminDashboard() {
 
           <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
             {reports.map((report: any) => (
-              <div key={report.id} className="rounded-3xl border border-slate-700 bg-slate-900/80 p-6">
-                <h3 className="text-lg font-semibold text-white mb-2">{report.title}</h3>
-                <p className="text-slate-400 mb-2">Type: {report.type}</p>
-                <p className="text-slate-400 mb-4">Created: {new Date(report.createdAt).toLocaleDateString()}</p>
+              <div key={report.id} className="rounded-3xl border border-slate-200 bg-slate-50/80 p-6">
+                <h3 className="text-lg font-semibold text-slate-900 mb-2">{report.title}</h3>
+                <p className="text-slate-500 mb-2">Type: {report.type}</p>
+                <p className="text-slate-500 mb-4">Created: {new Date(report.createdAt).toLocaleDateString()}</p>
                 <button
                   onClick={() => downloadReportPdf(report.id)}
                   className="bg-green-500 text-white px-4 py-2 rounded-xl hover:bg-green-400 w-full"
@@ -410,14 +410,18 @@ export function AdminDashboard() {
 
 function StatCard({ label, value, icon }: { label: string; value: string | number; icon: string }) {
   return (
-    <div className="rounded-3xl border border-slate-700 bg-slate-900/80 p-5">
+    <div className="rounded-3xl border border-slate-200 bg-slate-50/80 p-5">
       <div className="flex items-center gap-3">
         <span className="text-2xl">{icon}</span>
         <div>
-          <p className="text-2xl font-bold text-white">{value}</p>
-          <p className="text-sm text-slate-400">{label}</p>
+          <p className="text-2xl font-bold text-slate-900">{value}</p>
+          <p className="text-sm text-slate-500">{label}</p>
         </div>
       </div>
     </div>
   );
 }
+
+
+
+

@@ -1,4 +1,5 @@
-﻿import { useState, useEffect } from 'react';
+﻿
+import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../../hooks/useAuth';
 import { shipmentService, Shipment, CreateShipmentDto } from '../../services/shipmentService';
@@ -8,10 +9,13 @@ import { productService, Product } from '../../services/productService';
 import { userService, User } from '../../services/userService';
 import { inventoryService } from '../../services/inventoryService';
 import { warehouseService } from '../../services/warehouseService';
-import { reportService } from '../../services/reportService';
 import * as signalR from '@microsoft/signalr';
 import { useToast } from '../../hooks/useToast';
 import { notificationService } from '../../services/notificationService';
+import { Plus, Truck, MapPin, Navigation, RefreshCw, User as UserIcon, Eye, Edit, Trash2, Package, Building2, Users, CheckCircle, Clock, AlertCircle, TrendingUp, TrendingDown } from 'lucide-react';
+import { VehicleManagementModal } from '../../components/vehicles/VehicleManagementModal';
+import { AssignVehicleToDriverModal } from '../../components/vehicles/AssignVehicleToDriverModal';
+import { VehicleLiveTracker } from '../../components/vehicles/VehicleLiveTracker';
 
 interface AdminLiveTrackingInfo {
   trackingNumber?: string;
@@ -36,6 +40,12 @@ export function AdminDashboard() {
   const [inventory, setInventory] = useState<any[]>([]);
   const [warehouses, setWarehouses] = useState<any[]>([]);
   const [liveTracking, setLiveTracking] = useState<AdminLiveTrackingInfo | null>(null);
+  const [activeTab, setActiveTab] = useState('dashboard');
+  const [showVehicleModal, setShowVehicleModal] = useState(false);
+  const [showAssignModal, setShowAssignModal] = useState(false);
+  const [showTrackerModal, setShowTrackerModal] = useState<Vehicle | null>(null);
+  const [editingVehicle, setEditingVehicle] = useState<Vehicle | null>(null);
+  const [vehicleStats, setVehicleStats] = useState<Record<number, { status: string; progress: number; location: string }>>({});
   const [stats, setStats] = useState({
     totalShipments: 0,
     activeShipments: 0,
@@ -50,7 +60,7 @@ export function AdminDashboard() {
   const [loading, setLoading] = useState(true);
   const [showCreateShipmentModal, setShowCreateShipmentModal] = useState(false);
   const [showDriverModal, setShowDriverModal] = useState(false);
-  const [showVehicleModal, setShowVehicleModal] = useState(false);
+  const [showVehicleModalOld, setShowVehicleModalOld] = useState(false);
   const [newDriver, setNewDriver] = useState({ userId: 0, licenseNumber: '', phoneNumber: '', isAvailable: true });
   const [newVehicle, setNewVehicle] = useState({ plateNumber: '', model: '', capacity: 0, isAvailable: true });
   const [newShipment, setNewShipment] = useState({
@@ -63,8 +73,32 @@ export function AdminDashboard() {
   });
   const [hubConnection, setHubConnection] = useState<signalR.HubConnection | null>(null);
 
-  const candidateDriverUsers = users.filter((user) => !drivers.some((driver) => driver.userId === user.id));
-  const selectedDriverUser = users.find((user) => user.id === newDriver.userId) ?? null;
+  const candidateDriverUsers = users.filter((u) => !drivers.some((driver) => driver.userId === u.id));
+  const selectedDriverUser = users.find((u) => u.id === newDriver.userId) ?? null;
+
+  const fetchVehicles = async () => {
+    try {
+      const vehiclesData = await vehicleService.getAll();
+      setVehicles(vehiclesData);
+      const newStats: Record<number, any> = {};
+      for (const vehicle of vehiclesData) {
+        newStats[vehicle.id] = {
+          status: vehicle.isAvailable ? 'available' : 'maintenance',
+          progress: Math.floor(Math.random() * 100),
+          location: Math.random() > 0.5 ? 'In Route - Highway A1' : 'Warehouse',
+        };
+      }
+      setVehicleStats(newStats);
+    } catch (error) {
+      console.error('Failed to fetch vehicles:', error);
+    }
+  };
+
+  useEffect(() => {
+    if (activeTab === 'vehicles') {
+      fetchVehicles();
+    }
+  }, [activeTab]);
 
   useEffect(() => {
     loadAllData();
@@ -88,8 +122,8 @@ export function AdminDashboard() {
       }
     });
 
-    connection.on('ReceiveNewShipment', (newShipment: Shipment) => {
-      setShipments(prev => [newShipment, ...prev]);
+    connection.on('ReceiveNewShipment', (newShipmentData: Shipment) => {
+      setShipments(prev => [newShipmentData, ...prev]);
     });
 
     connection.on('ReceiveStatsUpdate', (updatedStats) => {
@@ -127,8 +161,8 @@ export function AdminDashboard() {
       setInventory(inventoryData);
       setWarehouses(warehousesData);
 
-      const activeCount = shipmentsData.filter((shipment) => {
-        const status = shipment.status?.toLowerCase() || '';
+      const activeCount = shipmentsData.filter((s) => {
+        const status = s.status?.toLowerCase() || '';
         return status.includes('in transit') || status.includes('on route') || status.includes('processing');
       }).length;
 
@@ -146,6 +180,16 @@ export function AdminDashboard() {
         lowStockItems: lowStockCount,
         totalRevenue: totalRevenue,
       });
+
+      const vehicleStatsData: Record<number, any> = {};
+      for (const vehicle of vehiclesData) {
+        vehicleStatsData[vehicle.id] = {
+          status: vehicle.isAvailable ? 'available' : 'maintenance',
+          progress: Math.floor(Math.random() * 100),
+          location: Math.random() > 0.5 ? 'In Route - Highway A1' : 'Warehouse',
+        };
+      }
+      setVehicleStats(vehicleStatsData);
 
       if (shipmentsData.length > 0) {
         setSelectedShipment(shipmentsData[0]);
@@ -169,7 +213,7 @@ export function AdminDashboard() {
 
   const getMapQuery = () => {
     if (liveTracking?.currentLocation) {
-      const coords = liveTracking.currentLocation.split(',').map((value) => value.trim());
+      const coords = liveTracking.currentLocation.split(',').map((v) => v.trim());
       if (coords.length === 2 && !isNaN(Number(coords[0])) && !isNaN(Number(coords[1]))) {
         return `${coords[0]},${coords[1]}`;
       }
@@ -197,6 +241,7 @@ export function AdminDashboard() {
       if (selectedShipment?.id === shipmentId) {
         setSelectedShipment(updated);
       }
+      showToast('success', `Shipment status updated to ${status}`);
     } catch (error) {
       console.error('Failed to update shipment status:', error);
       showToast('error', 'Failed to update shipment status');
@@ -216,23 +261,13 @@ export function AdminDashboard() {
         vehicleId: newShipment.vehicleId ? parseInt(newShipment.vehicleId) : undefined,
         estimatedDeliveryDate: newShipment.estimatedDeliveryDate,
         shippingAddress: newShipment.shippingAddress,
-        items: newShipment.items.map(item => ({
-          productId: item.productId,
-          quantity: item.quantity
-        }))
+        items: newShipment.items.map(item => ({ productId: item.productId, quantity: item.quantity }))
       };
 
       const created = await shipmentService.create(shipmentData);
       setShipments(prev => [created, ...prev]);
       setShowCreateShipmentModal(false);
-      setNewShipment({
-        orderId: '',
-        driverId: '',
-        vehicleId: '',
-        estimatedDeliveryDate: '',
-        shippingAddress: '',
-        items: []
-      });
+      setNewShipment({ orderId: '', driverId: '', vehicleId: '', estimatedDeliveryDate: '', shippingAddress: '', items: [] });
       showToast('success', 'Shipment created successfully!');
       if (user?.id) await notificationService.sendNotification({ userId: user.id, type: 'Shipment', title: 'Shipment Created', message: `Shipment ${created.trackingNumber} created`, actionUrl: '/admin' }).catch(() => {});
     } catch (error) {
@@ -259,14 +294,14 @@ export function AdminDashboard() {
     }
   };
 
-  const createVehicle = async () => {
+  const createVehicleOld = async () => {
     if (!newVehicle.plateNumber || !newVehicle.model) {
       showToast('error', 'Please fill in all required fields');
       return;
     }
     try {
-      await vehicleService.create(newVehicle);
-      setShowVehicleModal(false);
+      await vehicleService.create(newVehicle as any);
+      setShowVehicleModalOld(false);
       setNewVehicle({ plateNumber: '', model: '', capacity: 0, isAvailable: true });
       await loadAllData();
       showToast('success', 'Vehicle created successfully!');
@@ -282,7 +317,7 @@ export function AdminDashboard() {
     if (normalized.includes('delivered')) return 'bg-green-500/20 text-green-400';
     if (normalized.includes('in transit') || normalized.includes('on route')) return 'bg-blue-500/20 text-blue-400';
     if (normalized.includes('pending')) return 'bg-yellow-500/20 text-yellow-400';
-    return 'bg-slate-500/20 text-slate-400';
+    return 'bg-slate-500/20 text-slate-500';
   };
 
   const getProgress = (status?: string) => {
@@ -295,502 +330,173 @@ export function AdminDashboard() {
     return 40;
   };
 
+  const statusColors: Record<string, string> = {
+    'available': 'bg-green-500/20 text-green-400',
+    'in-transit': 'bg-blue-500/20 text-blue-400',
+    'maintenance': 'bg-red-500/20 text-red-400',
+    'offline': 'bg-slate-500/20 text-slate-400'
+  };
+
+  const statusLabels: Record<string, string> = {
+    'available': 'Available',
+    'in-transit': 'In Transit',
+    'maintenance': 'Maintenance',
+    'offline': 'Offline'
+  };
+
   if (loading) {
     return (
-      <div className="flex items-center justify-center h-screen bg-slate-950">
+      <div className="flex items-center justify-center h-screen bg-slate-50">
         <div className="text-center">
           <div className="w-16 h-16 border-4 border-cyan-500 border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
-          <p className="text-slate-400">Loading admin dashboard...</p>
+          <p className="text-slate-500">Loading admin dashboard...</p>
         </div>
       </div>
     );
   }
 
   return (
-    <div className="p-6 space-y-6 bg-slate-950 min-h-screen">
-      {/* Header */}
+    <div className="p-6 space-y-6 bg-slate-50 min-h-screen">
       <div className="flex flex-col gap-4 xl:flex-row xl:items-center xl:justify-between">
         <div>
-          <h1 className="text-3xl font-bold text-white">Admin Dashboard</h1>
-          <p className="text-slate-400">Monitor shipments, drivers, users and system activity.</p>
+          <h1 className="text-3xl font-bold text-slate-900">Admin Dashboard</h1>
+          <p className="text-slate-500">Monitor shipments, drivers, users and system activity.</p>
         </div>
         <div className="flex gap-3">
-          <button
-            onClick={() => setShowDriverModal(true)}
-            className="inline-flex items-center rounded-2xl bg-green-600 px-4 py-3 text-sm font-semibold text-white transition hover:bg-green-500"
-          >
-            + Add Driver
-          </button>
-          <button
-            onClick={() => setShowVehicleModal(true)}
-            className="inline-flex items-center rounded-2xl bg-purple-600 px-4 py-3 text-sm font-semibold text-white transition hover:bg-purple-500"
-          >
-            + Add Vehicle
-          </button>
-          <button
-            onClick={() => setShowCreateShipmentModal(true)}
-            className="inline-flex items-center rounded-2xl bg-cyan-500 px-5 py-3 text-sm font-semibold text-white transition hover:bg-cyan-400"
-          >
-            + New Shipment
-          </button>
+          <button onClick={() => setShowDriverModal(true)} className="inline-flex items-center rounded-2xl bg-green-600 px-4 py-3 text-sm font-semibold text-white transition hover:bg-green-500">+ Add Driver</button>
+          <button onClick={() => setShowVehicleModalOld(true)} className="inline-flex items-center rounded-2xl bg-purple-600 px-4 py-3 text-sm font-semibold text-white transition hover:bg-purple-500">+ Add Vehicle</button>
+          <button onClick={() => setShowCreateShipmentModal(true)} className="inline-flex items-center rounded-2xl bg-cyan-500 px-5 py-3 text-sm font-semibold text-white transition hover:bg-cyan-400">+ New Shipment</button>
         </div>
       </div>
 
-
-      <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-7">
-        <StatCard label="Shipments" value={stats.totalShipments} icon="📦" />
-        <StatCard label="Active" value={stats.activeShipments} icon="🚚" />
-        <StatCard label="Drivers" value={stats.totalDrivers} icon="👨‍✈️" />
-        <StatCard label="Vehicles" value={stats.totalVehicles} icon="🚛" />
-        <StatCard label="Orders" value={stats.totalOrders} icon="🛒" />
-        <StatCard label="Products" value={stats.totalProducts} icon="🏷️" />
-        <StatCard label="Users" value={stats.totalUsers} icon="👥" />
+      <div className="flex space-x-1 bg-white p-1 rounded-2xl">
+        <button onClick={() => setActiveTab('dashboard')} className={`px-4 py-2 rounded-xl text-sm font-medium transition ${activeTab === 'dashboard' ? 'bg-cyan-500 text-white' : 'text-slate-500 hover:text-slate-900'}`}>Dashboard</button>
+        <button onClick={() => setActiveTab('vehicles')} className={`px-4 py-2 rounded-xl text-sm font-medium transition ${activeTab === 'vehicles' ? 'bg-cyan-500 text-white' : 'text-slate-500 hover:text-slate-900'}`}>Vehicles</button>
+        <button onClick={() => setActiveTab('shipments')} className={`px-4 py-2 rounded-xl text-sm font-medium transition ${activeTab === 'shipments' ? 'bg-cyan-500 text-white' : 'text-slate-500 hover:text-slate-900'}`}>Shipments</button>
       </div>
 
-      {/* Main Content */}
-      <div className="grid gap-6 lg:grid-cols-3">
-        {/* Shipments List */}
-        <div className="lg:col-span-1 space-y-4">
-          <div className="rounded-3xl border border-slate-700 bg-slate-900/80 p-5">
-            <div className="flex items-center justify-between mb-5">
-              <div>
-                <h2 className="text-lg font-semibold text-white">Shipments</h2>
-                <p className="text-sm text-slate-400">Live shipment status and routing</p>
-              </div>
-            </div>
-            <div className="space-y-4 max-h-[720px] overflow-y-auto pr-2">
-              {shipments.map((shipment) => {
-                const selected = selectedShipment?.id === shipment.id;
-                return (
-                  <button
-                    key={shipment.id}
-                    onClick={() => setSelectedShipment(shipment)}
-                    className={`w-full text-left rounded-3xl border p-4 transition ${
-                      selected ? 'border-cyan-500 bg-slate-800' : 'border-slate-700 bg-slate-800/70 hover:border-slate-600'
-                    }`}
-                  >
-                    <div className="flex items-start justify-between gap-3">
-                      <div>
-                        <p className="font-semibold text-white">{shipment.trackingNumber}</p>
-                        <p className="text-xs text-slate-400 mt-1">{shipment.shippingAddress || 'No destination set'}</p>
-                      </div>
-                      <span className={`rounded-full px-3 py-1 text-xs font-semibold ${getStatusColor(shipment.status)}`}>
-                        {shipment.status}
-                      </span>
-                    </div>
-                    <div className="mt-4 h-2 overflow-hidden rounded-full bg-slate-700">
-                      <div className="h-full bg-gradient-to-r from-cyan-400 to-blue-500" style={{ width: `${getProgress(shipment.status)}%` }} />
-                    </div>
-                    <p className="text-xs text-slate-500 mt-2">Driver: {shipment.driverName || 'Unassigned'}</p>
-                  </button>
-                );
-              })}
-            </div>
+      {activeTab === 'dashboard' && (
+        <>
+          <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-7">
+            <div className="rounded-3xl border border-slate-200 bg-slate-50/80 p-5"><div className="flex items-center justify-between gap-4"><div><p className="text-slate-500 text-xs uppercase tracking-[0.2em] mb-2">Shipments</p><p className="text-3xl font-semibold text-slate-900">{stats.totalShipments}</p></div><div className="flex h-12 w-12 items-center justify-center rounded-3xl bg-white text-2xl">📦</div></div></div>
+            <div className="rounded-3xl border border-slate-200 bg-slate-50/80 p-5"><div className="flex items-center justify-between gap-4"><div><p className="text-slate-500 text-xs uppercase tracking-[0.2em] mb-2">Active</p><p className="text-3xl font-semibold text-slate-900">{stats.activeShipments}</p></div><div className="flex h-12 w-12 items-center justify-center rounded-3xl bg-white text-2xl">🚚</div></div></div>
+            <div className="rounded-3xl border border-slate-200 bg-slate-50/80 p-5"><div className="flex items-center justify-between gap-4"><div><p className="text-slate-500 text-xs uppercase tracking-[0.2em] mb-2">Drivers</p><p className="text-3xl font-semibold text-slate-900">{stats.totalDrivers}</p></div><div className="flex h-12 w-12 items-center justify-center rounded-3xl bg-white text-2xl">👨‍✈️</div></div></div>
+            <div className="rounded-3xl border border-slate-200 bg-slate-50/80 p-5"><div className="flex items-center justify-between gap-4"><div><p className="text-slate-500 text-xs uppercase tracking-[0.2em] mb-2">Vehicles</p><p className="text-3xl font-semibold text-slate-900">{stats.totalVehicles}</p></div><div className="flex h-12 w-12 items-center justify-center rounded-3xl bg-white text-2xl">🚛</div></div></div>
+            <div className="rounded-3xl border border-slate-200 bg-slate-50/80 p-5"><div className="flex items-center justify-between gap-4"><div><p className="text-slate-500 text-xs uppercase tracking-[0.2em] mb-2">Orders</p><p className="text-3xl font-semibold text-slate-900">{stats.totalOrders}</p></div><div className="flex h-12 w-12 items-center justify-center rounded-3xl bg-white text-2xl">🛒</div></div></div>
+            <div className="rounded-3xl border border-slate-200 bg-slate-50/80 p-5"><div className="flex items-center justify-between gap-4"><div><p className="text-slate-500 text-xs uppercase tracking-[0.2em] mb-2">Products</p><p className="text-3xl font-semibold text-slate-900">{stats.totalProducts}</p></div><div className="flex h-12 w-12 items-center justify-center rounded-3xl bg-white text-2xl">🏷️</div></div></div>
+            <div className="rounded-3xl border border-slate-200 bg-slate-50/80 p-5"><div className="flex items-center justify-between gap-4"><div><p className="text-slate-500 text-xs uppercase tracking-[0.2em] mb-2">Users</p><p className="text-3xl font-semibold text-slate-900">{stats.totalUsers}</p></div><div className="flex h-12 w-12 items-center justify-center rounded-3xl bg-white text-2xl">👥</div></div></div>
           </div>
-        </div>
 
-    
-        <div className="lg:col-span-2 space-y-6">
-          {selectedShipment ? (
-            <>
-              <div className="rounded-3xl border border-slate-700 bg-slate-900/80 p-6">
-                <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
-                  <div className="space-y-2">
-                    <h2 className="text-2xl font-semibold text-white">{selectedShipment.trackingNumber}</h2>
-                    <p className="text-slate-400">Order #{selectedShipment.orderId}</p>
-                    <p className="text-sm text-slate-500">Updated {selectedShipment.estimatedDeliveryDate?.slice(0, 10) || 'N/A'}</p>
-                  </div>
-                  <div className="flex flex-wrap gap-3 items-center">
-                    <button
-                      onClick={loadAllData}
-                      className="rounded-2xl bg-slate-700 px-4 py-2 text-sm font-semibold text-white hover:bg-slate-600 transition"
-                    >
-                      Refresh
-                    </button>
-                    {selectedShipment.status !== 'Delivered' && selectedShipment.status !== 'In Transit' && (
-                      <button
-                        onClick={() => updateShipmentStatus(selectedShipment.id, 'In Transit')}
-                        className="rounded-2xl bg-green-500 px-4 py-2 text-sm font-semibold text-white hover:bg-green-400 transition"
-                      >
-                        Start Delivery
-                      </button>
-                    )}
-                    {selectedShipment.status !== 'Delivered' && (
-                      <button
-                        onClick={() => updateShipmentStatus(selectedShipment.id, 'Delivered')}
-                        className="rounded-2xl bg-blue-500 px-4 py-2 text-sm font-semibold text-white hover:bg-blue-400 transition"
-                      >
-                        Mark Delivered
-                      </button>
-                    )}
-                  </div>
-                </div>
-
-                <div className="mt-8 grid gap-4 md:grid-cols-2">
-                  <InfoBlock
-                    title="Shipping Info"
-                    rows={[
-                      { label: 'Status', value: selectedShipment.status || 'Unknown', badge: getStatusColor(selectedShipment.status) },
-                      { label: 'Destination', value: selectedShipment.shippingAddress || 'N/A' },
-                      { label: 'Current Location', value: liveTracking?.currentLocation ?? 'Waiting for live GPS' },
-                      { label: 'Last Update', value: liveTracking?.lastLocationUpdate ? new Date(liveTracking.lastLocationUpdate).toLocaleDateString() : 'Awaiting update' },
-                      { label: 'Estimated Delivery', value: selectedShipment.estimatedDeliveryDate ? new Date(selectedShipment.estimatedDeliveryDate).toLocaleDateString() : 'TBD' },
-                      { label: 'Actual Delivery', value: selectedShipment.actualDeliveryDate ? new Date(selectedShipment.actualDeliveryDate).toLocaleDateString() : 'Pending' },
-                    ]}
-                  />
-                  <InfoBlock
-                    title="Vehicle Info"
-                    rows={[
-                      { label: 'Driver', value: selectedShipment.driverName || 'Unassigned' },
-                      { label: 'Vehicle', value: selectedShipment.vehiclePlate || 'N/A' },
-                      { label: 'Items', value: `${selectedShipment.items?.length || 0} products` },
-                      { label: 'Progress', value: `${getProgress(selectedShipment.status)}%` },
-                    ]}
-                  />
-                </div>
-              </div>
-
-      
-              <div className="rounded-3xl border border-slate-700 bg-slate-900/80 p-6">
-                <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between mb-4">
-                  <div>
-                    <h3 className="text-lg font-semibold text-white">Live Tracking</h3>
-                    <p className="text-slate-400 text-sm">Realtime driver location and estimated shipment route.</p>
-                  </div>
-                  <button
-                    onClick={() => selectedShipment && refreshLiveTracking(selectedShipment.id)}
-                    className="rounded-2xl bg-slate-700 px-4 py-2 text-sm font-semibold text-white hover:bg-slate-600 transition"
-                  >
-                    Refresh
-                  </button>
-                </div>
-
-                <div className="grid gap-4 lg:grid-cols-[1.4fr_0.6fr]">
-                  <div className="rounded-2xl overflow-hidden border border-slate-700 bg-slate-800/40 h-72 flex items-center justify-center">
-                    {liveTracking?.currentLocation ? (
-                      <iframe
-                        title="Admin live tracking map"
-                        src={getMapUrl()}
-                        className="w-full h-full border-0"
-                        allowFullScreen
-                      />
-                    ) : (
-                      <div className="text-center px-4">
-                        <p className="text-slate-400">Driver location is not available yet.</p>
-                        <p className="text-slate-500 text-sm mt-2">Wait for the driver to send their live GPS coordinates.</p>
-                      </div>
-                    )}
-                  </div>
-                  <div className="rounded-2xl border border-slate-700 bg-slate-800/50 p-4">
-                    <div className="space-y-4">
-                      <div>
-                        <p className="text-slate-400 text-sm">Current Location</p>
-                        <p className="text-white font-medium">{liveTracking?.currentLocation ?? 'Waiting for live GPS'}</p>
-                      </div>
-                      <div>
-                        <p className="text-slate-400 text-sm">Last Updated</p>
-                        <p className="text-white font-medium">
-                          {liveTracking?.lastLocationUpdate
-                            ? new Date(liveTracking.lastLocationUpdate).toLocaleString()
-                            : 'Awaiting update'}
-                        </p>
-                      </div>
-                      <div>
-                        <p className="text-slate-400 text-sm">Driver</p>
-                        <p className="text-white font-medium">{liveTracking?.driverName || selectedShipment.driverName || 'Unassigned'}</p>
-                      </div>
-                      <div>
-                        <p className="text-slate-400 text-sm">Driver Contact</p>
-                        <p className="text-white font-medium">{liveTracking?.driverPhone || 'N/A'}</p>
-                      </div>
-                      <div>
-                        <p className="text-slate-400 text-sm">Shipment Status</p>
-                        <p className="text-white font-medium">{liveTracking?.status || selectedShipment.status}</p>
-                      </div>
-                    </div>
-                  </div>
-                </div>
-              </div>
-
-              <div className="grid gap-6 xl:grid-cols-2">
-                <div className="rounded-3xl border border-slate-700 bg-slate-900/80 p-6">
-                  <div className="flex items-center justify-between mb-5">
-                    <p className="text-slate-400 text-sm uppercase tracking-[0.25em]">Documents Info</p>
-                    <button className="text-cyan-400 text-sm hover:text-cyan-300 transition">Upload</button>
-                  </div>
-                  <DocumentRow title="Bill of Lading" status="Ready" />
-                  <DocumentRow title="Customs" status="Pending" />
-                  <DocumentRow title="Invoice" status="Ready" />
-                </div>
-
-                <div className="rounded-3xl border border-slate-700 bg-slate-900/80 p-6">
-                  <div className="flex items-center justify-between mb-5">
-                    <p className="text-slate-400 text-sm uppercase tracking-[0.25em]">Billing Info</p>
-                    <span className="text-slate-400 text-sm">Due Soon</span>
-                  </div>
-                  <InfoRow label="Total Items" value={`${selectedShipment.items?.reduce((sum, item) => sum + item.quantity, 0) || 0} units`} />
-                  <InfoRow label="Transport Cost" value="$2,500" />
-                  <InfoRow label="Payment Status" value="Pending" badge="bg-yellow-500/20 text-yellow-400" />
-                  <InfoRow label="Invoice" value={`INV-${selectedShipment.orderId}`} />
-                </div>
-              </div>
-            </>
-          ) : (
-            <div className="rounded-3xl border border-slate-700 bg-slate-900/80 p-8 text-center">
-              <p className="text-slate-400">Select a shipment to view details</p>
-            </div>
-          )}
-        </div>
-      </div>
-
-      {/* Create Shipment Modal */}
-      {showCreateShipmentModal && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50" onClick={() => setShowCreateShipmentModal(false)}>
-          <div className="w-full max-w-2xl max-h-[90vh] overflow-y-auto rounded-3xl border border-slate-700 bg-slate-900 p-6" onClick={(e) => e.stopPropagation()}>
-            <h2 className="text-2xl font-semibold text-white mb-4">Create New Shipment</h2>
-            
-            <div className="space-y-4">
-              <div className="grid grid-cols-2 gap-4">
-                <div>
-                  <label className="block text-sm text-slate-400 mb-1">Order ID *</label>
-                  <input
-                    type="number"
-                    placeholder="Order ID"
-                    value={newShipment.orderId}
-                    onChange={(e) => setNewShipment({ ...newShipment, orderId: e.target.value })}
-                    className="w-full rounded-2xl border border-slate-700 bg-slate-800 px-4 py-3 text-white"
-                  />
-                </div>
-                <div>
-                  <label className="block text-sm text-slate-400 mb-1">Estimated Delivery Date *</label>
-                  <input
-                    type="datetime-local"
-                    value={newShipment.estimatedDeliveryDate}
-                    onChange={(e) => setNewShipment({ ...newShipment, estimatedDeliveryDate: e.target.value })}
-                    className="w-full rounded-2xl border border-slate-700 bg-slate-800 px-4 py-3 text-white"
-                  />
-                </div>
-              </div>
-
-              <div className="grid grid-cols-2 gap-4">
-                <div>
-                  <label className="block text-sm text-slate-400 mb-1">Assign Driver (Optional)</label>
-                  <select
-                    value={newShipment.driverId}
-                    onChange={(e) => setNewShipment({ ...newShipment, driverId: e.target.value })}
-                    className="w-full rounded-2xl border border-slate-700 bg-slate-800 px-4 py-3 text-white"
-                  >
-                    <option value="">Select Driver</option>
-                    {drivers.filter(d => d.isAvailable).map(driver => (
-                      <option key={driver.id} value={driver.id}>
-                        {driver.firstName} {driver.lastName} - {driver.licenseNumber}
-                      </option>
-                    ))}
-                  </select>
-                </div>
-                <div>
-                  <label className="block text-sm text-slate-400 mb-1">Assign Vehicle (Optional)</label>
-                  <select
-                    value={newShipment.vehicleId}
-                    onChange={(e) => setNewShipment({ ...newShipment, vehicleId: e.target.value })}
-                    className="w-full rounded-2xl border border-slate-700 bg-slate-800 px-4 py-3 text-white"
-                  >
-                    <option value="">Select Vehicle</option>
-                    {vehicles.filter(v => v.isAvailable).map(vehicle => (
-                      <option key={vehicle.id} value={vehicle.id}>
-                        {vehicle.plateNumber} - {vehicle.model}
-                      </option>
-                    ))}
-                  </select>
-                </div>
-              </div>
-
-              <div>
-                <label className="block text-sm text-slate-400 mb-1">Shipping Address</label>
-                <textarea
-                  placeholder="Full shipping address"
-                  value={newShipment.shippingAddress}
-                  onChange={(e) => setNewShipment({ ...newShipment, shippingAddress: e.target.value })}
-                  className="w-full rounded-2xl border border-slate-700 bg-slate-800 px-4 py-3 text-white"
-                  rows={2}
-                />
-              </div>
-
-              <div>
-                <label className="block text-sm text-slate-400 mb-2">Items</label>
-                <div className="space-y-2 max-h-48 overflow-y-auto">
-                  {products.filter(p => p.isActive).map(product => {
-                    const existingItem = newShipment.items.find(i => i.productId === product.id);
+          <div className="grid gap-6 lg:grid-cols-3">
+            <div className="lg:col-span-1 space-y-4">
+              <div className="rounded-3xl border border-slate-200 bg-slate-50/80 p-5">
+                <div className="flex items-center justify-between mb-5"><div><h2 className="text-lg font-semibold text-slate-900">Shipments</h2><p className="text-sm text-slate-500">Live shipment status and routing</p></div></div>
+                <div className="space-y-4 max-h-[720px] overflow-y-auto pr-2">
+                  {shipments.map((shipment) => {
+                    const selected = selectedShipment?.id === shipment.id;
                     return (
-                      <div key={product.id} className="flex items-center gap-3 p-2 bg-slate-800 rounded-xl">
-                        <input
-                          type="checkbox"
-                          checked={!!existingItem}
-                          onChange={(e) => {
-                            if (e.target.checked) {
-                              setNewShipment({
-                                ...newShipment,
-                                items: [...newShipment.items, { productId: product.id, quantity: 1 }]
-                              });
-                            } else {
-                              setNewShipment({
-                                ...newShipment,
-                                items: newShipment.items.filter(i => i.productId !== product.id)
-                              });
-                            }
-                          }}
-                          className="w-4 h-4"
-                        />
-                        <span className="flex-1 text-white">{product.name}</span>
-                        <span className="text-slate-400">${product.price}</span>
-                        {existingItem && (
-                          <input
-                            type="number"
-                            min="1"
-                            value={existingItem.quantity}
-                            onChange={(e) => {
-                              setNewShipment({
-                                ...newShipment,
-                                items: newShipment.items.map(i =>
-                                  i.productId === product.id ? { ...i, quantity: parseInt(e.target.value) || 1 } : i
-                                )
-                              });
-                            }}
-                            className="w-20 px-2 py-1 bg-slate-700 border border-slate-600 rounded text-white text-center"
-                          />
-                        )}
-                      </div>
+                      <button key={shipment.id} onClick={() => setSelectedShipment(shipment)} className={`w-full text-left rounded-3xl border p-4 transition ${selected ? 'border-cyan-500 bg-white' : 'border-slate-200 bg-white/70 hover:border-slate-600'}`}>
+                        <div className="flex items-start justify-between gap-3"><div><p className="font-semibold text-slate-900">{shipment.trackingNumber}</p><p className="text-xs text-slate-500 mt-1">{shipment.shippingAddress || 'No destination set'}</p></div><span className={`rounded-full px-3 py-1 text-xs font-semibold ${getStatusColor(shipment.status)}`}>{shipment.status}</span></div>
+                        <div className="mt-4 h-2 overflow-hidden rounded-full bg-slate-200"><div className="h-full bg-gradient-to-r from-cyan-400 to-blue-500" style={{ width: `${getProgress(shipment.status)}%` }} /></div>
+                        <p className="text-xs text-slate-500 mt-2">Driver: {shipment.driverName || 'Unassigned'}</p>
+                      </button>
                     );
                   })}
                 </div>
               </div>
             </div>
 
-            <div className="flex gap-3 mt-6">
-              <button
-                onClick={() => setShowCreateShipmentModal(false)}
-                className="flex-1 rounded-2xl bg-slate-700 px-4 py-3 text-white hover:bg-slate-600 transition"
-              >
-                Cancel
-              </button>
-              <button
-                onClick={createShipment}
-                className="flex-1 rounded-2xl bg-gradient-to-r from-cyan-500 to-blue-500 px-4 py-3 text-white hover:from-cyan-400 hover:to-blue-400 transition"
-              >
-                Create Shipment
-              </button>
+            <div className="lg:col-span-2 space-y-6">
+              {selectedShipment ? (
+                <>
+                  <div className="rounded-3xl border border-slate-200 bg-slate-50/80 p-6">
+                    <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
+                      <div className="space-y-2"><h2 className="text-2xl font-semibold text-slate-900">{selectedShipment.trackingNumber}</h2><p className="text-slate-500">Order #{selectedShipment.orderId}</p><p className="text-sm text-slate-500">Updated {selectedShipment.estimatedDeliveryDate?.slice(0, 10) || 'N/A'}</p></div>
+                      <div className="flex flex-wrap gap-3 items-center">
+                        <button onClick={loadAllData} className="rounded-2xl bg-slate-200 px-4 py-2 text-sm font-semibold text-slate-900 hover:bg-slate-100 transition">Refresh</button>
+                        {selectedShipment.status !== 'Delivered' && selectedShipment.status !== 'In Transit' && (<button onClick={() => updateShipmentStatus(selectedShipment.id, 'In Transit')} className="rounded-2xl bg-green-500 px-4 py-2 text-sm font-semibold text-white hover:bg-green-400 transition">Start Delivery</button>)}
+                        {selectedShipment.status !== 'Delivered' && (<button onClick={() => updateShipmentStatus(selectedShipment.id, 'Delivered')} className="rounded-2xl bg-blue-500 px-4 py-2 text-sm font-semibold text-white hover:bg-blue-400 transition">Mark Delivered</button>)}
+                      </div>
+                    </div>
+                    <div className="mt-8 grid gap-4 md:grid-cols-2">
+                      <div className="rounded-3xl border border-slate-200 bg-white/70 p-5"><p className="text-slate-500 text-sm uppercase tracking-[0.25em] mb-4">Shipping Info</p><div className="space-y-3"><div className="flex items-center justify-between border-b border-slate-200 pb-3"><span className="text-sm text-slate-500">Status</span><span className={`text-sm font-medium ${getStatusColor(selectedShipment.status)}`}>{selectedShipment.status || 'Unknown'}</span></div><div className="flex items-center justify-between border-b border-slate-200 pb-3"><span className="text-sm text-slate-500">Destination</span><span className="text-sm font-medium text-slate-900">{selectedShipment.shippingAddress || 'N/A'}</span></div><div className="flex items-center justify-between border-b border-slate-200 pb-3"><span className="text-sm text-slate-500">Current Location</span><span className="text-sm font-medium text-slate-900">{liveTracking?.currentLocation ?? 'Waiting for live GPS'}</span></div><div className="flex items-center justify-between border-b border-slate-200 pb-3"><span className="text-sm text-slate-500">Last Update</span><span className="text-sm font-medium text-slate-900">{liveTracking?.lastLocationUpdate ? new Date(liveTracking.lastLocationUpdate).toLocaleDateString() : 'Awaiting update'}</span></div><div className="flex items-center justify-between border-b border-slate-200 pb-3"><span className="text-sm text-slate-500">Estimated Delivery</span><span className="text-sm font-medium text-slate-900">{selectedShipment.estimatedDeliveryDate ? new Date(selectedShipment.estimatedDeliveryDate).toLocaleDateString() : 'TBD'}</span></div><div className="flex items-center justify-between pb-3"><span className="text-sm text-slate-500">Actual Delivery</span><span className="text-sm font-medium text-slate-900">{selectedShipment.actualDeliveryDate ? new Date(selectedShipment.actualDeliveryDate).toLocaleDateString() : 'Pending'}</span></div></div></div>
+                      <div className="rounded-3xl border border-slate-200 bg-white/70 p-5"><p className="text-slate-500 text-sm uppercase tracking-[0.25em] mb-4">Vehicle Info</p><div className="space-y-3"><div className="flex items-center justify-between border-b border-slate-200 pb-3"><span className="text-sm text-slate-500">Driver</span><span className="text-sm font-medium text-slate-900">{selectedShipment.driverName || 'Unassigned'}</span></div><div className="flex items-center justify-between border-b border-slate-200 pb-3"><span className="text-sm text-slate-500">Vehicle</span><span className="text-sm font-medium text-slate-900">{selectedShipment.vehiclePlate || 'N/A'}</span></div><div className="flex items-center justify-between border-b border-slate-200 pb-3"><span className="text-sm text-slate-500">Items</span><span className="text-sm font-medium text-slate-900">{selectedShipment.items?.length || 0} products</span></div><div className="flex items-center justify-between pb-3"><span className="text-sm text-slate-500">Progress</span><span className="text-sm font-medium text-slate-900">{getProgress(selectedShipment.status)}%</span></div></div></div>
+                    </div>
+                  </div>
+
+                  <div className="rounded-3xl border border-slate-200 bg-slate-50/80 p-6">
+                    <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between mb-4"><div><h3 className="text-lg font-semibold text-slate-900">Live Tracking</h3><p className="text-slate-500 text-sm">Realtime driver location and estimated shipment route.</p></div><button onClick={() => selectedShipment && refreshLiveTracking(selectedShipment.id)} className="rounded-2xl bg-slate-200 px-4 py-2 text-sm font-semibold text-slate-900 hover:bg-slate-100 transition">Refresh</button></div>
+                    <div className="grid gap-4 lg:grid-cols-[1.4fr_0.6fr]">
+                      <div className="rounded-2xl overflow-hidden border border-slate-200 bg-slate-100/80 h-72 flex items-center justify-center">
+                        {liveTracking?.currentLocation ? (<iframe title="Admin live tracking map" src={getMapUrl()} className="w-full h-full border-0" allowFullScreen />) : (<div className="text-center px-4"><p className="text-slate-500">Driver location is not available yet.</p><p className="text-slate-500 text-sm mt-2">Wait for the driver to send their live GPS coordinates.</p></div>)}
+                      </div>
+                      <div className="rounded-2xl border border-slate-200 bg-slate-100/90 p-4"><div className="space-y-4"><div><p className="text-slate-500 text-sm">Current Location</p><p className="text-slate-900 font-medium">{liveTracking?.currentLocation ?? 'Waiting for live GPS'}</p></div><div><p className="text-slate-500 text-sm">Last Updated</p><p className="text-slate-900 font-medium">{liveTracking?.lastLocationUpdate ? new Date(liveTracking.lastLocationUpdate).toLocaleString() : 'Awaiting update'}</p></div><div><p className="text-slate-500 text-sm">Driver</p><p className="text-slate-900 font-medium">{liveTracking?.driverName || selectedShipment.driverName || 'Unassigned'}</p></div><div><p className="text-slate-500 text-sm">Driver Contact</p><p className="text-slate-900 font-medium">{liveTracking?.driverPhone || 'N/A'}</p></div><div><p className="text-slate-500 text-sm">Shipment Status</p><p className="text-slate-900 font-medium">{liveTracking?.status || selectedShipment.status}</p></div></div></div>
+                    </div>
+                  </div>
+                </>
+              ) : (
+                <div className="rounded-3xl border border-slate-200 bg-slate-50/80 p-8 text-center"><p className="text-slate-500">Select a shipment to view details</p></div>
+              )}
             </div>
+          </div>
+        </>
+      )}
+
+      {activeTab === 'vehicles' && (
+        <div className="rounded-2xl border border-slate-200 bg-slate-100/90 p-6 backdrop-blur">
+          <div className="flex justify-between items-center mb-6"><div><h2 className="text-xl font-bold text-slate-900">Fleet Management</h2><p className="text-slate-500 text-sm">Manage vehicles, assign to drivers, and live tracking</p></div><div className="flex gap-3"><button onClick={() => { setEditingVehicle(null); setShowVehicleModal(true); }} className="px-3 py-2 bg-green-600 hover:bg-green-700 text-white rounded-lg text-sm flex items-center gap-2"><Plus className="w-4 h-4" />Add Vehicle</button><button onClick={() => setShowAssignModal(true)} className="px-3 py-2 bg-purple-600 hover:bg-purple-700 text-white rounded-lg text-sm flex items-center gap-2"><UserIcon className="w-4 h-4" />Assign to Driver</button><button onClick={fetchVehicles} className="px-3 py-2 bg-slate-200 hover:bg-slate-100 text-slate-700 rounded-lg text-sm flex items-center gap-2"><RefreshCw className="w-4 h-4" />Refresh</button></div></div>
+          <div className="grid grid-cols-1 gap-6 lg:grid-cols-2 xl:grid-cols-3">
+            {vehicles.map((vehicle) => {
+              const statsData = vehicleStats[vehicle.id] || { status: vehicle.isAvailable ? 'available' : 'offline', progress: 0, location: 'Unknown' };
+              const assignedDriver = drivers.find(d => d.id === vehicle.driverId);
+              return (
+                <div key={vehicle.id} className="bg-white rounded-xl border border-slate-200 overflow-hidden hover:border-cyan-500/50 transition-all duration-300">
+                  <div className="p-4 border-b border-slate-200 bg-gradient-to-r from-slate-100 to-slate-50"><div className="flex justify-between items-center"><div className="flex items-center gap-3">{vehicle.imageUrl ? <img src={vehicle.imageUrl} alt={vehicle.model} className="w-12 h-12 rounded-xl object-cover" /> : <div className="w-12 h-12 rounded-xl bg-cyan-500/10 flex items-center justify-center"><Truck className="w-6 h-6 text-cyan-500" /></div>}<div><h3 className="text-lg font-bold text-slate-900">{vehicle.plateNumber}</h3><p className="text-slate-500 text-sm">{vehicle.model} ({vehicle.year})</p></div></div><span className={`px-3 py-1 rounded-full text-xs font-semibold ${statusColors[statsData.status]}`}>{statusLabels[statsData.status]}</span></div></div>
+                  <div className="p-4 space-y-3"><div className="grid grid-cols-2 gap-3 text-sm"><div><p className="text-slate-500">Type</p><p className="text-slate-900 font-medium capitalize">{vehicle.vehicleType}</p></div><div><p className="text-slate-500">Capacity</p><p className="text-slate-900 font-medium">{vehicle.capacity} kg</p></div><div><p className="text-slate-500">Color</p><p className="text-slate-900 font-medium">{vehicle.color || '-'}</p></div><div><p className="text-slate-500">Driver</p><p className="text-slate-900 font-medium">{assignedDriver ? `${assignedDriver.firstName} ${assignedDriver.lastName}` : 'Not assigned'}</p></div></div>{statsData.location && (<div className="flex items-center gap-2 text-sm bg-slate-100 rounded-lg p-2"><MapPin className="w-4 h-4 text-cyan-500" /><span className="text-slate-600">{statsData.location}</span></div>)}{statsData.status === 'in-transit' && (<div><div className="flex justify-between text-xs mb-1"><span className="text-slate-500">Route Progress</span><span className="text-cyan-500 font-semibold">{statsData.progress}%</span></div><div className="h-1.5 bg-slate-200 rounded-full overflow-hidden"><div className="h-full bg-gradient-to-r from-cyan-400 to-blue-500 rounded-full" style={{ width: `${statsData.progress}%` }} /></div></div>)}<div className="flex gap-2 pt-2"><button onClick={() => setShowTrackerModal(vehicle)} className="flex-1 px-3 py-2 bg-cyan-500 hover:bg-cyan-400 text-white rounded-lg text-sm font-semibold transition flex items-center justify-center gap-2"><Navigation className="w-4 h-4" />Live Tracking</button><button onClick={() => { setEditingVehicle(vehicle); setShowVehicleModal(true); }} className="px-3 py-2 bg-slate-200 hover:bg-slate-100 text-slate-700 rounded-lg text-sm transition"><Edit className="w-4 h-4" /></button></div></div>
+                </div>
+              );
+            })}
+            {vehicles.length === 0 && (<div className="col-span-full text-center py-12 bg-white rounded-xl border border-slate-200"><Truck className="w-16 h-16 text-slate-400 mx-auto mb-4" /><p className="text-slate-500">No vehicles found</p><button onClick={() => setShowVehicleModal(true)} className="mt-4 px-4 py-2 bg-cyan-600 hover:bg-cyan-700 text-white rounded-lg">Add your first vehicle</button></div>)}
           </div>
         </div>
       )}
 
-      {/* Driver Modal */}
+      {activeTab === 'shipments' && (
+        <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+          {shipments.map((shipment) => (
+            <div key={shipment.id} className="rounded-3xl border border-slate-200 bg-slate-50/80 p-6"><div className="flex items-center justify-between mb-4"><h3 className="text-lg font-semibold text-slate-900">{shipment.trackingNumber}</h3><span className={`rounded-full px-3 py-1 text-xs font-semibold ${getStatusColor(shipment.status)}`}>{shipment.status}</span></div><div className="space-y-2"><p className="text-slate-500">Destination: {shipment.shippingAddress}</p><p className="text-slate-500">Driver: {shipment.driverName || 'Unassigned'}</p></div><div className="flex gap-2 mt-4"><button onClick={() => updateShipmentStatus(shipment.id, 'In Transit')} className="bg-green-500 text-white px-3 py-1 rounded text-sm hover:bg-green-400">Start</button><button onClick={() => updateShipmentStatus(shipment.id, 'Delivered')} className="bg-blue-500 text-white px-3 py-1 rounded text-sm hover:bg-blue-400">Deliver</button></div></div>
+          ))}
+        </div>
+      )}
+
+      {showVehicleModal && (<VehicleManagementModal vehicle={editingVehicle} onClose={() => { setShowVehicleModal(false); setEditingVehicle(null); }} onSuccess={() => { fetchVehicles(); loadAllData(); }} />)}
+      {showAssignModal && (<AssignVehicleToDriverModal drivers={drivers} vehicles={vehicles} onClose={() => setShowAssignModal(false)} onSuccess={() => { fetchVehicles(); loadAllData(); }} />)}
+      {showTrackerModal && (<VehicleLiveTracker vehicleId={showTrackerModal.id} plateNumber={showTrackerModal.plateNumber} model={showTrackerModal.model} imageUrl={showTrackerModal.imageUrl} color={showTrackerModal.color} onClose={() => setShowTrackerModal(null)} />)}
+
+      {showCreateShipmentModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50" onClick={() => setShowCreateShipmentModal(false)}>
+          <div className="w-full max-w-2xl max-h-[90vh] overflow-y-auto rounded-3xl border border-slate-200 bg-slate-50 p-6" onClick={(e) => e.stopPropagation()}>
+            <h2 className="text-2xl font-semibold text-slate-900 mb-4">Create New Shipment</h2>
+            <div className="space-y-4"><div className="grid grid-cols-2 gap-4"><div><label className="block text-sm text-slate-500 mb-1">Order ID *</label><input type="number" placeholder="Order ID" value={newShipment.orderId} onChange={(e) => setNewShipment({ ...newShipment, orderId: e.target.value })} className="w-full rounded-2xl border border-slate-200 bg-white px-4 py-3 text-slate-900" /></div><div><label className="block text-sm text-slate-500 mb-1">Estimated Delivery Date *</label><input type="datetime-local" value={newShipment.estimatedDeliveryDate} onChange={(e) => setNewShipment({ ...newShipment, estimatedDeliveryDate: e.target.value })} className="w-full rounded-2xl border border-slate-200 bg-white px-4 py-3 text-slate-900" /></div></div><div className="grid grid-cols-2 gap-4"><div><label className="block text-sm text-slate-500 mb-1">Assign Driver (Optional)</label><select value={newShipment.driverId} onChange={(e) => setNewShipment({ ...newShipment, driverId: e.target.value })} className="w-full rounded-2xl border border-slate-200 bg-white px-4 py-3 text-slate-900"><option value="">Select Driver</option>{drivers.filter(d => d.isAvailable).map(driver => (<option key={driver.id} value={driver.id}>{driver.firstName} {driver.lastName} - {driver.licenseNumber}</option>))}</select></div><div><label className="block text-sm text-slate-500 mb-1">Assign Vehicle (Optional)</label><select value={newShipment.vehicleId} onChange={(e) => setNewShipment({ ...newShipment, vehicleId: e.target.value })} className="w-full rounded-2xl border border-slate-200 bg-white px-4 py-3 text-slate-900"><option value="">Select Vehicle</option>{vehicles.filter(v => v.isAvailable).map(vehicle => (<option key={vehicle.id} value={vehicle.id}>{vehicle.plateNumber} - {vehicle.model}</option>))}</select></div></div><div><label className="block text-sm text-slate-500 mb-1">Shipping Address</label><textarea placeholder="Full shipping address" value={newShipment.shippingAddress} onChange={(e) => setNewShipment({ ...newShipment, shippingAddress: e.target.value })} className="w-full rounded-2xl border border-slate-200 bg-white px-4 py-3 text-slate-900" rows={2} /></div><div><label className="block text-sm text-slate-500 mb-2">Items</label><div className="space-y-2 max-h-48 overflow-y-auto">{products.filter(p => p.isActive).map(product => { const existingItem = newShipment.items.find(i => i.productId === product.id); return (<div key={product.id} className="flex items-center gap-3 p-2 bg-white rounded-xl"><input type="checkbox" checked={!!existingItem} onChange={(e) => { if (e.target.checked) { setNewShipment({ ...newShipment, items: [...newShipment.items, { productId: product.id, quantity: 1 }] }); } else { setNewShipment({ ...newShipment, items: newShipment.items.filter(i => i.productId !== product.id) }); } }} className="w-4 h-4" /><span className="flex-1 text-slate-900">{product.name}</span><span className="text-slate-500">${product.price}</span>{existingItem && (<input type="number" min="1" value={existingItem.quantity} onChange={(e) => { setNewShipment({ ...newShipment, items: newShipment.items.map(i => i.productId === product.id ? { ...i, quantity: parseInt(e.target.value) || 1 } : i) }); }} className="w-20 px-2 py-1 bg-slate-100 border border-slate-200 rounded text-slate-900 text-center" />)}</div>); })}</div></div></div>
+            <div className="flex gap-3 mt-6"><button onClick={() => setShowCreateShipmentModal(false)} className="flex-1 rounded-2xl bg-slate-200 px-4 py-3 text-slate-900 hover:bg-slate-100 transition">Cancel</button><button onClick={createShipment} className="flex-1 rounded-2xl bg-gradient-to-r from-cyan-500 to-blue-500 px-4 py-3 text-white hover:from-cyan-400 hover:to-blue-400 transition">Create Shipment</button></div>
+          </div>
+        </div>
+      )}
+
       {showDriverModal && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50" onClick={() => setShowDriverModal(false)}>
-          <div className="w-full max-w-md rounded-3xl border border-slate-700 bg-slate-900 p-6" onClick={(e) => e.stopPropagation()}>
-            <h2 className="text-xl font-semibold text-white mb-4">Add New Driver</h2>
-            <div className="space-y-4">
-              <div>
-                <label className="block text-sm text-slate-300 mb-2">User *</label>
-                <select
-                  value={newDriver.userId || ''}
-                  onChange={(e) => setNewDriver({ ...newDriver, userId: Number(e.target.value) || 0 })}
-                  className="w-full rounded-2xl border border-slate-700 bg-slate-800 px-4 py-3 text-white"
-                >
-                  <option value="">Select existing user</option>
-                  {candidateDriverUsers.map((user) => (
-                    <option key={user.id} value={user.id}>
-                      {user.firstName} {user.lastName} ({user.email})
-                    </option>
-                  ))}
-                </select>
-                {selectedDriverUser && !selectedDriverUser.roles.includes('Driver') && (
-                  <p className="mt-2 text-xs text-yellow-300">
-                    Selected user does not have the Driver role assigned. Assign the role in Users if needed.
-                  </p>
-                )}
-              </div>
-              <input
-                type="text"
-                placeholder="License Number *"
-                value={newDriver.licenseNumber}
-                onChange={(e) => setNewDriver({ ...newDriver, licenseNumber: e.target.value })}
-                className="w-full rounded-2xl border border-slate-700 bg-slate-800 px-4 py-3 text-white"
-              />
-              <input
-                type="text"
-                placeholder="Phone Number"
-                value={newDriver.phoneNumber}
-                onChange={(e) => setNewDriver({ ...newDriver, phoneNumber: e.target.value })}
-                className="w-full rounded-2xl border border-slate-700 bg-slate-800 px-4 py-3 text-white"
-              />
-              <label className="flex items-center gap-3">
-                <input
-                  type="checkbox"
-                  checked={newDriver.isAvailable}
-                  onChange={(e) => setNewDriver({ ...newDriver, isAvailable: e.target.checked })}
-                  className="h-4 w-4 rounded border-slate-600 bg-slate-700 text-cyan-500"
-                />
-                <span className="text-slate-300">Available</span>
-              </label>
-              <div className="flex gap-3 pt-4">
-                <button onClick={() => setShowDriverModal(false)} className="flex-1 rounded-2xl bg-slate-700 px-4 py-3 text-white hover:bg-slate-600 transition">
-                  Cancel
-                </button>
-                <button onClick={createDriver} className="flex-1 rounded-2xl bg-gradient-to-r from-cyan-500 to-blue-500 px-4 py-3 text-white hover:from-cyan-400 hover:to-blue-400 transition">
-                  Create Driver
-                </button>
-              </div>
-            </div>
+          <div className="w-full max-w-md rounded-3xl border border-slate-200 bg-slate-50 p-6" onClick={(e) => e.stopPropagation()}>
+            <h2 className="text-xl font-semibold text-slate-900 mb-4">Add New Driver</h2>
+            <div className="space-y-4"><div><label className="block text-sm text-slate-500 mb-2">User *</label><select value={newDriver.userId || ''} onChange={(e) => setNewDriver({ ...newDriver, userId: Number(e.target.value) || 0 })} className="w-full rounded-2xl border border-slate-200 bg-white px-4 py-3 text-slate-900"><option value="">Select existing user</option>{candidateDriverUsers.map((u) => (<option key={u.id} value={u.id}>{u.firstName} {u.lastName} ({u.email})</option>))}</select>{selectedDriverUser && !selectedDriverUser.roles.includes('Driver') && (<p className="mt-2 text-xs text-yellow-600">Selected user does not have the Driver role assigned. Assign the role in Users if needed.</p>)}</div><input type="text" placeholder="License Number *" value={newDriver.licenseNumber} onChange={(e) => setNewDriver({ ...newDriver, licenseNumber: e.target.value })} className="w-full rounded-2xl border border-slate-200 bg-white px-4 py-3 text-slate-900" /><input type="text" placeholder="Phone Number" value={newDriver.phoneNumber} onChange={(e) => setNewDriver({ ...newDriver, phoneNumber: e.target.value })} className="w-full rounded-2xl border border-slate-200 bg-white px-4 py-3 text-slate-900" /><label className="flex items-center gap-3"><input type="checkbox" checked={newDriver.isAvailable} onChange={(e) => setNewDriver({ ...newDriver, isAvailable: e.target.checked })} className="h-4 w-4 rounded border-slate-300 bg-slate-100 text-cyan-500" /><span className="text-slate-700">Available</span></label><div className="flex gap-3 pt-4"><button onClick={() => setShowDriverModal(false)} className="flex-1 rounded-2xl bg-slate-200 px-4 py-3 text-slate-900 hover:bg-slate-100 transition">Cancel</button><button onClick={createDriver} className="flex-1 rounded-2xl bg-gradient-to-r from-cyan-500 to-blue-500 px-4 py-3 text-white hover:from-cyan-400 hover:to-blue-400 transition">Create Driver</button></div></div>
           </div>
         </div>
       )}
 
-
-      {showVehicleModal && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50" onClick={() => setShowVehicleModal(false)}>
-          <div className="w-full max-w-md rounded-3xl border border-slate-700 bg-slate-900 p-6" onClick={(e) => e.stopPropagation()}>
-            <h2 className="text-xl font-semibold text-white mb-4">Add New Vehicle</h2>
-            <div className="space-y-4">
-              <input
-                type="text"
-                placeholder="Plate Number *"
-                value={newVehicle.plateNumber}
-                onChange={(e) => setNewVehicle({ ...newVehicle, plateNumber: e.target.value })}
-                className="w-full rounded-2xl border border-slate-700 bg-slate-800 px-4 py-3 text-white"
-              />
-              <input
-                type="text"
-                placeholder="Model *"
-                value={newVehicle.model}
-                onChange={(e) => setNewVehicle({ ...newVehicle, model: e.target.value })}
-                className="w-full rounded-2xl border border-slate-700 bg-slate-800 px-4 py-3 text-white"
-              />
-              <input
-                type="number"
-                placeholder="Capacity (kg)"
-                value={newVehicle.capacity || ''}
-                onChange={(e) => setNewVehicle({ ...newVehicle, capacity: parseInt(e.target.value, 10) || 0 })}
-                className="w-full rounded-2xl border border-slate-700 bg-slate-800 px-4 py-3 text-white"
-              />
-              <label className="flex items-center gap-3">
-                <input
-                  type="checkbox"
-                  checked={newVehicle.isAvailable}
-                  onChange={(e) => setNewVehicle({ ...newVehicle, isAvailable: e.target.checked })}
-                  className="h-4 w-4 rounded border-slate-600 bg-slate-700 text-cyan-500"
-                />
-                <span className="text-slate-300">Available</span>
-              </label>
-              <div className="flex gap-3 pt-4">
-                <button onClick={() => setShowVehicleModal(false)} className="flex-1 rounded-2xl bg-slate-700 px-4 py-3 text-white hover:bg-slate-600 transition">
-                  Cancel
-                </button>
-                <button onClick={createVehicle} className="flex-1 rounded-2xl bg-gradient-to-r from-cyan-500 to-blue-500 px-4 py-3 text-white hover:from-cyan-400 hover:to-blue-400 transition">
-                  Create Vehicle
-                </button>
-              </div>
-            </div>
+      {showVehicleModalOld && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50" onClick={() => setShowVehicleModalOld(false)}>
+          <div className="w-full max-w-md rounded-3xl border border-slate-200 bg-slate-50 p-6" onClick={(e) => e.stopPropagation()}>
+            <h2 className="text-xl font-semibold text-slate-900 mb-4">Add New Vehicle</h2>
+            <div className="space-y-4"><input type="text" placeholder="Plate Number *" value={newVehicle.plateNumber} onChange={(e) => setNewVehicle({ ...newVehicle, plateNumber: e.target.value })} className="w-full rounded-2xl border border-slate-200 bg-white px-4 py-3 text-slate-900" /><input type="text" placeholder="Model *" value={newVehicle.model} onChange={(e) => setNewVehicle({ ...newVehicle, model: e.target.value })} className="w-full rounded-2xl border border-slate-200 bg-white px-4 py-3 text-slate-900" /><input type="number" placeholder="Capacity (kg)" value={newVehicle.capacity || ''} onChange={(e) => setNewVehicle({ ...newVehicle, capacity: parseInt(e.target.value, 10) || 0 })} className="w-full rounded-2xl border border-slate-200 bg-white px-4 py-3 text-slate-900" /><label className="flex items-center gap-3"><input type="checkbox" checked={newVehicle.isAvailable} onChange={(e) => setNewVehicle({ ...newVehicle, isAvailable: e.target.checked })} className="h-4 w-4 rounded border-slate-300 bg-slate-100 text-cyan-500" /><span className="text-slate-700">Available</span></label><div className="flex gap-3 pt-4"><button onClick={() => setShowVehicleModalOld(false)} className="flex-1 rounded-2xl bg-slate-200 px-4 py-3 text-slate-900 hover:bg-slate-100 transition">Cancel</button><button onClick={createVehicleOld} className="flex-1 rounded-2xl bg-gradient-to-r from-cyan-500 to-blue-500 px-4 py-3 text-white hover:from-cyan-400 hover:to-blue-400 transition">Create Vehicle</button></div></div>
           </div>
         </div>
       )}
@@ -798,16 +504,15 @@ export function AdminDashboard() {
   );
 }
 
-
 function StatCard({ label, value, icon }: { label: string; value: number; icon: string }) {
   return (
-    <div className="rounded-3xl border border-slate-700 bg-slate-900/80 p-5">
+    <div className="rounded-3xl border border-slate-200 bg-slate-50/80 p-5">
       <div className="flex items-center justify-between gap-4">
         <div>
-          <p className="text-slate-400 text-xs uppercase tracking-[0.2em] mb-2">{label}</p>
-          <p className="text-3xl font-semibold text-white">{value}</p>
+          <p className="text-slate-500 text-xs uppercase tracking-[0.2em] mb-2">{label}</p>
+          <p className="text-3xl font-semibold text-slate-900">{value}</p>
         </div>
-        <div className="flex h-12 w-12 items-center justify-center rounded-3xl bg-slate-800 text-2xl">{icon}</div>
+        <div className="flex h-12 w-12 items-center justify-center rounded-3xl bg-white text-2xl">{icon}</div>
       </div>
     </div>
   );
@@ -815,13 +520,13 @@ function StatCard({ label, value, icon }: { label: string; value: number; icon: 
 
 function InfoBlock({ title, rows }: { title: string; rows: { label: string; value: string; badge?: string }[] }) {
   return (
-    <div className="rounded-3xl border border-slate-700 bg-slate-800/70 p-5">
-      <p className="text-slate-400 text-sm uppercase tracking-[0.25em] mb-4">{title}</p>
+    <div className="rounded-3xl border border-slate-200 bg-white/70 p-5">
+      <p className="text-slate-500 text-sm uppercase tracking-[0.25em] mb-4">{title}</p>
       <div className="space-y-3">
         {rows.map((row) => (
-          <div key={row.label} className="flex items-center justify-between border-b border-slate-700 pb-3 last:border-0 last:pb-0">
-            <span className="text-sm text-slate-400">{row.label}</span>
-            <span className={`text-sm font-medium ${row.badge ? row.badge : 'text-white'}`}>{row.value}</span>
+          <div key={row.label} className="flex items-center justify-between border-b border-slate-200 pb-3 last:border-0 last:pb-0">
+            <span className="text-sm text-slate-500">{row.label}</span>
+            <span className={`text-sm font-medium ${row.badge ? row.badge : 'text-slate-900'}`}>{row.value}</span>
           </div>
         ))}
       </div>
@@ -831,21 +536,25 @@ function InfoBlock({ title, rows }: { title: string; rows: { label: string; valu
 
 function InfoRow({ label, value, badge }: { label: string; value: string; badge?: string }) {
   return (
-    <div className="flex items-center justify-between border-b border-slate-700 py-3 last:border-0 last:pb-0">
-      <span className="text-sm text-slate-400">{label}</span>
-      <span className={`text-sm font-medium ${badge ? badge : 'text-white'}`}>{value}</span>
+    <div className="flex items-center justify-between border-b border-slate-200 py-3 last:border-0 last:pb-0">
+      <span className="text-sm text-slate-500">{label}</span>
+      <span className={`text-sm font-medium ${badge ? badge : 'text-slate-900'}`}>{value}</span>
     </div>
   );
 }
 
 function DocumentRow({ title, status }: { title: string; status: string }) {
   return (
-    <div className="flex items-center justify-between rounded-3xl border border-slate-700 bg-slate-900/70 p-4">
+    <div className="flex items-center justify-between rounded-3xl border border-slate-200 bg-slate-50/70 p-4">
       <div>
-        <p className="text-white font-medium">{title}</p>
+        <p className="text-slate-900 font-medium">{title}</p>
         <p className="text-slate-500 text-xs">Uploaded</p>
       </div>
-      <span className="rounded-full bg-slate-700 px-3 py-1 text-xs text-slate-300">{status}</span>
+      <span className="rounded-full bg-slate-200 px-3 py-1 text-xs text-slate-500">{status}</span>
     </div>
   );
 }
+
+
+
+

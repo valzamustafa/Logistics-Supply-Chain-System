@@ -45,10 +45,10 @@ export function ProtectedLayout({ children, allowedRoles }: ProtectedLayoutProps
 
   if (isLoading) {
     return (
-      <div className="flex h-screen items-center justify-center bg-slate-900">
+      <div className="flex h-screen items-center justify-center bg-slate-50">
         <div className="text-center">
-          <div className="w-16 h-16 border-4 border-cyan-500 border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
-          <p className="text-slate-400">Loading...</p>
+          <div className="w-16 h-16 border-4 border-rose-500 border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
+          <p className="text-slate-600">Loading...</p>
         </div>
       </div>
     );
@@ -64,12 +64,14 @@ export function ProtectedLayout({ children, allowedRoles }: ProtectedLayoutProps
   }
 
   return (
-    <div className="flex h-screen flex-col bg-slate-900">
+    <div className="flex h-screen flex-col bg-slate-50">
       <Header />
       <div className="flex flex-1 overflow-hidden">
         <Sidebar />
-        <main className="flex-1 overflow-auto">{children}</main>
+        <main className="flex-1 overflow-auto p-6">{children}</main>
       </div>
     </div>
   );
 }
+
+

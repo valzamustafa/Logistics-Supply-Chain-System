@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from 'react';
 import { X, Truck, Package, MapPin, Building2, AlertCircle } from 'lucide-react';
 import { shipmentService, Shipment } from '../../services/shipmentService';
@@ -28,7 +29,6 @@ export function ShipmentStatusModal({ shipment, onClose, onSuccess }: ShipmentSt
     'Returned'
   ];
 
-
   useEffect(() => {
     const fetchPurchaseOrders = async () => {
       setLoadingPOs(true);
@@ -36,7 +36,6 @@ export function ShipmentStatusModal({ shipment, onClose, onSuccess }: ShipmentSt
         const pos = await supplierService.getAllPurchaseOrders();
         setPurchaseOrders(pos);
         
-        // Find PO that matches this shipment's order ID
         const matchingPO = pos.find(po => po.id === shipment.orderId || po.poNumber?.includes(String(shipment.orderId)));
         if (matchingPO) {
           setSelectedPO(matchingPO);
@@ -63,13 +62,12 @@ export function ShipmentStatusModal({ shipment, onClose, onSuccess }: ShipmentSt
         location: location || undefined 
       });
 
-     
       if (selectedPO) {
         try {
          
           const supplierStatus = mapToSupplierStatus(status);
           
-      
+          
           await supplierService.confirmShipment(selectedPO.id, {
             actualDeliveryDate: status === 'Delivered' ? new Date().toISOString() : null,
             notes: `Shipment ${shipment.trackingNumber} status updated to ${status}. Location: ${location || 'Warehouse'}`
@@ -106,13 +104,13 @@ export function ShipmentStatusModal({ shipment, onClose, onSuccess }: ShipmentSt
 
   return (
     <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
-      <div className="bg-slate-800 rounded-xl border border-slate-700 w-full max-w-md max-h-[90vh] overflow-y-auto">
-        <div className="flex justify-between items-center p-6 border-b border-slate-700 sticky top-0 bg-slate-800">
+      <div className="bg-white rounded-xl border border-slate-200 w-full max-w-md max-h-[90vh] overflow-y-auto">
+        <div className="flex justify-between items-center p-6 border-b border-slate-200 sticky top-0 bg-white">
           <div className="flex items-center gap-2">
             <Package className="w-5 h-5 text-purple-400" />
-            <h2 className="text-xl font-bold text-white">Update Shipment Status</h2>
+            <h2 className="text-xl font-bold text-slate-900">Update Shipment Status</h2>
           </div>
-          <button onClick={onClose} className="text-slate-400 hover:text-white transition">
+          <button onClick={onClose} className="text-slate-500 hover:text-slate-900 transition">
             <X className="w-5 h-5" />
           </button>
         </div>
@@ -125,19 +123,19 @@ export function ShipmentStatusModal({ shipment, onClose, onSuccess }: ShipmentSt
             </div>
           )}
 
-      
-          <div className="bg-slate-900/50 rounded-lg p-3 space-y-2">
+          {/* Shipment Info */}
+          <div className="bg-slate-50/50 rounded-lg p-3 space-y-2">
             <div>
-              <label className="text-xs text-slate-400">Tracking Number</label>
-              <p className="text-white font-mono text-sm">{shipment.trackingNumber}</p>
+              <label className="text-xs text-slate-500">Tracking Number</label>
+              <p className="text-slate-900 font-mono text-sm">{shipment.trackingNumber}</p>
             </div>
             <div>
-              <label className="text-xs text-slate-400">Order ID</label>
-              <p className="text-white text-sm">#{shipment.orderId}</p>
+              <label className="text-xs text-slate-500">Order ID</label>
+              <p className="text-slate-900 text-sm">#{shipment.orderId}</p>
             </div>
             {selectedPO && (
               <div>
-                <label className="text-xs text-slate-400 flex items-center gap-1">
+                <label className="text-xs text-slate-500 flex items-center gap-1">
                   <Building2 className="w-3 h-3" />
                   Related Purchase Order
                 </label>
@@ -146,15 +144,15 @@ export function ShipmentStatusModal({ shipment, onClose, onSuccess }: ShipmentSt
             )}
           </div>
 
-  
+          {/* Status Select */}
           <div>
-            <label className="block text-sm font-medium text-slate-300 mb-2">
+            <label className="block text-sm font-medium text-slate-500 mb-2">
               Status *
             </label>
             <select
               value={status}
               onChange={(e) => setStatus(e.target.value)}
-              className="w-full bg-slate-900 border border-slate-700 rounded-lg px-4 py-2 text-white focus:border-purple-500 outline-none"
+              className="w-full bg-slate-50 border border-slate-200 rounded-lg px-4 py-2 text-slate-900 focus:border-purple-500 outline-none"
               required
             >
               {statusOptions.map(option => (
@@ -163,9 +161,9 @@ export function ShipmentStatusModal({ shipment, onClose, onSuccess }: ShipmentSt
             </select>
           </div>
 
-    
+          {/* Location */}
           <div>
-            <label className="block text-sm font-medium text-slate-300 mb-2">
+            <label className="block text-sm font-medium text-slate-500 mb-2">
               <div className="flex items-center gap-1">
                 <MapPin className="w-4 h-4" />
                 Location (Optional)
@@ -176,11 +174,11 @@ export function ShipmentStatusModal({ shipment, onClose, onSuccess }: ShipmentSt
               value={location}
               onChange={(e) => setLocation(e.target.value)}
               placeholder="e.g., City, Warehouse, Distribution Center"
-              className="w-full bg-slate-900 border border-slate-700 rounded-lg px-4 py-2 text-white placeholder-slate-500 focus:border-purple-500 outline-none"
+              className="w-full bg-slate-50 border border-slate-200 rounded-lg px-4 py-2 text-slate-900 placeholder-slate-500 focus:border-purple-500 outline-none"
             />
           </div>
 
-
+          {/* Info Box */}
           <div className="bg-blue-500/10 border border-blue-500/30 rounded-lg p-3">
             <p className="text-blue-400 text-xs">
               <Truck className="w-3 h-3 inline mr-1" />
@@ -190,19 +188,19 @@ export function ShipmentStatusModal({ shipment, onClose, onSuccess }: ShipmentSt
             </p>
           </div>
 
-    
+          {/* Buttons */}
           <div className="flex gap-3 pt-4">
             <button
               type="button"
               onClick={onClose}
-              className="flex-1 px-4 py-2 bg-slate-700 hover:bg-slate-600 text-white rounded-lg transition"
+              className="flex-1 px-4 py-2 bg-slate-200 hover:bg-slate-100 text-slate-900 rounded-lg transition"
             >
               Cancel
             </button>
             <button
               type="submit"
               disabled={loading}
-              className="flex-1 px-4 py-2 bg-purple-600 hover:bg-purple-700 text-white rounded-lg transition disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+              className="flex-1 px-4 py-2 bg-purple-600 hover:bg-purple-700 text-slate-900 rounded-lg transition disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
             >
               {loading ? (
                 <>
@@ -222,3 +220,7 @@ export function ShipmentStatusModal({ shipment, onClose, onSuccess }: ShipmentSt
     </div>
   );
 }
+
+
+
+

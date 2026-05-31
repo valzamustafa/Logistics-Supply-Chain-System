@@ -1,3 +1,4 @@
+
 import { useAuth } from '../hooks/useAuth';
 import { useNavigate } from 'react-router-dom';
 import { LogOut } from 'lucide-react';
@@ -19,35 +20,34 @@ export function Header() {
   const initial = user?.firstName?.[0] || user?.email?.[0]?.toUpperCase() || 'U';
 
   return (
-    <header className="border-b border-slate-700 bg-slate-800 px-6 py-4 shadow-lg">
-      <div className="flex items-center justify-between">
+    <header className="sticky top-0 z-30 border-b border-slate-200 bg-white/95 px-6 py-4 backdrop-blur-md shadow-sm">
+      <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
         <div className="flex items-center gap-3">
-          <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-gradient-to-br from-cyan-400 to-blue-500">
-            <span className="text-sm font-bold text-white">LJ</span>
+          <div className="flex h-12 w-12 items-center justify-center rounded-3xl bg-gradient-to-br from-rose-400 to-amber-300 shadow-sm">
+            <span className="text-lg font-bold text-slate-900">LJ</span>
           </div>
-          <h1 className="text-xl font-bold text-white">Logjistika</h1>
+          <div>
+            <h1 className="text-2xl font-semibold text-slate-900">Logjistika</h1>
+            <p className="text-sm text-slate-500">Smart shipping and tracking dashboard</p>
+          </div>
         </div>
 
-        <div className="flex items-center gap-4">
+        <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
           <NotificationDropdown />
 
-          <div className="text-right">
-            <p className="text-sm font-semibold text-white">{displayName}</p>
-            <p className="text-xs text-slate-400">{user?.email}</p>
-            {user?.roles?.[0] && (
-              <span className="text-xs px-1.5 py-0.5 bg-cyan-600/20 text-cyan-400 rounded-full">
-                {user.roles[0]}
-              </span>
-            )}
+          <div className="flex items-center gap-3 rounded-3xl border border-slate-200 bg-slate-50 px-4 py-2 shadow-sm">
+            <div className="h-10 w-10 rounded-full bg-rose-100 text-rose-600 flex items-center justify-center font-semibold">
+              {initial}
+            </div>
+            <div className="min-w-0">
+              <p className="text-sm font-semibold text-slate-900 truncate">{displayName}</p>
+              <p className="text-xs text-slate-500 truncate">{user?.email}</p>
+            </div>
           </div>
-          
-          <div className="h-10 w-10 rounded-full bg-gradient-to-br from-cyan-400 to-blue-500 flex items-center justify-center text-sm font-bold text-white">
-            {initial}
-          </div>
-          
+
           <button
             onClick={handleLogout}
-            className="flex items-center gap-2 rounded-lg bg-red-600/20 px-4 py-2 text-sm font-medium text-red-400 transition hover:bg-red-600/30"
+            className="inline-flex items-center gap-2 rounded-3xl bg-rose-500 px-4 py-2 text-sm font-semibold text-slate-900 transition hover:bg-rose-600"
           >
             <LogOut className="w-4 h-4" />
             Logout
@@ -57,3 +57,7 @@ export function Header() {
     </header>
   );
 }
+
+
+
+

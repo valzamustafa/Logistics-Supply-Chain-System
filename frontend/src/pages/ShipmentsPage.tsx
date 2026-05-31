@@ -56,7 +56,7 @@ export function ShipmentsPage() {
     if (lower.includes('deliver')) return 'bg-green-500/20 text-green-400';
     if (lower.includes('pending')) return 'bg-yellow-500/20 text-yellow-400';
     if (lower.includes('processing')) return 'bg-purple-500/20 text-purple-400';
-    return 'bg-slate-500/20 text-slate-400';
+    return 'bg-slate-500/20 text-slate-500';
   };
 
   const getStatusIcon = (status: string) => {
@@ -73,7 +73,7 @@ export function ShipmentsPage() {
       <div className="flex h-full items-center justify-center">
         <div className="text-center">
           <div className="w-12 h-12 border-4 border-cyan-500 border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
-          <p className="text-slate-400">Loading shipments...</p>
+          <p className="text-slate-500">Loading shipments...</p>
         </div>
       </div>
     );
@@ -81,13 +81,13 @@ export function ShipmentsPage() {
 
   return (
     <>
-      <div className="p-6 space-y-6 bg-slate-900 min-h-screen">
+      <div className="p-6 space-y-6 bg-slate-50 min-h-screen">
         <div className="flex justify-between items-center">
           <div>
-            <h1 className="text-3xl font-bold text-white">Shipments</h1>
-            <p className="text-slate-400 mt-1">Manage and monitor all shipments</p>
+            <h1 className="text-3xl font-bold text-slate-900">Shipments</h1>
+            <p className="text-slate-500 mt-1">Manage and monitor all shipments</p>
           </div>
-          <button className="px-4 py-2 bg-cyan-600 hover:bg-cyan-700 text-white rounded-lg flex items-center gap-2 transition">
+          <button className="px-4 py-2 bg-cyan-600 hover:bg-cyan-700 text-slate-900 rounded-lg flex items-center gap-2 transition">
             <Plus className="w-4 h-4" />
             New Shipment
           </button>
@@ -101,40 +101,40 @@ export function ShipmentsPage() {
         )}
 
         <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-          <div className="bg-gradient-to-br from-slate-800 to-slate-800/80 rounded-xl p-5 border border-slate-700">
-            <div className="text-2xl font-bold text-white">{shipments.length}</div>
-            <p className="text-slate-400 text-sm">Total Shipments</p>
+          <div className="bg-gradient-to-br from-slate-800 to-slate-800/80 rounded-xl p-5 border border-slate-200">
+            <div className="text-2xl font-bold text-slate-900">{shipments.length}</div>
+            <p className="text-slate-500 text-sm">Total Shipments</p>
           </div>
-          <div className="bg-gradient-to-br from-slate-800 to-slate-800/80 rounded-xl p-5 border border-slate-700">
+          <div className="bg-gradient-to-br from-slate-800 to-slate-800/80 rounded-xl p-5 border border-slate-200">
             <div className="text-2xl font-bold text-blue-400">{shipments.filter(s => s.status.toLowerCase().includes('in transit')).length}</div>
-            <p className="text-slate-400 text-sm">In Transit</p>
+            <p className="text-slate-500 text-sm">In Transit</p>
           </div>
-          <div className="bg-gradient-to-br from-slate-800 to-slate-800/80 rounded-xl p-5 border border-slate-700">
+          <div className="bg-gradient-to-br from-slate-800 to-slate-800/80 rounded-xl p-5 border border-slate-200">
             <div className="text-2xl font-bold text-green-400">{shipments.filter(s => s.status.toLowerCase().includes('delivered')).length}</div>
-            <p className="text-slate-400 text-sm">Delivered</p>
+            <p className="text-slate-500 text-sm">Delivered</p>
           </div>
-          <div className="bg-gradient-to-br from-slate-800 to-slate-800/80 rounded-xl p-5 border border-slate-700">
+          <div className="bg-gradient-to-br from-slate-800 to-slate-800/80 rounded-xl p-5 border border-slate-200">
             <div className="text-2xl font-bold text-yellow-400">{shipments.filter(s => s.status.toLowerCase().includes('pending')).length}</div>
-            <p className="text-slate-400 text-sm">Pending</p>
+            <p className="text-slate-500 text-sm">Pending</p>
           </div>
         </div>
 
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           <div className="relative">
-            <Search className="absolute left-3 top-3 w-4 h-4 text-slate-400" />
+            <Search className="absolute left-3 top-3 w-4 h-4 text-slate-500" />
             <input
               type="text"
               placeholder="Search tracking number, driver, or address..."
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
-              className="w-full bg-slate-800 border border-slate-700 rounded-lg pl-10 pr-4 py-2 text-white placeholder-slate-500 focus:border-cyan-500 outline-none"
+              className="w-full bg-white border border-slate-200 rounded-lg pl-10 pr-4 py-2 text-slate-900 placeholder-slate-500 focus:border-cyan-500 outline-none"
             />
           </div>
 
           <select
             value={statusFilter}
             onChange={(e) => setStatusFilter(e.target.value as any)}
-            className="bg-slate-800 border border-slate-700 rounded-lg px-4 py-2 text-white focus:border-cyan-500 outline-none"
+            className="bg-white border border-slate-200 rounded-lg px-4 py-2 text-slate-900 focus:border-cyan-500 outline-none"
           >
             <option value="all">All Status</option>
             <option value="pending">Pending</option>
@@ -145,21 +145,21 @@ export function ShipmentsPage() {
 
         <div className="space-y-4">
           {filteredShipments.length === 0 ? (
-            <div className="bg-slate-800/50 rounded-xl border border-slate-700 p-8 text-center text-slate-400">
+            <div className="bg-slate-100/90 rounded-xl border border-slate-200 p-8 text-center text-slate-500">
               <Truck className="w-12 h-12 mx-auto mb-4 opacity-50" />
               <p>No shipments found</p>
             </div>
           ) : (
             filteredShipments.map((shipment) => (
-              <div key={shipment.id} className="bg-slate-800/50 rounded-xl border border-slate-700 p-6 hover:border-cyan-500/50 transition">
+              <div key={shipment.id} className="bg-slate-100/90 rounded-xl border border-slate-200 p-6 hover:border-cyan-500/50 transition">
                 <div className="flex items-start justify-between mb-4">
                   <div className="flex items-center gap-4">
                     <div className={`w-12 h-12 rounded-lg flex items-center justify-center ${getStatusColor(shipment.status)}`}>
                       {getStatusIcon(shipment.status)}
                     </div>
                     <div>
-                      <h3 className="text-lg font-bold text-white">{shipment.trackingNumber}</h3>
-                      <p className="text-slate-400 text-sm">Order #{shipment.orderId}</p>
+                      <h3 className="text-lg font-bold text-slate-900">{shipment.trackingNumber}</h3>
+                      <p className="text-slate-500 text-sm">Order #{shipment.orderId}</p>
                     </div>
                   </div>
                   <span className={`px-4 py-2 rounded-lg text-sm font-medium ${getStatusColor(shipment.status)}`}>
@@ -170,20 +170,20 @@ export function ShipmentsPage() {
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4">
                   {shipment.driverName && (
                     <div>
-                      <p className="text-slate-400 text-sm mb-1">Driver</p>
-                      <p className="text-white font-medium">{shipment.driverName}</p>
+                      <p className="text-slate-500 text-sm mb-1">Driver</p>
+                      <p className="text-slate-900 font-medium">{shipment.driverName}</p>
                     </div>
                   )}
                   {shipment.vehiclePlate && (
                     <div>
-                      <p className="text-slate-400 text-sm mb-1">Vehicle</p>
-                      <p className="text-white font-medium">{shipment.vehiclePlate}</p>
+                      <p className="text-slate-500 text-sm mb-1">Vehicle</p>
+                      <p className="text-slate-900 font-medium">{shipment.vehiclePlate}</p>
                     </div>
                   )}
                   {shipment.estimatedDeliveryDate && (
                     <div>
-                      <p className="text-slate-400 text-sm mb-1">Est. Delivery</p>
-                      <p className="text-white font-medium">
+                      <p className="text-slate-500 text-sm mb-1">Est. Delivery</p>
+                      <p className="text-slate-900 font-medium">
                         {new Date(shipment.estimatedDeliveryDate).toLocaleDateString()}
                       </p>
                     </div>
@@ -191,24 +191,24 @@ export function ShipmentsPage() {
                 </div>
 
                 {shipment.shippingAddress && (
-                  <div className="bg-slate-900/50 rounded p-3 mb-4">
-                    <p className="text-slate-400 text-sm mb-1">Shipping Address</p>
-                    <p className="text-white">{shipment.shippingAddress}</p>
+                  <div className="bg-slate-50/50 rounded p-3 mb-4">
+                    <p className="text-slate-500 text-sm mb-1">Shipping Address</p>
+                    <p className="text-slate-900">{shipment.shippingAddress}</p>
                   </div>
                 )}
 
                 {(shipment.currentLocation || shipment.lastLocationUpdate) && (
-                  <div className="bg-slate-900/50 rounded p-3 mb-4 space-y-2">
+                  <div className="bg-slate-50/50 rounded p-3 mb-4 space-y-2">
                     {shipment.currentLocation && (
                       <div>
-                        <p className="text-slate-400 text-sm mb-1">Live Location</p>
-                        <p className="text-white">{shipment.currentLocation}</p>
+                        <p className="text-slate-500 text-sm mb-1">Live Location</p>
+                        <p className="text-slate-900">{shipment.currentLocation}</p>
                       </div>
                     )}
                     {shipment.lastLocationUpdate && (
                       <div>
-                        <p className="text-slate-400 text-sm mb-1">Last Update</p>
-                        <p className="text-white text-sm">{new Date(shipment.lastLocationUpdate).toLocaleString()}</p>
+                        <p className="text-slate-500 text-sm mb-1">Last Update</p>
+                        <p className="text-slate-900 text-sm">{new Date(shipment.lastLocationUpdate).toLocaleString()}</p>
                       </div>
                     )}
                   </div>
@@ -216,10 +216,10 @@ export function ShipmentsPage() {
 
                 {shipment.items && shipment.items.length > 0 && (
                   <div className="mb-4">
-                    <p className="text-slate-400 text-sm mb-2">Items ({shipment.items.length})</p>
+                    <p className="text-slate-500 text-sm mb-2">Items ({shipment.items.length})</p>
                     <div className="flex gap-2 flex-wrap">
                       {shipment.items.map((item) => (
-                        <span key={item.id} className="bg-slate-700 px-3 py-1 rounded text-xs text-slate-300">
+                        <span key={item.id} className="bg-slate-200 px-3 py-1 rounded text-xs text-slate-500">
                           Product #{item.productId} × {item.quantity}
                         </span>
                       ))}
@@ -228,12 +228,12 @@ export function ShipmentsPage() {
                 )}
 
                 <div className="mt-4 flex gap-2">
-                  <button className="flex-1 px-4 py-2 bg-slate-700 hover:bg-slate-600 text-white rounded-lg transition text-sm">
+                  <button className="flex-1 px-4 py-2 bg-slate-200 hover:bg-slate-100 text-slate-900 rounded-lg transition text-sm">
                     View Details
                   </button>
                   <button
                     onClick={() => handleUpdateStatus(shipment)}
-                    className="flex-1 px-4 py-2 bg-purple-600 hover:bg-purple-700 text-white rounded-lg transition text-sm"
+                    className="flex-1 px-4 py-2 bg-purple-600 hover:bg-purple-700 text-slate-900 rounded-lg transition text-sm"
                   >
                     Update Status
                   </button>
@@ -259,3 +259,7 @@ export function ShipmentsPage() {
     </>
   );
 }
+
+
+
+
