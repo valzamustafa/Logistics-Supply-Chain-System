@@ -1,4 +1,3 @@
-
 import { api } from './api';
 
 export interface Shipment {
@@ -11,6 +10,7 @@ export interface Shipment {
   vehicleId?: number;
   vehiclePlate?: string;
   status: string;
+  updatedBy?: string;
   estimatedDeliveryDate: string;
   actualDeliveryDate?: string;
   shippingAddress?: string;
@@ -65,3 +65,5 @@ export const shipmentService = {
   reorder: (id: string | number, data: { newPriority: number }) => 
     api.put<Shipment>(`/api/shipments/${id}/reorder`, data),
 };
+
+

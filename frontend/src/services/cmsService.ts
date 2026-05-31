@@ -24,3 +24,5 @@ export const cmsService = {
   getAbout: () => api.get<AboutContent>('/api/cms/about'),
   updateAbout: (data: AboutContent) => api.put<AboutContent>('/api/cms/about', data),
 };
+
+

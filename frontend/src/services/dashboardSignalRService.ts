@@ -1,4 +1,3 @@
-
 import * as signalR from '@microsoft/signalr';
 import { Shipment } from './shipmentService';
 import { getLocalStorageItem } from '../utils/localStorage';
@@ -9,6 +8,7 @@ export interface OrderUpdateEvent {
   status: string;
   purchaseOrderStatus: string;
   shipmentId?: string;
+  actor?: string;
 }
 
 export class DashboardSignalRService {
@@ -23,7 +23,7 @@ export class DashboardSignalRService {
       try {
         await this.connection.stop();
       } catch {
-  
+ 
       }
       this.connection = null;
     }
@@ -70,7 +70,7 @@ export class DashboardSignalRService {
       try {
         await this.connection.stop();
       } catch {
-
+       
       }
       this.connection = null;
     }
@@ -78,3 +78,6 @@ export class DashboardSignalRService {
 }
 
 export const dashboardSignalRService = new DashboardSignalRService();
+
+
+

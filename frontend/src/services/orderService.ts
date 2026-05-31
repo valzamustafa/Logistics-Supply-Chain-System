@@ -69,3 +69,5 @@ export const orderService = {
     api.put<Order>(`/api/orders/${id}/status`, { status }),
   cancel: (id: number) => api.post<void>(`/api/orders/${id}/cancel`),
 };
+
+

@@ -46,9 +46,9 @@ const NOTIFICATION_API_URL = import.meta.env.VITE_NOTIFICATION_API_URL || import
 
 export const notificationService = {
   async getUserNotifications(userId: number): Promise<NotificationDto[]> {
-    
+  
     const response = await api.get<NotificationDto[]>(`${NOTIFICATION_API_URL}/api/notifications/user/${userId}`);
-    return response; // response është tashmë NotificationDto[] direkt
+    return response; 
   },
 
   async getUnreadNotifications(userId: number): Promise<NotificationDto[]> {
@@ -89,3 +89,5 @@ export const notificationService = {
     await api.put(`${NOTIFICATION_API_URL}/api/notifications/user/${userId}/read-all`);
   },
 };
+
+

@@ -1,5 +1,4 @@
 
-
 import { api } from './api';
 
 export interface DriverShipment {
@@ -38,9 +37,8 @@ export const driverShipmentService = {
   getMyShipments: () => api.get<DriverShipment[]>('/api/shipments/driver/assigned'),
   getById: (id: string) => api.get<DriverShipment>(`/api/shipments/${id}`),
   
-
   updateStatus: async (id: string, data: UpdateShipmentStatusDto) => {
- 
+   
     return api.put<DriverShipment>(`/api/shipments/${id}/status`, data);
   },
   
@@ -49,3 +47,5 @@ export const driverShipmentService = {
   completeDelivery: (id: string, proof?: string) => 
     api.post<DriverShipment>(`/api/shipments/${id}/complete`, { proof }),
 };
+
+

@@ -24,8 +24,7 @@ export function MyOrdersPage() {
     try {
       const data = await orderService.getByUser(user!.id);
       setOrders(data);
-      
-    
+ 
       const shipmentsMap = new Map<number, Shipment>();
       for (const order of data) {
         try {
@@ -74,7 +73,7 @@ export function MyOrdersPage() {
       <div className="flex justify-center items-center h-64">
         <div className="text-center">
           <div className="w-12 h-12 border-4 border-cyan-500 border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
-          <div className="text-slate-400">Loading your orders...</div>
+          <div className="text-slate-500">Loading your orders...</div>
         </div>
       </div>
     );
@@ -95,8 +94,8 @@ export function MyOrdersPage() {
       <div className="p-6">
         <div className="text-center py-12">
           <div className="text-6xl mb-4">📦</div>
-          <h1 className="text-2xl font-bold text-white mb-2">No Orders Yet</h1>
-          <p className="text-slate-400">You haven't placed any orders yet.</p>
+          <h1 className="text-2xl font-bold text-slate-900 mb-2">No Orders Yet</h1>
+          <p className="text-slate-500">You haven't placed any orders yet.</p>
           <button 
             onClick={() => window.location.href = '/create-order'}
             className="mt-4 px-6 py-2 bg-cyan-500 text-white rounded-lg hover:bg-cyan-600 transition"
@@ -110,75 +109,75 @@ export function MyOrdersPage() {
 
   return (
     <div className="p-6">
-      <h1 className="text-2xl font-bold text-white mb-6">My Orders</h1>
+      <h1 className="text-2xl font-bold text-slate-900 mb-6">My Orders</h1>
 
-    
+      {/* Stats Cards */}
       <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-8">
-        <div className="bg-slate-800 rounded-lg p-4 border border-slate-700">
-          <div className="text-slate-400 text-sm">Total Orders</div>
-          <div className="text-2xl font-bold text-white">{orders.length}</div>
+        <div className="bg-white rounded-lg p-4 border border-slate-200">
+          <div className="text-slate-500 text-sm">Total Orders</div>
+          <div className="text-2xl font-bold text-slate-900">{orders.length}</div>
         </div>
-        <div className="bg-slate-800 rounded-lg p-4 border border-slate-700">
-          <div className="text-slate-400 text-sm">Delivered</div>
+        <div className="bg-white rounded-lg p-4 border border-slate-200">
+          <div className="text-slate-500 text-sm">Delivered</div>
           <div className="text-2xl font-bold text-green-400">
             {orders.filter(o => o.status?.toLowerCase() === 'delivered').length}
           </div>
         </div>
-        <div className="bg-slate-800 rounded-lg p-4 border border-slate-700">
-          <div className="text-slate-400 text-sm">In Transit</div>
+        <div className="bg-white rounded-lg p-4 border border-slate-200">
+          <div className="text-slate-500 text-sm">In Transit</div>
           <div className="text-2xl font-bold text-blue-400">
             {orders.filter(o => o.status?.toLowerCase() === 'in transit' || o.status?.toLowerCase() === 'shipped').length}
           </div>
         </div>
-        <div className="bg-slate-800 rounded-lg p-4 border border-slate-700">
-          <div className="text-slate-400 text-sm">Total Spent</div>
+        <div className="bg-white rounded-lg p-4 border border-slate-200">
+          <div className="text-slate-500 text-sm">Total Spent</div>
           <div className="text-2xl font-bold text-cyan-400">
             ${orders.reduce((sum, o) => sum + (o.totalAmount || 0), 0).toFixed(2)}
           </div>
         </div>
       </div>
 
-
-      <div className="bg-slate-800 rounded-lg shadow overflow-hidden border border-slate-700">
+      {/* Orders Table */}
+      <div className="bg-white rounded-lg shadow overflow-hidden border border-slate-200">
         <div className="overflow-x-auto">
           <table className="min-w-full divide-y divide-slate-700">
-            <thead className="bg-slate-900">
+            <thead className="bg-slate-50">
               <tr>
-                <th className="px-6 py-3 text-left text-xs font-medium text-slate-400 uppercase tracking-wider">
+                <th className="px-6 py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">
                   Order ID
                 </th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-slate-400 uppercase tracking-wider">
+                <th className="px-6 py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">
                   Date
                 </th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-slate-400 uppercase tracking-wider">
+                <th className="px-6 py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">
                   Items
                 </th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-slate-400 uppercase tracking-wider">
+                <th className="px-6 py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">
                   Total
                 </th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-slate-400 uppercase tracking-wider">
+                <th className="px-6 py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">
                   Status
                 </th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-slate-400 uppercase tracking-wider">
+                <th className="px-6 py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">
                   Tracking
                 </th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-slate-400 uppercase tracking-wider">
+                <th className="px-6 py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">
                   Actions
                 </th>
               </tr>
             </thead>
-            <tbody className="bg-slate-800 divide-y divide-slate-700">
+            <tbody className="bg-white divide-y divide-slate-700">
               {orders.map((order) => {
                 const shipment = shipments.get(order.id);
                 return (
-                  <tr key={order.id} className="hover:bg-slate-700/50 transition">
-                    <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-white">
+                  <tr key={order.id} className="hover:bg-slate-100/80 transition">
+                    <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-slate-900">
                       {order.orderNumber}
                     </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm text-slate-300">
+                    <td className="px-6 py-4 whitespace-nowrap text-sm text-slate-500">
                       {new Date(order.orderDate).toLocaleDateString()}
                     </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm text-slate-300">
+                    <td className="px-6 py-4 whitespace-nowrap text-sm text-slate-500">
                       {order.items?.length || 0} {(order.items?.length || 0) === 1 ? 'item' : 'items'}
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap text-sm text-cyan-400 font-medium">
@@ -230,3 +229,7 @@ export function MyOrdersPage() {
     </div>
   );
 }
+
+
+
+

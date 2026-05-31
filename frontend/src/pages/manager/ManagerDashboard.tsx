@@ -1,4 +1,5 @@
-﻿import { useState, useEffect } from 'react';
+﻿
+import { useState, useEffect } from 'react';
 import { useLocation } from 'react-router-dom';
 import { orderService, Order } from '../../services/orderService';
 import { shipmentService, Shipment } from '../../services/shipmentService';
@@ -6,7 +7,7 @@ import { warehouseService, Warehouse, WarehouseStats } from '../../services/ware
 import { warehouseStockService, LowStockAlert } from '../../services/warehouseStockService';
 import { inventoryService, InventoryItem } from '../../services/inventoryService';
 import { getUsers, createUser, updateUser, deleteUser, User } from '../../services/authService';
-import { Plus, Edit, Trash2, XCircle, CheckCircle, Building2, Box, Users, MapPin, Phone, Eye, X, Save, AlertCircle, TrendingDown, TrendingUp, Search, Package, Key } from 'lucide-react';
+import { Plus, Edit, Trash2, XCircle, CheckCircle, Building2, Box, Users, MapPin, Phone, Eye, X, Save, AlertCircle, TrendingDown, TrendingUp, Search, Package, Key, Truck, RefreshCw, Navigation, User as UserIcon } from 'lucide-react';
 import { useToast } from '../../hooks/useToast';
 import { notificationService } from '../../services/notificationService';
 import { dashboardSignalRService, OrderUpdateEvent } from '../../services/dashboardSignalRService';
@@ -14,7 +15,12 @@ import { useAuth } from '../../hooks/useAuth';
 import { productService, Product } from '../../services/productService';
 import { WarehouseCard } from '../../components/warehouse/WarehouseCard';
 import { ConfirmModal } from '../../components/ConfirmModal';
+import { vehicleService, Vehicle, Driver } from '../../services/driverService';
+import { VehicleLiveTracker } from '../../components/vehicles/VehicleLiveTracker';
+import { VehicleManagementModal } from '../../components/vehicles/VehicleManagementModal';
+import { AssignVehicleToDriverModal } from '../../components/vehicles/AssignVehicleToDriverModal';
 
+import { driverService } from '../../services/driverService';
 export function ManagerDashboard() {
   const { user } = useAuth();
   const { showToast } = useToast();
@@ -30,6 +36,14 @@ export function ManagerDashboard() {
   const location = useLocation();
   const [warehouseListStats, setWarehouseListStats] = useState<Record<number, { totalProducts: number; totalStock: number; lowStock: number }>>({});
   const [searchWarehouse, setSearchWarehouse] = useState('');
+
+  const [vehicles, setVehicles] = useState<Vehicle[]>([]);
+const [drivers, setDrivers] = useState<Driver[]>([]);
+const [showVehicleModal, setShowVehicleModal] = useState(false);
+  const [showAssignModal, setShowAssignModal] = useState(false);
+  const [showTrackerModal, setShowTrackerModal] = useState<Vehicle | null>(null);
+  const [editingVehicle, setEditingVehicle] = useState<Vehicle | null>(null);
+  const [vehicleStats, setVehicleStats] = useState<Record<number, { status: string; progress: number; location: string }>>({});
   
 
   const [showWarehouseModal, setShowWarehouseModal] = useState(false);
@@ -42,14 +56,12 @@ export function ManagerDashboard() {
   const [showInventoryModal, setShowInventoryModal] = useState(false);
   const [warehouseInventory, setWarehouseInventory] = useState<any[]>([]);
   
- 
   const [showAddProductModal, setShowAddProductModal] = useState(false);
   const [addProductWarehouseId, setAddProductWarehouseId] = useState<number | null>(null);
   const [products, setProducts] = useState<Product[]>([]);
   const [selectedProductId, setSelectedProductId] = useState<number | null>(null);
   const [productQuantity, setProductQuantity] = useState<number>(1);
   const [addProductLoading, setAddProductLoading] = useState(false);
-
 
   const [users, setUsers] = useState<User[]>([]);
   const [staffError, setStaffError] = useState<string | null>(null);
@@ -72,8 +84,7 @@ export function ManagerDashboard() {
     isActive: true
   });
   const [selectedWarehouseId, setSelectedWarehouseId] = useState<number | null>(null);
-  
-
+ 
   const [userPermissions, setUserPermissions] = useState({
     canViewInventory: true,
     canEditStock: false,
@@ -84,17 +95,12 @@ export function ManagerDashboard() {
     canManageStaff: false
   });
 
-
   const [currentUserRoles, setCurrentUserRoles] = useState<string[]>([]);
   const [isAdmin, setIsAdmin] = useState(false);
-  
-
   const managerAllowedRoles = ['WarehouseStaff', 'Driver'];
-
   const allowedStaffRoles = ['WarehouseStaff', 'Driver'];
   const [availableRoles, setAvailableRoles] = useState<string[]>(managerAllowedRoles);
 
- 
   const [warehouseForm, setWarehouseForm] = useState({ name: '', location: '', phone: '' });
   const [zoneForm, setZoneForm] = useState({ zoneName: '', description: '', capacity: 0 });
   const [staffForm, setStaffForm] = useState({ userId: 0, position: '', hireDate: '' });
@@ -108,6 +114,34 @@ export function ManagerDashboard() {
     activeShipments: 0,
   });
 
+  
+  const fetchVehicles = async () => {
+  try {
+    const [vehiclesData, driversData] = await Promise.all([
+      vehicleService.getAll(),
+      driverService.getAll(),
+    ]);
+    setVehicles(vehiclesData);
+    setDrivers(driversData);
+    const stats: Record<number, any> = {};
+    for (const vehicle of vehiclesData) {
+      stats[vehicle.id] = {
+        status: vehicle.isAvailable ? 'available' : 'maintenance',
+        progress: Math.floor(Math.random() * 100),
+        location: Math.random() > 0.5 ? 'In Route - Highway A1' : 'Warehouse',
+      };
+    }
+    setVehicleStats(stats);
+  } catch (error) {
+    console.error('Failed to fetch vehicles:', error);
+  }
+};
+
+ useEffect(() => {
+  if (activeTab === 'vehicles') {
+    fetchVehicles();
+  }
+}, [activeTab]);
 
   useEffect(() => {
     const storedUser = localStorage.getItem('user');
@@ -297,7 +331,6 @@ export function ManagerDashboard() {
     setWarehouses(data);
   };
 
-
   const handleCreateWarehouse = async () => {
     if (!warehouseForm.name.trim()) {
       showToast('error', 'Warehouse name is required');
@@ -369,7 +402,6 @@ export function ManagerDashboard() {
     }
   };
 
-
   const handleCreateZone = async () => {
     if (!selectedWarehouseForDetails) return;
     if (!zoneForm.zoneName.trim()) {
@@ -418,7 +450,6 @@ export function ManagerDashboard() {
     });
   };
 
-
   const handleAssignStaff = async () => {
     if (!selectedWarehouseForDetails) return;
     if (!staffForm.userId || staffForm.userId <= 0) {
@@ -466,7 +497,6 @@ export function ManagerDashboard() {
     });
   };
 
-  
   const loadStaffData = async () => {
     const hasPermission = currentUserRoles.includes('Admin') || currentUserRoles.includes('Manager');
     
@@ -478,10 +508,8 @@ export function ManagerDashboard() {
     try {
       const usersData = await getUsers();
       
-     
       let filteredUsers = usersData;
       
-     
       if (!isAdmin) {
         filteredUsers = usersData.filter(user => {
           return user.roles.some(role => allowedStaffRoles.includes(role));
@@ -503,7 +531,6 @@ export function ManagerDashboard() {
       return;
     }
     
-
     if (!isAdmin && !managerAllowedRoles.includes(userForm.role)) {
       showToast('error', 'You can only create users with Warehouse Staff or Driver roles');
       return;
@@ -585,23 +612,22 @@ export function ManagerDashboard() {
     setShowEditUserModal(true);
   };
 
-// ManagerDashboard.tsx - handleAssignWarehouse
-const handleAssignWarehouse = async () => {
-  if (!selectedUser || !selectedWarehouseId) return;
-  try {
+  const handleAssignWarehouse = async () => {
+    if (!selectedUser || !selectedWarehouseId) return;
+    try {
       await warehouseService.assignStaff(selectedWarehouseId, {
         userId: selectedUser.id,
         position: 'Staff',
         hireDate: new Date().toISOString().split('T')[0]
       });
-    setSelectedWarehouseId(null);
-    showToast('success', 'Staff assigned to warehouse successfully!');
-    if (user?.id) await notificationService.sendNotification({ userId: user.id, type: 'Staff', title: 'Staff Assigned', message: `Staff assigned to warehouse`, actionUrl: '/manager' }).catch(() => {});
-  } catch (error: any) {
-    console.error('Failed to assign warehouse:', error);
-    showToast('error', error.message || 'Failed to assign warehouse');
-  }
-};
+      setSelectedWarehouseId(null);
+      showToast('success', 'Staff assigned to warehouse successfully!');
+      if (user?.id) await notificationService.sendNotification({ userId: user.id, type: 'Staff', title: 'Staff Assigned', message: `Staff assigned to warehouse`, actionUrl: '/manager' }).catch(() => {});
+    } catch (error: any) {
+      console.error('Failed to assign warehouse:', error);
+      showToast('error', error.message || 'Failed to assign warehouse');
+    }
+  };
 
   const loadUserPermissions = (user: User) => {
     const permissionsKey = `user_permissions_${user.id}`;
@@ -609,7 +635,6 @@ const handleAssignWarehouse = async () => {
     if (savedPermissions) {
       setUserPermissions(JSON.parse(savedPermissions));
     } else {
-      // Permissions default bazuar në rolin e përdoruesit
       let defaultPermissions = {
         canViewInventory: true,
         canEditStock: false,
@@ -650,7 +675,6 @@ const handleAssignWarehouse = async () => {
     if (!selectedUser) return;
     
     try {
-      
       const permissionsKey = `user_permissions_${selectedUser.id}`;
       localStorage.setItem(permissionsKey, JSON.stringify(userPermissions));
       
@@ -682,7 +706,7 @@ const handleAssignWarehouse = async () => {
       case 'Processing': return 'bg-blue-500/20 text-blue-400';
       case 'Shipped': return 'bg-purple-500/20 text-purple-400';
       case 'Delivered': return 'bg-green-500/20 text-green-400';
-      default: return 'bg-slate-500/20 text-slate-400';
+      default: return 'bg-slate-500/20 text-slate-500';
     }
   };
 
@@ -691,7 +715,7 @@ const handleAssignWarehouse = async () => {
       <div className="flex h-screen items-center justify-center">
         <div className="text-center">
           <div className="w-16 h-16 border-4 border-cyan-500 border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
-          <p className="text-slate-400">Loading...</p>
+          <p className="text-slate-500">Loading...</p>
         </div>
       </div>
     );
@@ -701,8 +725,8 @@ const handleAssignWarehouse = async () => {
     <div className="flex flex-col gap-8 p-6">
       <div className="flex justify-between items-center">
         <div>
-          <h1 className="text-3xl font-bold text-white mb-2">Manager Dashboard</h1>
-          <p className="text-slate-400">Operations and inventory management</p>
+          <h1 className="text-3xl font-bold text-slate-900 mb-2">Manager Dashboard</h1>
+          <p className="text-slate-500">Operations and inventory management</p>
         </div>
         <button
           onClick={() => {
@@ -710,78 +734,88 @@ const handleAssignWarehouse = async () => {
             setWarehouseForm({ name: '', location: '', phone: '' });
             setShowWarehouseModal(true);
           }}
-          className="px-4 py-2 bg-cyan-600 hover:bg-cyan-700 text-white rounded-lg flex items-center gap-2 transition"
+          className="px-4 py-2 bg-cyan-600 hover:bg-cyan-700 text-slate-900 rounded-lg flex items-center gap-2 transition"
         >
           <Plus className="w-4 h-4" />
           Add Warehouse
         </button>
       </div>
 
-      <div className="border-b border-slate-700">
-        <nav className="flex space-x-8">
+      <div className="border-b border-slate-200">
+        <nav className="flex space-x-8 overflow-x-auto">
           <button
             onClick={() => setActiveTab('overview')}
-            className={`py-2 px-1 border-b-2 font-medium text-sm ${
+            className={`py-2 px-1 border-b-2 font-medium text-sm whitespace-nowrap ${
               activeTab === 'overview'
                 ? 'border-cyan-500 text-cyan-400'
-                : 'border-transparent text-slate-400 hover:text-slate-300'
+                : 'border-transparent text-slate-500 hover:text-slate-500'
             }`}
           >
             Overview
           </button>
           <button
             onClick={() => setActiveTab('warehouses')}
-            className={`py-2 px-1 border-b-2 font-medium text-sm ${
+            className={`py-2 px-1 border-b-2 font-medium text-sm whitespace-nowrap ${
               activeTab === 'warehouses'
                 ? 'border-cyan-500 text-cyan-400'
-                : 'border-transparent text-slate-400 hover:text-slate-300'
+                : 'border-transparent text-slate-500 hover:text-slate-500'
             }`}
           >
             Warehouses
           </button>
           <button
             onClick={() => setActiveTab('inventory')}
-            className={`py-2 px-1 border-b-2 font-medium text-sm ${
+            className={`py-2 px-1 border-b-2 font-medium text-sm whitespace-nowrap ${
               activeTab === 'inventory'
                 ? 'border-cyan-500 text-cyan-400'
-                : 'border-transparent text-slate-400 hover:text-slate-300'
+                : 'border-transparent text-slate-500 hover:text-slate-500'
             }`}
           >
             Inventory
           </button>
           <button
             onClick={() => setActiveTab('low-stock')}
-            className={`py-2 px-1 border-b-2 font-medium text-sm ${
+            className={`py-2 px-1 border-b-2 font-medium text-sm whitespace-nowrap ${
               activeTab === 'low-stock'
                 ? 'border-cyan-500 text-cyan-400'
-                : 'border-transparent text-slate-400 hover:text-slate-300'
+                : 'border-transparent text-slate-500 hover:text-slate-500'
             }`}
           >
             Low Stock Alerts
           </button>
           <button
             onClick={() => setActiveTab('staff')}
-            className={`py-2 px-1 border-b-2 font-medium text-sm ${
+            className={`py-2 px-1 border-b-2 font-medium text-sm whitespace-nowrap ${
               activeTab === 'staff'
                 ? 'border-cyan-500 text-cyan-400'
-                : 'border-transparent text-slate-400 hover:text-slate-300'
+                : 'border-transparent text-slate-500 hover:text-slate-500'
             }`}
           >
             Staff Management
           </button>
+        <button
+  onClick={() => setActiveTab('vehicles')}
+  className={`py-2 px-1 border-b-2 font-medium text-sm whitespace-nowrap ${
+    activeTab === 'vehicles'
+      ? 'border-cyan-500 text-cyan-400'
+      : 'border-transparent text-slate-500 hover:text-slate-500'
+  }`}
+          >
+            Vehicles
+          </button>
         </nav>
       </div>
 
- 
+   
       {activeTab === 'overview' && (
         <div className="flex flex-col gap-8">
           <div className="grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-4">
             {statItems.map((stat) => (
-              <div key={stat.label} className="rounded-2xl border border-slate-700 bg-slate-800/50 p-6 backdrop-blur">
+              <div key={stat.label} className="rounded-2xl border border-slate-200 bg-slate-100/90 p-6 backdrop-blur">
                 <div className="flex items-center justify-between">
                   <div>
-                    <p className="text-sm text-slate-400">{stat.label}</p>
-                    <p className="text-3xl font-bold text-white mt-2">{stat.value}</p>
+                    <p className="text-sm text-slate-500">{stat.label}</p>
+                    <p className="text-3xl font-bold text-slate-900 mt-2">{stat.value}</p>
                   </div>
                   <div className={`bg-gradient-to-br ${stat.color} rounded-xl p-3 text-2xl`}>
                     {stat.icon}
@@ -792,29 +826,29 @@ const handleAssignWarehouse = async () => {
           </div>
 
           <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
-            <div className="rounded-2xl border border-slate-700 bg-slate-800/50 p-6 backdrop-blur">
-              <h2 className="text-xl font-bold text-white mb-4">Recent Orders</h2>
+            <div className="rounded-2xl border border-slate-200 bg-slate-100/90 p-6 backdrop-blur">
+              <h2 className="text-xl font-bold text-slate-900 mb-4">Recent Orders</h2>
               <div className="overflow-x-auto">
                 <table className="w-full text-sm">
                   <thead>
-                    <tr className="border-b border-slate-700">
-                      <th className="text-left py-3 text-slate-400">Order #</th>
-                      <th className="text-left py-3 text-slate-400">Amount</th>
-                      <th className="text-left py-3 text-slate-400">Status</th>
-                      <th className="text-left py-3 text-slate-400">Date</th>
+                    <tr className="border-b border-slate-200">
+                      <th className="text-left py-3 text-slate-500">Order #</th>
+                      <th className="text-left py-3 text-slate-500">Amount</th>
+                      <th className="text-left py-3 text-slate-500">Status</th>
+                      <th className="text-left py-3 text-slate-500">Date</th>
                     </tr>
                   </thead>
                   <tbody>
                     {orders.slice(0, 5).map((order) => (
-                      <tr key={order.id} className="border-b border-slate-700/50">
-                        <td className="py-3 text-white">{order.orderNumber}</td>
-                        <td className="py-3 text-white">${order.totalAmount.toLocaleString()}</td>
+                      <tr key={order.id} className="border-b border-slate-200/50">
+                        <td className="py-3 text-slate-900">{order.orderNumber}</td>
+                        <td className="py-3 text-slate-900">${order.totalAmount.toLocaleString()}</td>
                         <td className="py-3">
                           <span className={`rounded-full px-2 py-1 text-xs ${getStatusColor(order.status)}`}>
                             {order.status}
                           </span>
                         </td>
-                        <td className="py-3 text-slate-400">{new Date(order.orderDate).toLocaleDateString()}</td>
+                        <td className="py-3 text-slate-500">{new Date(order.orderDate).toLocaleDateString()}</td>
                       </tr>
                     ))}
                   </tbody>
@@ -823,14 +857,14 @@ const handleAssignWarehouse = async () => {
             </div>
 
             <div className="space-y-6">
-              <div className="rounded-2xl border border-slate-700 bg-slate-800/50 p-6 backdrop-blur">
-                <h2 className="text-xl font-bold text-white mb-4">Active Shipments</h2>
+              <div className="rounded-2xl border border-slate-200 bg-slate-100/90 p-6 backdrop-blur">
+                <h2 className="text-xl font-bold text-slate-900 mb-4">Active Shipments</h2>
                 <div className="space-y-3">
                   {shipments.slice(0, 3).map((shipment) => (
-                    <div key={shipment.id} className="flex justify-between items-center p-3 rounded-lg bg-slate-700/30">
+                    <div key={shipment.id} className="flex justify-between items-center p-3 rounded-lg bg-slate-100/80">
                       <div>
-                        <p className="font-semibold text-white">{shipment.trackingNumber}</p>
-                        <p className="text-xs text-slate-400">{shipment.status}</p>
+                        <p className="font-semibold text-slate-900">{shipment.trackingNumber}</p>
+                        <p className="text-xs text-slate-500">{shipment.status}</p>
                       </div>
                       <span className="text-cyan-400 text-sm">{shipment.driverName || 'Unassigned'}</span>
                     </div>
@@ -838,13 +872,13 @@ const handleAssignWarehouse = async () => {
                 </div>
               </div>
 
-              <div className="rounded-2xl border border-slate-700 bg-slate-800/50 p-6 backdrop-blur">
-                <h2 className="text-xl font-bold text-white mb-4">Warehouses Summary</h2>
+              <div className="rounded-2xl border border-slate-200 bg-slate-100/90 p-6 backdrop-blur">
+                <h2 className="text-xl font-bold text-slate-900 mb-4">Warehouses Summary</h2>
                 <div className="space-y-2">
                   {warehouses.slice(0, 3).map((warehouse) => (
-                    <div key={warehouse.id} className="p-3 rounded-lg bg-slate-700/30">
-                      <p className="text-white font-medium">{warehouse.name}</p>
-                      <p className="text-xs text-slate-400">{warehouse.location}</p>
+                    <div key={warehouse.id} className="p-3 rounded-lg bg-slate-100/80">
+                      <p className="text-slate-900 font-medium">{warehouse.name}</p>
+                      <p className="text-xs text-slate-500">{warehouse.location}</p>
                     </div>
                   ))}
                   {warehouses.length > 3 && (
@@ -859,23 +893,23 @@ const handleAssignWarehouse = async () => {
         </div>
       )}
 
-      {/* WAREHOUSES TAB */}
+      
       {activeTab === 'warehouses' && (
-        <div className="rounded-2xl border border-slate-700 bg-slate-800/50 p-6 backdrop-blur">
+        <div className="rounded-2xl border border-slate-200 bg-slate-100/90 p-6 backdrop-blur">
           <div className="flex flex-col md:flex-row justify-between items-center mb-6 gap-4">
-            <h2 className="text-xl font-bold text-white">Warehouse Management</h2>
+            <h2 className="text-xl font-bold text-slate-900">Warehouse Management</h2>
             <div className="flex gap-4">
               <div className="relative">
-                <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-slate-400" />
+                <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-slate-500" />
                 <input
                   type="text"
                   placeholder="Search warehouses..."
                   value={searchWarehouse}
                   onChange={(e) => setSearchWarehouse(e.target.value)}
-                  className="pl-10 pr-4 py-2 bg-slate-700 border border-slate-600 rounded-lg text-white text-sm focus:outline-none focus:border-cyan-500"
+                  className="pl-10 pr-4 py-2 bg-slate-200 border border-slate-600 rounded-lg text-slate-900 text-sm focus:outline-none focus:border-cyan-500"
                 />
               </div>
-              <div className="text-sm text-slate-400">
+              <div className="text-sm text-slate-500">
                 Total: {filteredWarehouses.length} warehouses
               </div>
             </div>
@@ -884,14 +918,14 @@ const handleAssignWarehouse = async () => {
           {filteredWarehouses.length === 0 ? (
             <div className="text-center py-12">
               <Building2 className="w-16 h-16 text-slate-600 mx-auto mb-4" />
-              <p className="text-slate-400">No warehouses found</p>
+              <p className="text-slate-500">No warehouses found</p>
               <button
                 onClick={() => {
                   setEditingWarehouse(null);
                   setWarehouseForm({ name: '', location: '', phone: '' });
                   setShowWarehouseModal(true);
                 }}
-                className="mt-4 px-4 py-2 bg-cyan-600 hover:bg-cyan-700 text-white rounded-lg"
+                className="mt-4 px-4 py-2 bg-cyan-600 hover:bg-cyan-700 text-slate-900 rounded-lg"
               >
                 Add your first warehouse
               </button>
@@ -937,15 +971,15 @@ const handleAssignWarehouse = async () => {
         </div>
       )}
 
-
+   
       {activeTab === 'inventory' && (
-        <div className="rounded-2xl border border-slate-700 bg-slate-800/50 p-6 backdrop-blur">
+        <div className="rounded-2xl border border-slate-200 bg-slate-100/90 p-6 backdrop-blur">
           <div className="flex justify-between items-center mb-4 flex-wrap gap-4">
-            <h2 className="text-xl font-bold text-white">Inventory Management</h2>
+            <h2 className="text-xl font-bold text-slate-900">Inventory Management</h2>
             <select
               value={selectedWarehouse || ''}
               onChange={(e) => setSelectedWarehouse(e.target.value ? parseInt(e.target.value) : null)}
-              className="px-3 py-2 bg-slate-700 border border-slate-600 rounded-lg text-white text-sm"
+              className="px-3 py-2 bg-slate-200 border border-slate-600 rounded-lg text-slate-900 text-sm"
             >
               <option value="">Select Warehouse</option>
               {warehouses.map((warehouse) => (
@@ -958,21 +992,21 @@ const handleAssignWarehouse = async () => {
           
           {selectedWarehouse && warehouseStats && (
             <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mb-6">
-              <div className="bg-slate-700/30 rounded-lg p-3 text-center">
-                <p className="text-2xl font-bold text-white">{warehouseStats.totalProducts}</p>
-                <p className="text-xs text-slate-400">Products</p>
+              <div className="bg-slate-100/80 rounded-lg p-3 text-center">
+                <p className="text-2xl font-bold text-slate-900">{warehouseStats.totalProducts}</p>
+                <p className="text-xs text-slate-500">Products</p>
               </div>
-              <div className="bg-slate-700/30 rounded-lg p-3 text-center">
-                <p className="text-2xl font-bold text-white">{warehouseStats.totalQuantity}</p>
-                <p className="text-xs text-slate-400">Total Units</p>
+              <div className="bg-slate-100/80 rounded-lg p-3 text-center">
+                <p className="text-2xl font-bold text-slate-900">{warehouseStats.totalQuantity}</p>
+                <p className="text-xs text-slate-500">Total Units</p>
               </div>
-              <div className="bg-slate-700/30 rounded-lg p-3 text-center">
+              <div className="bg-slate-100/80 rounded-lg p-3 text-center">
                 <p className="text-2xl font-bold text-yellow-400">{warehouseStats.lowStockCount}</p>
-                <p className="text-xs text-slate-400">Low Stock</p>
+                <p className="text-xs text-slate-500">Low Stock</p>
               </div>
-              <div className="bg-slate-700/30 rounded-lg p-3 text-center">
+              <div className="bg-slate-100/80 rounded-lg p-3 text-center">
                 <p className="text-2xl font-bold text-red-400">{warehouseStats.outOfStockCount}</p>
-                <p className="text-xs text-slate-400">Out of Stock</p>
+                <p className="text-xs text-slate-500">Out of Stock</p>
               </div>
             </div>
           )}
@@ -981,7 +1015,7 @@ const handleAssignWarehouse = async () => {
             inventory.length === 0 ? (
               <div className="text-center py-12">
                 <Package className="w-16 h-16 text-slate-600 mx-auto mb-4" />
-                <p className="text-slate-400">No products found in this warehouse</p>
+                <p className="text-slate-500">No products found in this warehouse</p>
                 <button
                   onClick={() => {
                     setAddProductWarehouseId(selectedWarehouse);
@@ -990,7 +1024,7 @@ const handleAssignWarehouse = async () => {
                     setProductQuantity(1);
                     productService.getAll().then(setProducts).catch(() => setProducts([]));
                   }}
-                  className="mt-4 px-4 py-2 bg-green-600 hover:bg-green-700 text-white rounded-lg"
+                  className="mt-4 px-4 py-2 bg-green-600 hover:bg-green-700 text-slate-900 rounded-lg"
                 >
                   Add Product to Warehouse
                 </button>
@@ -999,24 +1033,24 @@ const handleAssignWarehouse = async () => {
               <div className="overflow-x-auto">
                 <table className="w-full text-sm">
                   <thead>
-                    <tr className="border-b border-slate-700">
-                      <th className="text-left py-3 text-slate-400">Product</th>
-                      <th className="text-left py-3 text-slate-400">SKU</th>
-                      <th className="text-left py-3 text-slate-400">Stock Level</th>
-                      <th className="text-left py-3 text-slate-400">Min Level</th>
-                      <th className="text-left py-3 text-slate-400">Max Level</th>
-                      <th className="text-left py-3 text-slate-400">Status</th>
-                      <th className="text-left py-3 text-slate-400">Location</th>
+                    <tr className="border-b border-slate-200">
+                      <th className="text-left py-3 text-slate-500">Product</th>
+                      <th className="text-left py-3 text-slate-500">SKU</th>
+                      <th className="text-left py-3 text-slate-500">Stock Level</th>
+                      <th className="text-left py-3 text-slate-500">Min Level</th>
+                      <th className="text-left py-3 text-slate-500">Max Level</th>
+                      <th className="text-left py-3 text-slate-500">Status</th>
+                      <th className="text-left py-3 text-slate-500">Location</th>
                     </tr>
                   </thead>
                   <tbody>
                     {inventory.map((item) => (
-                      <tr key={item.id} className="border-b border-slate-700/50">
-                        <td className="py-3 text-white">{item.productName || 'N/A'}</td>
-                        <td className="py-3 text-slate-400">{item.productSku || 'N/A'}</td>
-                        <td className="py-3 text-white font-medium">{item.quantity}</td>
-                        <td className="py-3 text-slate-400">{item.minimumStockLevel}</td>
-                        <td className="py-3 text-slate-400">{item.maximumStockLevel}</td>
+                      <tr key={item.id} className="border-b border-slate-200/50">
+                        <td className="py-3 text-slate-900">{item.productName || 'N/A'}</td>
+                        <td className="py-3 text-slate-500">{item.productSku || 'N/A'}</td>
+                        <td className="py-3 text-slate-900 font-medium">{item.quantity}</td>
+                        <td className="py-3 text-slate-500">{item.minimumStockLevel}</td>
+                        <td className="py-3 text-slate-500">{item.maximumStockLevel}</td>
                         <td className="py-3">
                           <span className={`px-2 py-1 rounded-full text-xs ${
                             item.isOutOfStock ? 'bg-red-500/20 text-red-400' :
@@ -1027,7 +1061,7 @@ const handleAssignWarehouse = async () => {
                              item.isLowStock ? 'Low Stock' : 'Good'}
                           </span>
                         </td>
-                        <td className="py-3 text-slate-400">{item.shelfLocation || '-'}</td>
+                        <td className="py-3 text-slate-500">{item.shelfLocation || '-'}</td>
                       </tr>
                     ))}
                   </tbody>
@@ -1037,20 +1071,19 @@ const handleAssignWarehouse = async () => {
           ) : (
             <div className="text-center py-12">
               <Building2 className="w-16 h-16 text-slate-600 mx-auto mb-4" />
-              <p className="text-slate-400">Select a warehouse to view inventory</p>
+              <p className="text-slate-500">Select a warehouse to view inventory</p>
             </div>
           )}
         </div>
       )}
 
-    
       {activeTab === 'low-stock' && (
-        <div className="rounded-2xl border border-slate-700 bg-slate-800/50 p-6 backdrop-blur">
-          <h2 className="text-xl font-bold text-white mb-4">Low Stock Alerts</h2>
+        <div className="rounded-2xl border border-slate-200 bg-slate-100/90 p-6 backdrop-blur">
+          <h2 className="text-xl font-bold text-slate-900 mb-4">Low Stock Alerts</h2>
           {lowStockAlerts.length === 0 ? (
             <div className="text-center py-12">
               <CheckCircle className="w-16 h-16 text-green-400 mx-auto mb-3" />
-              <p className="text-slate-400">No low stock alerts. All inventory levels are healthy!</p>
+              <p className="text-slate-500">No low stock alerts. All inventory levels are healthy!</p>
             </div>
           ) : (
             <div className="space-y-3">
@@ -1066,8 +1099,8 @@ const handleAssignWarehouse = async () => {
                   <div className="flex justify-between items-start flex-wrap gap-4">
                     <div className="flex-1">
                       <div className="flex items-center gap-2 flex-wrap mb-2">
-                        <h3 className="text-white font-medium">{alert.productName}</h3>
-                        <span className="text-slate-400 text-sm">({alert.productSku})</span>
+                        <h3 className="text-slate-900 font-medium">{alert.productName}</h3>
+                        <span className="text-slate-500 text-sm">({alert.productSku})</span>
                         <span className={`px-2 py-0.5 rounded text-xs font-medium ${
                           alert.deficit > 50
                             ? 'bg-red-500/20 text-red-400'
@@ -1078,25 +1111,25 @@ const handleAssignWarehouse = async () => {
                       </div>
                       <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-sm">
                         <div>
-                          <p className="text-slate-400">Warehouse</p>
-                          <p className="text-white font-medium">{alert.warehouseName}</p>
+                          <p className="text-slate-500">Warehouse</p>
+                          <p className="text-slate-900 font-medium">{alert.warehouseName}</p>
                         </div>
                         <div>
-                          <p className="text-slate-400">Current Level</p>
-                          <p className="text-white font-medium">{alert.currentQuantity} units</p>
+                          <p className="text-slate-500">Current Level</p>
+                          <p className="text-slate-900 font-medium">{alert.currentQuantity} units</p>
                         </div>
                         <div>
-                          <p className="text-slate-400">Minimum Level</p>
-                          <p className="text-white font-medium">{alert.minimumLevel} units</p>
+                          <p className="text-slate-500">Minimum Level</p>
+                          <p className="text-slate-900 font-medium">{alert.minimumLevel} units</p>
                         </div>
                         <div>
-                          <p className="text-slate-400">Needed</p>
+                          <p className="text-slate-500">Needed</p>
                           <p className="text-red-400 font-bold">{alert.deficit} units</p>
                         </div>
                       </div>
                     </div>
                   </div>
-                  <div className="mt-3 bg-slate-800 rounded-full h-2 overflow-hidden">
+                  <div className="mt-3 bg-white rounded-full h-2 overflow-hidden">
                     <div
                       className={`h-full ${alert.deficit > 50 ? 'bg-red-500' : 'bg-yellow-500'}`}
                       style={{
@@ -1111,13 +1144,13 @@ const handleAssignWarehouse = async () => {
         </div>
       )}
 
-     
+ 
       {activeTab === 'staff' && (
         <div className="space-y-6">
           <div className="flex justify-between items-center">
             <div>
-              <h2 className="text-2xl font-bold text-white">Staff Management</h2>
-              <p className="text-slate-400 mt-1">
+              <h2 className="text-2xl font-bold text-slate-900">Staff Management</h2>
+              <p className="text-slate-500 mt-1">
                 {isAdmin 
                   ? 'Manage all users, assign to warehouses, and configure permissions'
                   : 'Manage warehouse staff and drivers'}
@@ -1126,7 +1159,7 @@ const handleAssignWarehouse = async () => {
             <div className="flex gap-3">
               <button
                 onClick={() => { loadStaffData(); setShowCreateUserModal(true); }}
-                className="px-4 py-2 bg-cyan-600 hover:bg-cyan-700 text-white rounded-lg flex items-center gap-2 transition"
+                className="px-4 py-2 bg-cyan-600 hover:bg-cyan-700 text-slate-900 rounded-lg flex items-center gap-2 transition"
               >
                 <Plus className="w-4 h-4" />
                 Add User
@@ -1134,20 +1167,20 @@ const handleAssignWarehouse = async () => {
             </div>
           </div>
 
-          <div className="bg-slate-800/50 rounded-xl border border-slate-700 p-6">
-            <h3 className="text-lg font-semibold text-white mb-4">
+          <div className="bg-slate-100/90 rounded-xl border border-slate-200 p-6">
+            <h3 className="text-lg font-semibold text-slate-900 mb-4">
               {isAdmin ? 'All Users' : 'Warehouse Staff & Drivers'}
             </h3>
             <div className="overflow-x-auto">
               <table className="w-full text-sm">
                 <thead>
-                  <tr className="border-b border-slate-700">
-                    <th className="text-left py-3 px-4 text-slate-400">Name</th>
-                    <th className="text-left py-3 px-4 text-slate-400">Email</th>
-                    <th className="text-left py-3 px-4 text-slate-400">Role</th>
-                    <th className="text-left py-3 px-4 text-slate-400">Warehouse</th>
-                    <th className="text-center py-3 px-4 text-slate-400">Permissions</th>
-                    <th className="text-center py-3 px-4 text-slate-400">Actions</th>
+                  <tr className="border-b border-slate-200">
+                    <th className="text-left py-3 px-4 text-slate-500">Name</th>
+                    <th className="text-left py-3 px-4 text-slate-500">Email</th>
+                    <th className="text-left py-3 px-4 text-slate-500">Role</th>
+                    <th className="text-left py-3 px-4 text-slate-500">Warehouse</th>
+                    <th className="text-center py-3 px-4 text-slate-500">Permissions</th>
+                    <th className="text-center py-3 px-4 text-slate-500">Actions</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -1160,7 +1193,7 @@ const handleAssignWarehouse = async () => {
                   )}
                   {users.length === 0 && !staffError ? (
                     <tr>
-                      <td colSpan={6} className="py-8 text-center text-slate-400">
+                      <td colSpan={6} className="py-8 text-center text-slate-500">
                         No staff members found. Click "Add User" to create new staff.
                       </td>
                     </tr>
@@ -1168,9 +1201,9 @@ const handleAssignWarehouse = async () => {
                     users.map((user) => {
                       const userPrimaryRole = user.roles.find(r => allowedStaffRoles.includes(r)) || user.roles[0];
                       return (
-                        <tr key={user.id} className="border-b border-slate-700/50 hover:bg-slate-800/50 transition">
-                          <td className="py-3 px-4 text-white">{user.firstName} {user.lastName}</td>
-                          <td className="py-3 px-4 text-slate-300">{user.email}</td>
+                        <tr key={user.id} className="border-b border-slate-200/50 hover:bg-slate-100/90 transition">
+                          <td className="py-3 px-4 text-slate-900">{user.firstName} {user.lastName}</td>
+                          <td className="py-3 px-4 text-slate-500">{user.email}</td>
                           <td className="py-3 px-4">
                             <div className="flex flex-wrap gap-1">
                               {user.roles.map((role) => (
@@ -1180,7 +1213,7 @@ const handleAssignWarehouse = async () => {
                                   role === 'Admin' ? 'bg-purple-500/20 text-purple-400' :
                                   role === 'Manager' ? 'bg-cyan-500/20 text-cyan-400' :
                                   role === 'Supplier' ? 'bg-orange-500/20 text-orange-400' :
-                                  'bg-slate-500/20 text-slate-400'
+                                  'bg-slate-500/20 text-slate-500'
                                 }`}>
                                   {role === 'WarehouseStaff' ? 'Warehouse Staff' : 
                                    role === 'Driver' ? 'Driver' : role}
@@ -1191,7 +1224,7 @@ const handleAssignWarehouse = async () => {
                           <td className="py-3 px-4">
                             <button
                               onClick={() => { setSelectedUser(user); setShowAssignWarehouseModal(true); }}
-                              className="px-3 py-1 bg-green-600 hover:bg-green-700 text-white rounded text-sm transition"
+                              className="px-3 py-1 bg-green-600 hover:bg-green-700 text-slate-900 rounded text-sm transition"
                               disabled={userPrimaryRole === 'Driver'}
                               title={userPrimaryRole === 'Driver' ? 'Drivers cannot be assigned to warehouses' : 'Assign to warehouse'}
                             >
@@ -1201,7 +1234,7 @@ const handleAssignWarehouse = async () => {
                           <td className="py-3 px-4 text-center">
                             <button
                               onClick={() => { setSelectedUser(user); loadUserPermissions(user); setShowPermissionsModal(true); }}
-                              className="px-3 py-1 bg-purple-600 hover:bg-purple-700 text-white rounded text-sm transition inline-flex items-center gap-1"
+                              className="px-3 py-1 bg-purple-600 hover:bg-purple-700 text-slate-900 rounded text-sm transition inline-flex items-center gap-1"
                             >
                               <Key className="w-3 h-3" />
                               Permissions
@@ -1239,61 +1272,222 @@ const handleAssignWarehouse = async () => {
         </div>
       )}
 
-     
+
+      {activeTab === 'vehicles' && (
+  <div className="rounded-2xl border border-slate-200 bg-slate-100/90 p-6 backdrop-blur">
+    <div className="flex justify-between items-center mb-6">
+      <div>
+        <h2 className="text-xl font-bold text-slate-900">Fleet Management</h2>
+        <p className="text-slate-500 text-sm">Manage vehicles, assign to drivers, and live tracking</p>
+      </div>
+      <div className="flex gap-3">
+        <button
+          onClick={() => {
+            setEditingVehicle(null);
+            setShowVehicleModal(true);
+          }}
+          className="px-3 py-2 bg-green-600 hover:bg-green-700 text-white rounded-lg text-sm flex items-center gap-2"
+        >
+          <Plus className="w-4 h-4" />
+          Add Vehicle
+        </button>
+        <button
+          onClick={() => setShowAssignModal(true)}
+          className="px-3 py-2 bg-purple-600 hover:bg-purple-700 text-white rounded-lg text-sm flex items-center gap-2"
+        >
+          <UserIcon className="w-4 h-4" />
+          Assign to Driver
+        </button>
+        <button
+          onClick={fetchVehicles}
+          className="px-3 py-2 bg-slate-200 hover:bg-slate-100 text-slate-700 rounded-lg text-sm flex items-center gap-2"
+        >
+          <RefreshCw className="w-4 h-4" />
+          Refresh
+        </button>
+      </div>
+    </div>
+
+    <div className="grid grid-cols-1 gap-6 lg:grid-cols-2 xl:grid-cols-3">
+      {vehicles.map((vehicle) => {
+        const stats = vehicleStats[vehicle.id] || { status: vehicle.isAvailable ? 'available' : 'offline', progress: 0, location: 'Unknown' };
+        const assignedDriver = drivers.find(d => d.id === vehicle.driverId);
+        
+        const statusColors: Record<string, string> = {
+          'available': 'bg-green-500/20 text-green-400',
+          'in-transit': 'bg-blue-500/20 text-blue-400',
+          'maintenance': 'bg-red-500/20 text-red-400',
+          'offline': 'bg-slate-500/20 text-slate-400'
+        };
+
+        const statusLabels: Record<string, string> = {
+          'available': 'Available',
+          'in-transit': 'In Transit',
+          'maintenance': 'Maintenance',
+          'offline': 'Offline'
+        };
+
+        return (
+          <div key={vehicle.id} className="bg-white rounded-xl border border-slate-200 overflow-hidden hover:border-cyan-500/50 transition-all duration-300">
+            <div className="p-4 border-b border-slate-200 bg-gradient-to-r from-slate-100 to-slate-50">
+              <div className="flex justify-between items-center">
+                <div className="flex items-center gap-3">
+                  {vehicle.imageUrl ? (
+                    <img src={vehicle.imageUrl} alt={vehicle.model} className="w-12 h-12 rounded-xl object-cover" />
+                  ) : (
+                    <div className="w-12 h-12 rounded-xl bg-cyan-500/10 flex items-center justify-center">
+                      <Truck className="w-6 h-6 text-cyan-500" />
+                    </div>
+                  )}
+                  <div>
+                    <h3 className="text-lg font-bold text-slate-900">{vehicle.plateNumber}</h3>
+                    <p className="text-slate-500 text-sm">{vehicle.model} ({vehicle.year})</p>
+                  </div>
+                </div>
+                <span className={`px-3 py-1 rounded-full text-xs font-semibold ${statusColors[stats.status]}`}>
+                  {statusLabels[stats.status]}
+                </span>
+              </div>
+            </div>
+
+            <div className="p-4 space-y-3">
+              <div className="grid grid-cols-2 gap-3 text-sm">
+                <div>
+                  <p className="text-slate-500">Type</p>
+                  <p className="text-slate-900 font-medium capitalize">{vehicle.vehicleType}</p>
+                </div>
+                <div>
+                  <p className="text-slate-500">Capacity</p>
+                  <p className="text-slate-900 font-medium">{vehicle.capacity} kg</p>
+                </div>
+                <div>
+                  <p className="text-slate-500">Color</p>
+                  <div className="flex items-center gap-2">
+                    {vehicle.color && (
+                      <span className="h-4 w-4 rounded-full border border-slate-300" style={{ backgroundColor: vehicle.color }} />
+                    )}
+                    <p className="text-slate-900 font-medium">{vehicle.color || '-'}</p>
+                  </div>
+                </div>
+                <div>
+                  <p className="text-slate-500">Driver</p>
+                  <p className="text-slate-900 font-medium">{assignedDriver ? `${assignedDriver.firstName} ${assignedDriver.lastName}` : 'Not assigned'}</p>
+                </div>
+              </div>
+
+              {stats.location && (
+                <div className="flex items-center gap-2 text-sm bg-slate-100 rounded-lg p-2">
+                  <MapPin className="w-4 h-4 text-cyan-500" />
+                  <span className="text-slate-600">{stats.location}</span>
+                </div>
+              )}
+
+              {stats.status === 'in-transit' && (
+                <div>
+                  <div className="flex justify-between text-xs mb-1">
+                    <span className="text-slate-500">Route Progress</span>
+                    <span className="text-cyan-500 font-semibold">{stats.progress}%</span>
+                  </div>
+                  <div className="h-1.5 bg-slate-200 rounded-full overflow-hidden">
+                    <div className="h-full bg-gradient-to-r from-cyan-400 to-blue-500 rounded-full" style={{ width: `${stats.progress}%` }} />
+                  </div>
+                </div>
+              )}
+
+              <div className="flex gap-2 pt-2">
+                <button
+                  onClick={() => setShowTrackerModal(vehicle)}
+                  className="flex-1 px-3 py-2 bg-cyan-500 hover:bg-cyan-400 text-white rounded-lg text-sm font-semibold transition flex items-center justify-center gap-2"
+                >
+                  <Navigation className="w-4 h-4" />
+                  Live Tracking
+                </button>
+                <button
+                  onClick={() => {
+                    setEditingVehicle(vehicle);
+                    setShowVehicleModal(true);
+                  }}
+                  className="px-3 py-2 bg-slate-200 hover:bg-slate-100 text-slate-700 rounded-lg text-sm transition"
+                >
+                  <Edit className="w-4 h-4" />
+                </button>
+              </div>
+            </div>
+          </div>
+        );
+      })}
+
+      {vehicles.length === 0 && (
+        <div className="col-span-full text-center py-12 bg-white rounded-xl border border-slate-200">
+          <Truck className="w-16 h-16 text-slate-400 mx-auto mb-4" />
+          <p className="text-slate-500">No vehicles found</p>
+          <button
+            onClick={() => setShowVehicleModal(true)}
+            className="mt-4 px-4 py-2 bg-cyan-600 hover:bg-cyan-700 text-white rounded-lg"
+          >
+            Add your first vehicle
+          </button>
+        </div>
+      )}
+    </div>
+  </div>
+)}
+
+
       {showCreateUserModal && (
         <div className="fixed inset-0 bg-black/70 flex items-center justify-center z-50 p-4">
-          <div className="bg-slate-800 rounded-xl w-full max-w-md border border-slate-700">
-            <div className="p-4 border-b border-slate-700">
-              <h2 className="text-xl font-bold text-white">Create New User</h2>
-              <p className="text-slate-400 text-sm">Users will receive an email with login credentials</p>
+          <div className="bg-white rounded-xl w-full max-w-md border border-slate-200">
+            <div className="p-4 border-b border-slate-200">
+              <h2 className="text-xl font-bold text-slate-900">Create New User</h2>
+              <p className="text-slate-500 text-sm">Users will receive an email with login credentials</p>
             </div>
             <div className="p-6 space-y-4">
               <div>
-                <label className="block text-sm text-slate-400 mb-1">First Name *</label>
+                <label className="block text-sm text-slate-500 mb-1">First Name *</label>
                 <input
                   type="text"
                   value={userForm.firstName}
                   onChange={(e) => setUserForm({ ...userForm, firstName: e.target.value })}
-                  className="w-full px-4 py-2 bg-slate-700 border border-slate-600 rounded-lg text-white focus:outline-none focus:border-cyan-500"
+                  className="w-full px-4 py-2 bg-slate-200 border border-slate-600 rounded-lg text-slate-900 focus:outline-none focus:border-cyan-500"
                   placeholder="Enter first name"
                 />
               </div>
               <div>
-                <label className="block text-sm text-slate-400 mb-1">Last Name *</label>
+                <label className="block text-sm text-slate-500 mb-1">Last Name *</label>
                 <input
                   type="text"
                   value={userForm.lastName}
                   onChange={(e) => setUserForm({ ...userForm, lastName: e.target.value })}
-                  className="w-full px-4 py-2 bg-slate-700 border border-slate-600 rounded-lg text-white focus:outline-none focus:border-cyan-500"
+                  className="w-full px-4 py-2 bg-slate-200 border border-slate-600 rounded-lg text-slate-900 focus:outline-none focus:border-cyan-500"
                   placeholder="Enter last name"
                 />
               </div>
               <div>
-                <label className="block text-sm text-slate-400 mb-1">Email *</label>
+                <label className="block text-sm text-slate-500 mb-1">Email *</label>
                 <input
                   type="email"
                   value={userForm.email}
                   onChange={(e) => setUserForm({ ...userForm, email: e.target.value })}
-                  className="w-full px-4 py-2 bg-slate-700 border border-slate-600 rounded-lg text-white focus:outline-none focus:border-cyan-500"
+                  className="w-full px-4 py-2 bg-slate-200 border border-slate-600 rounded-lg text-slate-900 focus:outline-none focus:border-cyan-500"
                   placeholder="user@example.com"
                 />
               </div>
               <div>
-                <label className="block text-sm text-slate-400 mb-1">Password *</label>
+                <label className="block text-sm text-slate-500 mb-1">Password *</label>
                 <input
                   type="password"
                   value={userForm.password}
                   onChange={(e) => setUserForm({ ...userForm, password: e.target.value })}
-                  className="w-full px-4 py-2 bg-slate-700 border border-slate-600 rounded-lg text-white focus:outline-none focus:border-cyan-500"
+                  className="w-full px-4 py-2 bg-slate-200 border border-slate-600 rounded-lg text-slate-900 focus:outline-none focus:border-cyan-500"
                   placeholder="Minimum 6 characters"
                 />
               </div>
               <div>
-                <label className="block text-sm text-slate-400 mb-1">Role *</label>
+                <label className="block text-sm text-slate-500 mb-1">Role *</label>
                 <select
                   value={userForm.role}
                   onChange={(e) => setUserForm({ ...userForm, role: e.target.value })}
-                  className="w-full px-4 py-2 bg-slate-700 border border-slate-600 rounded-lg text-white focus:outline-none focus:border-cyan-500"
+                  className="w-full px-4 py-2 bg-slate-200 border border-slate-600 rounded-lg text-slate-900 focus:outline-none focus:border-cyan-500"
                 >
                   {availableRoles.map((role) => (
                     <option key={role} value={role}>
@@ -1310,50 +1504,49 @@ const handleAssignWarehouse = async () => {
                 )}
               </div>
             </div>
-            <div className="p-4 border-t border-slate-700 flex gap-3">
-              <button onClick={() => { setShowCreateUserModal(false); setUserForm({ email: '', password: '', firstName: '', lastName: '', role: 'WarehouseStaff' }); }} className="flex-1 px-4 py-2 bg-slate-700 hover:bg-slate-600 text-white rounded-lg transition">Cancel</button>
-              <button onClick={handleCreateUser} className="flex-1 px-4 py-2 bg-cyan-600 hover:bg-cyan-700 text-white rounded-lg transition">Create User</button>
+            <div className="p-4 border-t border-slate-200 flex gap-3">
+              <button onClick={() => { setShowCreateUserModal(false); setUserForm({ email: '', password: '', firstName: '', lastName: '', role: 'WarehouseStaff' }); }} className="flex-1 px-4 py-2 bg-slate-200 hover:bg-slate-100 text-slate-900 rounded-lg transition">Cancel</button>
+              <button onClick={handleCreateUser} className="flex-1 px-4 py-2 bg-cyan-600 hover:bg-cyan-700 text-slate-900 rounded-lg transition">Create User</button>
             </div>
           </div>
         </div>
       )}
 
-     
       {showEditUserModal && selectedUser && (
         <div className="fixed inset-0 bg-black/70 flex items-center justify-center z-50 p-4">
-          <div className="bg-slate-800 rounded-xl w-full max-w-md border border-slate-700">
-            <div className="p-4 border-b border-slate-700">
-              <h2 className="text-xl font-bold text-white">Edit User</h2>
-              <p className="text-slate-400 text-sm">Update user information</p>
+          <div className="bg-white rounded-xl w-full max-w-md border border-slate-200">
+            <div className="p-4 border-b border-slate-200">
+              <h2 className="text-xl font-bold text-slate-900">Edit User</h2>
+              <p className="text-slate-500 text-sm">Update user information</p>
             </div>
             <div className="p-6 space-y-4">
               <div>
-                <label className="block text-sm text-slate-400 mb-1">First Name *</label>
+                <label className="block text-sm text-slate-500 mb-1">First Name *</label>
                 <input
                   type="text"
                   value={editUserForm.firstName}
                   onChange={(e) => setEditUserForm({ ...editUserForm, firstName: e.target.value })}
-                  className="w-full px-4 py-2 bg-slate-700 border border-slate-600 rounded-lg text-white focus:outline-none focus:border-cyan-500"
+                  className="w-full px-4 py-2 bg-slate-200 border border-slate-600 rounded-lg text-slate-900 focus:outline-none focus:border-cyan-500"
                   placeholder="Enter first name"
                 />
               </div>
               <div>
-                <label className="block text-sm text-slate-400 mb-1">Last Name *</label>
+                <label className="block text-sm text-slate-500 mb-1">Last Name *</label>
                 <input
                   type="text"
                   value={editUserForm.lastName}
                   onChange={(e) => setEditUserForm({ ...editUserForm, lastName: e.target.value })}
-                  className="w-full px-4 py-2 bg-slate-700 border border-slate-600 rounded-lg text-white focus:outline-none focus:border-cyan-500"
+                  className="w-full px-4 py-2 bg-slate-200 border border-slate-600 rounded-lg text-slate-900 focus:outline-none focus:border-cyan-500"
                   placeholder="Enter last name"
                 />
               </div>
               <div>
-                <label className="block text-sm text-slate-400 mb-1">Email *</label>
+                <label className="block text-sm text-slate-500 mb-1">Email *</label>
                 <input
                   type="email"
                   value={editUserForm.email}
                   onChange={(e) => setEditUserForm({ ...editUserForm, email: e.target.value })}
-                  className="w-full px-4 py-2 bg-slate-700 border border-slate-600 rounded-lg text-white focus:outline-none focus:border-cyan-500"
+                  className="w-full px-4 py-2 bg-slate-200 border border-slate-600 rounded-lg text-slate-900 focus:outline-none focus:border-cyan-500"
                   placeholder="user@example.com"
                 />
               </div>
@@ -1363,26 +1556,26 @@ const handleAssignWarehouse = async () => {
                     type="checkbox"
                     checked={editUserForm.isActive}
                     onChange={(e) => setEditUserForm({ ...editUserForm, isActive: e.target.checked })}
-                    className="w-4 h-4 rounded border-slate-600 bg-slate-700 text-cyan-500"
+                    className="w-4 h-4 rounded border-slate-600 bg-slate-200 text-cyan-500"
                   />
-                  <span className="text-sm text-slate-400">Active User</span>
+                  <span className="text-sm text-slate-500">Active User</span>
                 </label>
               </div>
             </div>
-            <div className="p-4 border-t border-slate-700 flex gap-3">
+            <div className="p-4 border-t border-slate-200 flex gap-3">
               <button 
                 onClick={() => { 
                   setShowEditUserModal(false); 
                   setSelectedUser(null);
                   setEditUserForm({ firstName: '', lastName: '', email: '', isActive: true });
                 }} 
-                className="flex-1 px-4 py-2 bg-slate-700 hover:bg-slate-600 text-white rounded-lg transition"
+                className="flex-1 px-4 py-2 bg-slate-200 hover:bg-slate-100 text-slate-900 rounded-lg transition"
               >
                 Cancel
               </button>
               <button 
                 onClick={handleEditUser} 
-                className="flex-1 px-4 py-2 bg-cyan-600 hover:bg-cyan-700 text-white rounded-lg transition"
+                className="flex-1 px-4 py-2 bg-cyan-600 hover:bg-cyan-700 text-slate-900 rounded-lg transition"
               >
                 Update User
               </button>
@@ -1391,21 +1584,21 @@ const handleAssignWarehouse = async () => {
         </div>
       )}
 
-
+     
       {showAssignWarehouseModal && selectedUser && (
         <div className="fixed inset-0 bg-black/70 flex items-center justify-center z-50 p-4">
-          <div className="bg-slate-800 rounded-xl w-full max-w-md border border-slate-700">
-            <div className="p-4 border-b border-slate-700">
-              <h2 className="text-xl font-bold text-white">Assign Warehouse to {selectedUser.firstName} {selectedUser.lastName}</h2>
-              <p className="text-slate-400 text-sm">Select which warehouse this user will work in</p>
+          <div className="bg-white rounded-xl w-full max-w-md border border-slate-200">
+            <div className="p-4 border-b border-slate-200">
+              <h2 className="text-xl font-bold text-slate-900">Assign Warehouse to {selectedUser.firstName} {selectedUser.lastName}</h2>
+              <p className="text-slate-500 text-sm">Select which warehouse this user will work in</p>
             </div>
             <div className="p-6 space-y-4">
               <div>
-                <label className="block text-sm text-slate-400 mb-1">Warehouse</label>
+                <label className="block text-sm text-slate-500 mb-1">Warehouse</label>
                 <select
                   value={selectedWarehouseId || ''}
                   onChange={(e) => setSelectedWarehouseId(Number(e.target.value))}
-                  className="w-full px-4 py-2 bg-slate-700 border border-slate-600 rounded-lg text-white focus:outline-none focus:border-cyan-500"
+                  className="w-full px-4 py-2 bg-slate-200 border border-slate-600 rounded-lg text-slate-900 focus:outline-none focus:border-cyan-500"
                 >
                   <option value="">Select a warehouse</option>
                   {warehouses.map((warehouse) => (
@@ -1416,106 +1609,105 @@ const handleAssignWarehouse = async () => {
                 </select>
               </div>
             </div>
-            <div className="p-4 border-t border-slate-700 flex gap-3">
-              <button onClick={() => { setShowAssignWarehouseModal(false); setSelectedUser(null); setSelectedWarehouseId(null); }} className="flex-1 px-4 py-2 bg-slate-700 hover:bg-slate-600 text-white rounded-lg transition">Cancel</button>
-              <button onClick={handleAssignWarehouse} className="flex-1 px-4 py-2 bg-cyan-600 hover:bg-cyan-700 text-white rounded-lg transition">Assign to Warehouse</button>
+            <div className="p-4 border-t border-slate-200 flex gap-3">
+              <button onClick={() => { setShowAssignWarehouseModal(false); setSelectedUser(null); setSelectedWarehouseId(null); }} className="flex-1 px-4 py-2 bg-slate-200 hover:bg-slate-100 text-slate-900 rounded-lg transition">Cancel</button>
+              <button onClick={handleAssignWarehouse} className="flex-1 px-4 py-2 bg-cyan-600 hover:bg-cyan-700 text-slate-900 rounded-lg transition">Assign to Warehouse</button>
             </div>
           </div>
         </div>
       )}
 
-
       {showPermissionsModal && selectedUser && (
         <div className="fixed inset-0 bg-black/70 flex items-center justify-center z-50 p-4">
-          <div className="bg-slate-800 rounded-xl w-full max-w-md border border-slate-700">
-            <div className="p-4 border-b border-slate-700">
-              <h2 className="text-xl font-bold text-white">User Permissions for {selectedUser.firstName} {selectedUser.lastName}</h2>
-              <p className="text-slate-400 text-sm">Configure what this user can access</p>
+          <div className="bg-white rounded-xl w-full max-w-md border border-slate-200">
+            <div className="p-4 border-b border-slate-200">
+              <h2 className="text-xl font-bold text-slate-900">User Permissions for {selectedUser.firstName} {selectedUser.lastName}</h2>
+              <p className="text-slate-500 text-sm">Configure what this user can access</p>
             </div>
             <div className="p-6 space-y-4">
               <div className="space-y-3">
-                <label className="flex items-center justify-between cursor-pointer p-2 hover:bg-slate-700/30 rounded-lg">
+                <label className="flex items-center justify-between cursor-pointer p-2 hover:bg-slate-100/80 rounded-lg">
                   <div className="flex items-center gap-3">
                     <Package className="w-4 h-4 text-cyan-400" />
-                    <span className="text-white">View Inventory</span>
+                    <span className="text-slate-900">View Inventory</span>
                   </div>
                   <input
                     type="checkbox"
                     checked={userPermissions.canViewInventory}
                     onChange={(e) => setUserPermissions({ ...userPermissions, canViewInventory: e.target.checked })}
-                    className="w-4 h-4 rounded border-slate-600 bg-slate-700 text-cyan-500"
+                    className="w-4 h-4 rounded border-slate-600 bg-slate-200 text-cyan-500"
                   />
                 </label>
                 
-                <label className="flex items-center justify-between cursor-pointer p-2 hover:bg-slate-700/30 rounded-lg">
+                <label className="flex items-center justify-between cursor-pointer p-2 hover:bg-slate-100/80 rounded-lg">
                   <div className="flex items-center gap-3">
                     <Edit className="w-4 h-4 text-yellow-400" />
-                    <span className="text-white">Edit Stock</span>
+                    <span className="text-slate-900">Edit Stock</span>
                   </div>
                   <input
                     type="checkbox"
                     checked={userPermissions.canEditStock}
                     onChange={(e) => setUserPermissions({ ...userPermissions, canEditStock: e.target.checked })}
-                    className="w-4 h-4 rounded border-slate-600 bg-slate-700 text-cyan-500"
+                    className="w-4 h-4 rounded border-slate-600 bg-slate-200 text-cyan-500"
                   />
                 </label>
                 
-                <label className="flex items-center justify-between cursor-pointer p-2 hover:bg-slate-700/30 rounded-lg">
+                <label className="flex items-center justify-between cursor-pointer p-2 hover:bg-slate-100/80 rounded-lg">
                   <div className="flex items-center gap-3">
                     <TrendingUp className="w-4 h-4 text-green-400" />
-                    <span className="text-white">Reorder Products</span>
+                    <span className="text-slate-900">Reorder Products</span>
                   </div>
                   <input
                     type="checkbox"
                     checked={userPermissions.canReorderProducts}
                     onChange={(e) => setUserPermissions({ ...userPermissions, canReorderProducts: e.target.checked })}
-                    className="w-4 h-4 rounded border-slate-600 bg-slate-700 text-cyan-500"
+                    className="w-4 h-4 rounded border-slate-600 bg-slate-200 text-cyan-500"
                   />
                 </label>
                 
-                <label className="flex items-center justify-between cursor-pointer p-2 hover:bg-slate-700/30 rounded-lg">
+                <label className="flex items-center justify-between cursor-pointer p-2 hover:bg-slate-100/80 rounded-lg">
                   <div className="flex items-center gap-3">
                     <Eye className="w-4 h-4 text-blue-400" />
-                    <span className="text-white">View Orders</span>
+                    <span className="text-slate-900">View Orders</span>
                   </div>
                   <input
                     type="checkbox"
                     checked={userPermissions.canViewOrders}
                     onChange={(e) => setUserPermissions({ ...userPermissions, canViewOrders: e.target.checked })}
-                    className="w-4 h-4 rounded border-slate-600 bg-slate-700 text-cyan-500"
+                    className="w-4 h-4 rounded border-slate-600 bg-slate-200 text-cyan-500"
                   />
                 </label>
                 
-                <label className="flex items-center justify-between cursor-pointer p-2 hover:bg-slate-700/30 rounded-lg">
+                <label className="flex items-center justify-between cursor-pointer p-2 hover:bg-slate-100/80 rounded-lg">
                   <div className="flex items-center gap-3">
                     <Building2 className="w-4 h-4 text-purple-400" />
-                    <span className="text-white">Manage Warehouse</span>
+                    <span className="text-slate-900">Manage Warehouse</span>
                   </div>
                   <input
                     type="checkbox"
                     checked={userPermissions.canManageWarehouse}
                     onChange={(e) => setUserPermissions({ ...userPermissions, canManageWarehouse: e.target.checked })}
-                    className="w-4 h-4 rounded border-slate-600 bg-slate-700 text-cyan-500"
+                    className="w-4 h-4 rounded border-slate-600 bg-slate-200 text-cyan-500"
                   />
                 </label>
                 
-                <label className="flex items-center justify-between cursor-pointer p-2 hover:bg-slate-700/30 rounded-lg">
+                <label className="flex items-center justify-between cursor-pointer p-2 hover:bg-slate-100/80 rounded-lg">
                   <div className="flex items-center gap-3">
                     <TrendingDown className="w-4 h-4 text-orange-400" />
-                    <span className="text-white">View Reports</span>
+                    <span className="text-slate-900">View Reports</span>
                   </div>
                   <input
                     type="checkbox"
                     checked={userPermissions.canViewReports}
                     onChange={(e) => setUserPermissions({ ...userPermissions, canViewReports: e.target.checked })}
-                    className="w-4 h-4 rounded border-slate-600 bg-slate-700 text-cyan-500"
+                    className="w-4 h-4 rounded border-slate-600 bg-slate-200 text-cyan-500"
                   />
                 </label>
               </div>
             </div>
-            <div className="p-4 border-t border-slate-700 flex gap-3">
-              <button onClick={() => setShowPermissionsModal(false)} className="flex-1 px-4 py-2 bg-slate-700 hover:bg-slate-600 text-white rounded-lg transition">Cancel</button>
-              <button onClick={handleUpdatePermissions} className="flex-1 px-4 py-2 bg-cyan-600 hover:bg-cyan-700 text-white rounded-lg transition">Save Permissions</button>
+            <div className="p-4 border-t border-slate-200 flex gap-3">
+              <button onClick={() => setShowPermissionsModal(false)} className="flex-1 px-4 py-2 bg-slate-200 hover:bg-slate-100 text-slate-900 rounded-lg transition">Cancel</button>
+              <button onClick={handleUpdatePermissions} className="flex-1 px-4 py-2 bg-cyan-600 hover:bg-cyan-700 text-slate-900 rounded-lg transition">Save Permissions</button>
             </div>
           </div>
         </div>
@@ -1524,123 +1716,125 @@ const handleAssignWarehouse = async () => {
 
       {showWarehouseModal && (
         <div className="fixed inset-0 bg-black/70 flex items-center justify-center z-50 p-4">
-          <div className="bg-slate-800 rounded-xl w-full max-w-md border border-slate-700">
-            <div className="p-4 border-b border-slate-700">
-              <h2 className="text-xl font-bold text-white">{editingWarehouse ? 'Edit Warehouse' : 'Add New Warehouse'}</h2>
+          <div className="bg-white rounded-xl w-full max-w-md border border-slate-200">
+            <div className="p-4 border-b border-slate-200">
+              <h2 className="text-xl font-bold text-slate-900">{editingWarehouse ? 'Edit Warehouse' : 'Add New Warehouse'}</h2>
             </div>
             <div className="p-6 space-y-4">
               <div>
-                <label className="block text-sm text-slate-400 mb-1">Warehouse Name *</label>
+                <label className="block text-sm text-slate-500 mb-1">Warehouse Name *</label>
                 <input
                   type="text"
                   value={warehouseForm.name}
                   onChange={(e) => setWarehouseForm({ ...warehouseForm, name: e.target.value })}
-                  className="w-full px-4 py-2 bg-slate-700 border border-slate-600 rounded-lg text-white focus:outline-none focus:border-cyan-500"
+                  className="w-full px-4 py-2 bg-slate-200 border border-slate-600 rounded-lg text-slate-900 focus:outline-none focus:border-cyan-500"
                   placeholder="e.g., Main Warehouse"
                 />
               </div>
               <div>
-                <label className="block text-sm text-slate-400 mb-1">Location</label>
+                <label className="block text-sm text-slate-500 mb-1">Location</label>
                 <input
                   type="text"
                   value={warehouseForm.location}
                   onChange={(e) => setWarehouseForm({ ...warehouseForm, location: e.target.value })}
-                  className="w-full px-4 py-2 bg-slate-700 border border-slate-600 rounded-lg text-white focus:outline-none focus:border-cyan-500"
+                  className="w-full px-4 py-2 bg-slate-200 border border-slate-600 rounded-lg text-slate-900 focus:outline-none focus:border-cyan-500"
                   placeholder="City, Address"
                 />
               </div>
               <div>
-                <label className="block text-sm text-slate-400 mb-1">Phone</label>
+                <label className="block text-sm text-slate-500 mb-1">Phone</label>
                 <input
                   type="text"
                   value={warehouseForm.phone}
                   onChange={(e) => setWarehouseForm({ ...warehouseForm, phone: e.target.value })}
-                  className="w-full px-4 py-2 bg-slate-700 border border-slate-600 rounded-lg text-white focus:outline-none focus:border-cyan-500"
+                  className="w-full px-4 py-2 bg-slate-200 border border-slate-600 rounded-lg text-slate-900 focus:outline-none focus:border-cyan-500"
                   placeholder="+1234567890"
                 />
               </div>
             </div>
-            <div className="p-4 border-t border-slate-700 flex gap-3">
-              <button onClick={() => { setShowWarehouseModal(false); setEditingWarehouse(null); setWarehouseForm({ name: '', location: '', phone: '' }); }} className="flex-1 px-4 py-2 bg-slate-700 hover:bg-slate-600 text-white rounded-lg transition">Cancel</button>
-              <button onClick={editingWarehouse ? handleUpdateWarehouse : handleCreateWarehouse} className="flex-1 px-4 py-2 bg-cyan-600 hover:bg-cyan-700 text-white rounded-lg transition">{editingWarehouse ? 'Update' : 'Create'}</button>
+            <div className="p-4 border-t border-slate-200 flex gap-3">
+              <button onClick={() => { setShowWarehouseModal(false); setEditingWarehouse(null); setWarehouseForm({ name: '', location: '', phone: '' }); }} className="flex-1 px-4 py-2 bg-slate-200 hover:bg-slate-100 text-slate-900 rounded-lg transition">Cancel</button>
+              <button onClick={editingWarehouse ? handleUpdateWarehouse : handleCreateWarehouse} className="flex-1 px-4 py-2 bg-cyan-600 hover:bg-cyan-700 text-slate-900 rounded-lg transition">{editingWarehouse ? 'Update' : 'Create'}</button>
             </div>
           </div>
         </div>
       )}
 
-   
+ 
       {showZoneModal && (
         <div className="fixed inset-0 bg-black/70 flex items-center justify-center z-50 p-4">
-          <div className="bg-slate-800 rounded-xl w-full max-w-md border border-slate-700">
-            <div className="p-4 border-b border-slate-700">
-              <h2 className="text-xl font-bold text-white">Add New Zone</h2>
-              <p className="text-slate-400 text-sm">Warehouse: {selectedWarehouseForDetails?.name}</p>
+          <div className="bg-white rounded-xl w-full max-w-md border border-slate-200">
+            <div className="p-4 border-b border-slate-200">
+              <h2 className="text-xl font-bold text-slate-900">Add New Zone</h2>
+              <p className="text-slate-500 text-sm">Warehouse: {selectedWarehouseForDetails?.name}</p>
             </div>
             <div className="p-6 space-y-4">
               <div>
-                <label className="block text-sm text-slate-400 mb-1">Zone Name *</label>
-                <input type="text" value={zoneForm.zoneName} onChange={(e) => setZoneForm({ ...zoneForm, zoneName: e.target.value })} className="w-full px-4 py-2 bg-slate-700 border border-slate-600 rounded-lg text-white focus:outline-none focus:border-cyan-500" placeholder="e.g., Aisle A" />
+                <label className="block text-sm text-slate-500 mb-1">Zone Name *</label>
+                <input type="text" value={zoneForm.zoneName} onChange={(e) => setZoneForm({ ...zoneForm, zoneName: e.target.value })} className="w-full px-4 py-2 bg-slate-200 border border-slate-600 rounded-lg text-slate-900 focus:outline-none focus:border-cyan-500" placeholder="e.g., Aisle A" />
               </div>
               <div>
-                <label className="block text-sm text-slate-400 mb-1">Description</label>
-                <textarea value={zoneForm.description} onChange={(e) => setZoneForm({ ...zoneForm, description: e.target.value })} className="w-full px-4 py-2 bg-slate-700 border border-slate-600 rounded-lg text-white focus:outline-none focus:border-cyan-500" rows={2} placeholder="Optional description" />
+                <label className="block text-sm text-slate-500 mb-1">Description</label>
+                <textarea value={zoneForm.description} onChange={(e) => setZoneForm({ ...zoneForm, description: e.target.value })} className="w-full px-4 py-2 bg-slate-200 border border-slate-600 rounded-lg text-slate-900 focus:outline-none focus:border-cyan-500" rows={2} placeholder="Optional description" />
               </div>
               <div>
-                <label className="block text-sm text-slate-400 mb-1">Capacity</label>
-                <input type="number" value={zoneForm.capacity || ''} onChange={(e) => setZoneForm({ ...zoneForm, capacity: parseInt(e.target.value) || 0 })} className="w-full px-4 py-2 bg-slate-700 border border-slate-600 rounded-lg text-white focus:outline-none focus:border-cyan-500" placeholder="Max units" />
+                <label className="block text-sm text-slate-500 mb-1">Capacity</label>
+                <input type="number" value={zoneForm.capacity || ''} onChange={(e) => setZoneForm({ ...zoneForm, capacity: parseInt(e.target.value) || 0 })} className="w-full px-4 py-2 bg-slate-200 border border-slate-600 rounded-lg text-slate-900 focus:outline-none focus:border-cyan-500" placeholder="Max units" />
               </div>
             </div>
-            <div className="p-4 border-t border-slate-700 flex gap-3">
-              <button onClick={() => { setShowZoneModal(false); setZoneForm({ zoneName: '', description: '', capacity: 0 }); }} className="flex-1 px-4 py-2 bg-slate-700 hover:bg-slate-600 text-white rounded-lg">Cancel</button>
-              <button onClick={handleCreateZone} className="flex-1 px-4 py-2 bg-cyan-600 hover:bg-cyan-700 text-white rounded-lg">Create Zone</button>
+            <div className="p-4 border-t border-slate-200 flex gap-3">
+              <button onClick={() => { setShowZoneModal(false); setZoneForm({ zoneName: '', description: '', capacity: 0 }); }} className="flex-1 px-4 py-2 bg-slate-200 hover:bg-slate-100 text-slate-900 rounded-lg">Cancel</button>
+              <button onClick={handleCreateZone} className="flex-1 px-4 py-2 bg-cyan-600 hover:bg-cyan-700 text-slate-900 rounded-lg">Create Zone</button>
             </div>
           </div>
         </div>
       )}
 
+    
       {showStaffModal && (
         <div className="fixed inset-0 bg-black/70 flex items-center justify-center z-50 p-4">
-          <div className="bg-slate-800 rounded-xl w-full max-w-md border border-slate-700">
-            <div className="p-4 border-b border-slate-700">
-              <h2 className="text-xl font-bold text-white">Assign Staff Member</h2>
-              <p className="text-slate-400 text-sm">Warehouse: {selectedWarehouseForDetails?.name}</p>
+          <div className="bg-white rounded-xl w-full max-w-md border border-slate-200">
+            <div className="p-4 border-b border-slate-200">
+              <h2 className="text-xl font-bold text-slate-900">Assign Staff Member</h2>
+              <p className="text-slate-500 text-sm">Warehouse: {selectedWarehouseForDetails?.name}</p>
             </div>
             <div className="p-6 space-y-4">
               <div>
-                <label className="block text-sm text-slate-400 mb-1">User ID *</label>
-                <input type="number" value={staffForm.userId || ''} onChange={(e) => setStaffForm({ ...staffForm, userId: parseInt(e.target.value) || 0 })} className="w-full px-4 py-2 bg-slate-700 border border-slate-600 rounded-lg text-white focus:outline-none focus:border-cyan-500" placeholder="Enter user ID" />
+                <label className="block text-sm text-slate-500 mb-1">User ID *</label>
+                <input type="number" value={staffForm.userId || ''} onChange={(e) => setStaffForm({ ...staffForm, userId: parseInt(e.target.value) || 0 })} className="w-full px-4 py-2 bg-slate-200 border border-slate-600 rounded-lg text-slate-900 focus:outline-none focus:border-cyan-500" placeholder="Enter user ID" />
               </div>
               <div>
-                <label className="block text-sm text-slate-400 mb-1">Position</label>
-                <input type="text" value={staffForm.position} onChange={(e) => setStaffForm({ ...staffForm, position: e.target.value })} className="w-full px-4 py-2 bg-slate-700 border border-slate-600 rounded-lg text-white focus:outline-none focus:border-cyan-500" placeholder="e.g., Warehouse Manager" />
+                <label className="block text-sm text-slate-500 mb-1">Position</label>
+                <input type="text" value={staffForm.position} onChange={(e) => setStaffForm({ ...staffForm, position: e.target.value })} className="w-full px-4 py-2 bg-slate-200 border border-slate-600 rounded-lg text-slate-900 focus:outline-none focus:border-cyan-500" placeholder="e.g., Warehouse Manager" />
               </div>
               <div>
-                <label className="block text-sm text-slate-400 mb-1">Hire Date</label>
-                <input type="date" value={staffForm.hireDate} onChange={(e) => setStaffForm({ ...staffForm, hireDate: e.target.value })} className="w-full px-4 py-2 bg-slate-700 border border-slate-600 rounded-lg text-white focus:outline-none focus:border-cyan-500" />
+                <label className="block text-sm text-slate-500 mb-1">Hire Date</label>
+                <input type="date" value={staffForm.hireDate} onChange={(e) => setStaffForm({ ...staffForm, hireDate: e.target.value })} className="w-full px-4 py-2 bg-slate-200 border border-slate-600 rounded-lg text-slate-900 focus:outline-none focus:border-cyan-500" />
               </div>
             </div>
-            <div className="p-4 border-t border-slate-700 flex gap-3">
-              <button onClick={() => { setShowStaffModal(false); setStaffForm({ userId: 0, position: '', hireDate: '' }); }} className="flex-1 px-4 py-2 bg-slate-700 hover:bg-slate-600 text-white rounded-lg">Cancel</button>
-              <button onClick={handleAssignStaff} className="flex-1 px-4 py-2 bg-cyan-600 hover:bg-cyan-700 text-white rounded-lg">Assign Staff</button>
+            <div className="p-4 border-t border-slate-200 flex gap-3">
+              <button onClick={() => { setShowStaffModal(false); setStaffForm({ userId: 0, position: '', hireDate: '' }); }} className="flex-1 px-4 py-2 bg-slate-200 hover:bg-slate-100 text-slate-900 rounded-lg">Cancel</button>
+              <button onClick={handleAssignStaff} className="flex-1 px-4 py-2 bg-cyan-600 hover:bg-cyan-700 text-slate-900 rounded-lg">Assign Staff</button>
             </div>
           </div>
         </div>
       )}
 
+ 
       {showAddProductModal && addProductWarehouseId && (
         <div className="fixed inset-0 bg-black/70 flex items-center justify-center z-50 p-4">
-          <div className="bg-slate-800 rounded-xl w-full max-w-md border border-slate-700">
-            <div className="p-4 border-b border-slate-700 flex justify-between items-center">
-              <h2 className="text-xl font-bold text-white">Add Product to Warehouse</h2>
-              <button onClick={() => setShowAddProductModal(false)} className="p-2 hover:bg-slate-700 rounded-lg">
-                <X className="w-5 h-5 text-slate-400" />
+          <div className="bg-white rounded-xl w-full max-w-md border border-slate-200">
+            <div className="p-4 border-b border-slate-200 flex justify-between items-center">
+              <h2 className="text-xl font-bold text-slate-900">Add Product to Warehouse</h2>
+              <button onClick={() => setShowAddProductModal(false)} className="p-2 hover:bg-slate-200 rounded-lg">
+                <X className="w-5 h-5 text-slate-500" />
               </button>
             </div>
             <div className="p-6 space-y-4">
               <div>
-                <label className="block text-sm text-slate-400 mb-1">Product</label>
+                <label className="block text-sm text-slate-500 mb-1">Product</label>
                 <select
-                  className="w-full px-4 py-2 bg-slate-700 border border-slate-600 rounded-lg text-white"
+                  className="w-full px-4 py-2 bg-slate-200 border border-slate-600 rounded-lg text-slate-900"
                   value={selectedProductId ?? ''}
                   onChange={e => setSelectedProductId(e.target.value ? parseInt(e.target.value) : null)}
                 >
@@ -1651,20 +1845,20 @@ const handleAssignWarehouse = async () => {
                 </select>
               </div>
               <div>
-                <label className="block text-sm text-slate-400 mb-1">Initial Quantity</label>
+                <label className="block text-sm text-slate-500 mb-1">Initial Quantity</label>
                 <input
                   type="number"
                   min={1}
                   value={productQuantity}
                   onChange={e => setProductQuantity(Number(e.target.value))}
-                  className="w-full px-4 py-2 bg-slate-700 border border-slate-600 rounded-lg text-white"
+                  className="w-full px-4 py-2 bg-slate-200 border border-slate-600 rounded-lg text-slate-900"
                 />
               </div>
             </div>
-            <div className="p-4 border-t border-slate-700 flex gap-3">
+            <div className="p-4 border-t border-slate-200 flex gap-3">
               <button
                 onClick={() => setShowAddProductModal(false)}
-                className="flex-1 px-4 py-2 bg-slate-700 hover:bg-slate-600 text-white rounded-lg transition"
+                className="flex-1 px-4 py-2 bg-slate-200 hover:bg-slate-100 text-slate-900 rounded-lg transition"
                 disabled={addProductLoading}
               >
                 Cancel
@@ -1698,7 +1892,7 @@ const handleAssignWarehouse = async () => {
                     setAddProductLoading(false);
                   }
                 }}
-                className="flex-1 px-4 py-2 bg-green-600 hover:bg-green-700 text-white rounded-lg transition"
+                className="flex-1 px-4 py-2 bg-green-600 hover:bg-green-700 text-slate-900 rounded-lg transition"
                 disabled={addProductLoading || !selectedProductId || productQuantity < 1}
               >
                 {addProductLoading ? 'Adding...' : 'Add Product'}
@@ -1708,24 +1902,62 @@ const handleAssignWarehouse = async () => {
         </div>
       )}
 
-  
+
       {showDeleteConfirm && (
         <div className="fixed inset-0 bg-black/70 flex items-center justify-center z-50 p-4">
-          <div className="bg-slate-800 rounded-xl w-full max-w-md border border-slate-700">
-            <div className="p-4 border-b border-slate-700">
-              <h2 className="text-xl font-bold text-white">Delete Warehouse</h2>
+          <div className="bg-white rounded-xl w-full max-w-md border border-slate-200">
+            <div className="p-4 border-b border-slate-200">
+              <h2 className="text-xl font-bold text-slate-900">Delete Warehouse</h2>
             </div>
             <div className="p-6">
-              <p className="text-slate-300 mb-2">Are you sure you want to delete this warehouse?</p>
+              <p className="text-slate-500 mb-2">Are you sure you want to delete this warehouse?</p>
               <p className="text-yellow-400 text-sm">⚠️ Note: Only warehouses with no stock can be deleted.</p>
             </div>
-            <div className="p-4 border-t border-slate-700 flex gap-3">
-              <button onClick={() => setShowDeleteConfirm(null)} className="flex-1 px-4 py-2 bg-slate-700 hover:bg-slate-600 text-white rounded-lg">Cancel</button>
-              <button onClick={() => handleDeleteWarehouse(showDeleteConfirm)} className="flex-1 px-4 py-2 bg-red-600 hover:bg-red-700 text-white rounded-lg">Delete</button>
+            <div className="p-4 border-t border-slate-200 flex gap-3">
+              <button onClick={() => setShowDeleteConfirm(null)} className="flex-1 px-4 py-2 bg-slate-200 hover:bg-slate-100 text-slate-900 rounded-lg">Cancel</button>
+              <button onClick={() => handleDeleteWarehouse(showDeleteConfirm)} className="flex-1 px-4 py-2 bg-red-600 hover:bg-red-700 text-slate-900 rounded-lg">Delete</button>
             </div>
           </div>
         </div>
       )}
+
+      {showVehicleModal && (
+  <VehicleManagementModal
+    vehicle={editingVehicle}
+    onClose={() => {
+      setShowVehicleModal(false);
+      setEditingVehicle(null);
+    }}
+    onSuccess={() => {
+      fetchVehicles();
+      loadData();
+    }}
+  />
+)}
+
+{showAssignModal && (
+  <AssignVehicleToDriverModal
+    drivers={drivers}
+    vehicles={vehicles}
+    onClose={() => setShowAssignModal(false)}
+    onSuccess={() => {
+      fetchVehicles();
+      loadData();
+    }}
+  />
+)}
+
+{showTrackerModal && (
+  <VehicleLiveTracker
+    vehicleId={showTrackerModal.id}
+    plateNumber={showTrackerModal.plateNumber}
+    model={showTrackerModal.model}
+    imageUrl={showTrackerModal.imageUrl}
+    color={showTrackerModal.color}
+    onClose={() => setShowTrackerModal(null)}
+  />
+)}
+
       {confirmDialog && (
         <ConfirmModal
           title={confirmDialog.title}

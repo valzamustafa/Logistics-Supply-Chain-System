@@ -1,4 +1,3 @@
-
 import { api } from './api';
 
 export interface ProductImage {
@@ -48,3 +47,6 @@ export const productService = {
   createCategory: (data: Omit<Category, 'id'>) => 
     api.post<Category>('/api/products/categories', data),
 };
+
+
+

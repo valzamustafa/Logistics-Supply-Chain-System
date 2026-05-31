@@ -33,8 +33,7 @@ export function WarehouseManagement() {
       const data = await warehouseService.getAll();
       console.log('Warehouses fetched:', data);
       setWarehouses(data || []);
-      
-    
+     
       if (data && data.length > 0) {
         const stats: Record<number, WarehouseStats> = {};
         for (const warehouse of data) {
@@ -119,11 +118,11 @@ export function WarehouseManagement() {
   }
 
   return (
-    <div className="p-6 space-y-6 bg-slate-900 min-h-screen">
+    <div className="p-6 space-y-6 bg-slate-50 min-h-screen">
       <div className="flex justify-between items-center">
         <div>
-          <h1 className="text-3xl font-bold text-white">Warehouse Management</h1>
-          <p className="text-slate-400 mt-1">Manage all warehouses and view their inventory statistics</p>
+          <h1 className="text-3xl font-bold text-slate-900">Warehouse Management</h1>
+          <p className="text-slate-500 mt-1">Manage all warehouses and view their inventory statistics</p>
         </div>
         <button
           onClick={() => {
@@ -131,7 +130,7 @@ export function WarehouseManagement() {
             setFormData({ name: '', location: '', phone: '' });
             setShowModal(true);
           }}
-          className="px-4 py-2 bg-cyan-600 hover:bg-cyan-700 text-white rounded-lg flex items-center gap-2 transition"
+          className="px-4 py-2 bg-cyan-600 hover:bg-cyan-700 text-slate-900 rounded-lg flex items-center gap-2 transition"
         >
           <Plus className="w-4 h-4" /> Add Warehouse
         </button>
@@ -145,7 +144,7 @@ export function WarehouseManagement() {
 
       <div className="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-6">
         {warehouses.length === 0 ? (
-          <div className="col-span-full text-center text-slate-400 py-12">
+          <div className="col-span-full text-center text-slate-500 py-12">
             No warehouses found. Click "Add Warehouse" to create your first warehouse.
           </div>
         ) : (
@@ -169,60 +168,59 @@ export function WarehouseManagement() {
         )}
       </div>
 
-   
+      
       {showModal && (
         <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50" onClick={() => setShowModal(false)}>
-          <div className="bg-slate-800 rounded-xl w-full max-w-md p-6 border border-slate-700" onClick={(e) => e.stopPropagation()}>
-            <h2 className="text-xl font-semibold text-white mb-4">{editingWarehouse ? 'Edit Warehouse' : 'Add Warehouse'}</h2>
+          <div className="bg-white rounded-xl w-full max-w-md p-6 border border-slate-200" onClick={(e) => e.stopPropagation()}>
+            <h2 className="text-xl font-semibold text-slate-900 mb-4">{editingWarehouse ? 'Edit Warehouse' : 'Add Warehouse'}</h2>
             <div className="space-y-4">
-              <input type="text" placeholder="Warehouse Name" value={formData.name} onChange={(e) => setFormData({ ...formData, name: e.target.value })} className="w-full px-4 py-2 bg-slate-900 border border-slate-700 rounded-lg text-white" />
-              <input type="text" placeholder="Location" value={formData.location} onChange={(e) => setFormData({ ...formData, location: e.target.value })} className="w-full px-4 py-2 bg-slate-900 border border-slate-700 rounded-lg text-white" />
-              <input type="text" placeholder="Phone" value={formData.phone} onChange={(e) => setFormData({ ...formData, phone: e.target.value })} className="w-full px-4 py-2 bg-slate-900 border border-slate-700 rounded-lg text-white" />
+              <input type="text" placeholder="Warehouse Name" value={formData.name} onChange={(e) => setFormData({ ...formData, name: e.target.value })} className="w-full px-4 py-2 bg-slate-50 border border-slate-200 rounded-lg text-slate-900" />
+              <input type="text" placeholder="Location" value={formData.location} onChange={(e) => setFormData({ ...formData, location: e.target.value })} className="w-full px-4 py-2 bg-slate-50 border border-slate-200 rounded-lg text-slate-900" />
+              <input type="text" placeholder="Phone" value={formData.phone} onChange={(e) => setFormData({ ...formData, phone: e.target.value })} className="w-full px-4 py-2 bg-slate-50 border border-slate-200 rounded-lg text-slate-900" />
             </div>
             <div className="flex gap-3 mt-6">
-              <button onClick={() => setShowModal(false)} className="flex-1 px-4 py-2 bg-slate-700 hover:bg-slate-600 text-white rounded-lg">Cancel</button>
-              <button onClick={handleSave} className="flex-1 px-4 py-2 bg-cyan-600 hover:bg-cyan-700 text-white rounded-lg">{editingWarehouse ? 'Update' : 'Create'}</button>
+              <button onClick={() => setShowModal(false)} className="flex-1 px-4 py-2 bg-slate-200 hover:bg-slate-100 text-slate-900 rounded-lg">Cancel</button>
+              <button onClick={handleSave} className="flex-1 px-4 py-2 bg-cyan-600 hover:bg-cyan-700 text-slate-900 rounded-lg">{editingWarehouse ? 'Update' : 'Create'}</button>
             </div>
           </div>
         </div>
       )}
 
-      {/* Warehouse Details Modal */}
       {selectedWarehouse && (
         <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50" onClick={() => setSelectedWarehouse(null)}>
-          <div className="bg-slate-800 rounded-xl w-full max-w-2xl max-h-[80vh] overflow-y-auto p-6 border border-slate-700" onClick={(e) => e.stopPropagation()}>
+          <div className="bg-white rounded-xl w-full max-w-2xl max-h-[80vh] overflow-y-auto p-6 border border-slate-200" onClick={(e) => e.stopPropagation()}>
             <div className="flex justify-between items-center mb-4">
-              <h2 className="text-xl font-bold text-white">{selectedWarehouse.name} - Details</h2>
-              <button onClick={() => setSelectedWarehouse(null)} className="text-slate-400 hover:text-white">✕</button>
+              <h2 className="text-xl font-bold text-slate-900">{selectedWarehouse.name} - Details</h2>
+              <button onClick={() => setSelectedWarehouse(null)} className="text-slate-500 hover:text-slate-900">✕</button>
             </div>
             <div className="space-y-4">
-              <div className="bg-slate-700/30 rounded-lg p-4">
-                <h3 className="text-white font-semibold mb-2">Contact Information</h3>
-                <p className="text-slate-300">Location: {selectedWarehouse.location || 'Not specified'}</p>
-                <p className="text-slate-300">Phone: {selectedWarehouse.phone || 'Not specified'}</p>
-                <p className="text-slate-300">Status: {selectedWarehouse.isActive ? 'Active' : 'Inactive'}</p>
+              <div className="bg-slate-100/80 rounded-lg p-4">
+                <h3 className="text-slate-900 font-semibold mb-2">Contact Information</h3>
+                <p className="text-slate-500">Location: {selectedWarehouse.location || 'Not specified'}</p>
+                <p className="text-slate-500">Phone: {selectedWarehouse.phone || 'Not specified'}</p>
+                <p className="text-slate-500">Status: {selectedWarehouse.isActive ? 'Active' : 'Inactive'}</p>
               </div>
               {selectedWarehouse.zones && selectedWarehouse.zones.length > 0 && (
-                <div className="bg-slate-700/30 rounded-lg p-4">
-                  <h3 className="text-white font-semibold mb-2">Zones</h3>
+                <div className="bg-slate-100/80 rounded-lg p-4">
+                  <h3 className="text-slate-900 font-semibold mb-2">Zones</h3>
                   <div className="space-y-2">
                     {selectedWarehouse.zones.map((zone: { id: number; zoneName: string; capacity: number }) => (
                       <div key={zone.id} className="flex justify-between items-center border-b border-slate-600 pb-2">
-                        <span className="text-slate-300">{zone.zoneName}</span>
-                        <span className="text-slate-400 text-sm">Capacity: {zone.capacity} units</span>
+                        <span className="text-slate-500">{zone.zoneName}</span>
+                        <span className="text-slate-500 text-sm">Capacity: {zone.capacity} units</span>
                       </div>
                     ))}
                   </div>
                 </div>
               )}
               {selectedWarehouse.staff && selectedWarehouse.staff.length > 0 && (
-                <div className="bg-slate-700/30 rounded-lg p-4">
-                  <h3 className="text-white font-semibold mb-2">Staff</h3>
+                <div className="bg-slate-100/80 rounded-lg p-4">
+                  <h3 className="text-slate-900 font-semibold mb-2">Staff</h3>
                   <div className="space-y-2">
                     {selectedWarehouse.staff.map((staff: { id: number; userId: number; position: string | null }) => (
                       <div key={staff.id} className="flex justify-between items-center border-b border-slate-600 pb-2">
-                        <span className="text-slate-300">User #{staff.userId}</span>
-                        <span className="text-slate-400 text-sm">{staff.position || 'Staff'}</span>
+                        <span className="text-slate-500">User #{staff.userId}</span>
+                        <span className="text-slate-500 text-sm">{staff.position || 'Staff'}</span>
                       </div>
                     ))}
                   </div>
@@ -230,14 +228,13 @@ export function WarehouseManagement() {
               )}
             </div>
             <div className="flex gap-3 mt-6">
-              <button onClick={() => setShowAssignProductModal(true)} className="flex-1 px-4 py-2 bg-cyan-600 hover:bg-cyan-700 text-white rounded-lg">Assign Product</button>
-              <button onClick={() => setSelectedWarehouse(null)} className="flex-1 px-4 py-2 bg-slate-700 hover:bg-slate-600 text-white rounded-lg">Close</button>
+              <button onClick={() => setShowAssignProductModal(true)} className="flex-1 px-4 py-2 bg-cyan-600 hover:bg-cyan-700 text-slate-900 rounded-lg">Assign Product</button>
+              <button onClick={() => setSelectedWarehouse(null)} className="flex-1 px-4 py-2 bg-slate-200 hover:bg-slate-100 text-slate-900 rounded-lg">Close</button>
             </div>
           </div>
         </div>
       )}
 
-    
       {showAssignProductModal && selectedWarehouse && (
         <AssignProductToWarehouseModal
           warehouseId={selectedWarehouse.id}
@@ -265,3 +262,7 @@ export function WarehouseManagement() {
     </div>
   );
 }
+
+
+
+

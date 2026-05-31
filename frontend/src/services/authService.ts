@@ -1,4 +1,3 @@
-
 import { getLocalStorageItem, removeLocalStorageItem } from '../utils/localStorage';
 
 const apiBaseUrl = import.meta.env.VITE_API_BASE_URL ?? 'http://localhost:5000';
@@ -98,7 +97,7 @@ export async function getCurrentUser(token?: string): Promise<User> {
         errorMessage = `${errorMessage} - ${errorData.message}`;
       }
     } catch {
-  
+      
     }
 
     throw new Error(errorMessage);
@@ -123,13 +122,13 @@ export async function getUsers(): Promise<User[]> {
   return response.json();
 }
 
-
+// frontend/src/services/authService.ts
 export async function createUser(userData: {
   email: string;
   password: string;
   firstName: string;
   lastName: string;
-  role?: string;  // Shto këtë
+  role?: string;  // Shto k�t�
 }): Promise<User> {
   const token = getLocalStorageItem('token');
   const response = await fetch(`${apiBaseUrl}/api/auth/register`, {
@@ -325,3 +324,6 @@ export function isAuthenticated(): boolean {
     return false;
   }
 }
+
+
+

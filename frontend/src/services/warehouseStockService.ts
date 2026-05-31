@@ -133,3 +133,5 @@ export const warehouseStockService = {
   removeProduct: (warehouseId: number, productId: number) =>
     api.delete<void>(`/api/warehousestock/warehouse/${warehouseId}/product/${productId}`),
 };
+
+

@@ -1,4 +1,3 @@
-
 import * as signalR from '@microsoft/signalr';
 import type { NotificationDto } from './notificationService';
 
@@ -8,14 +7,14 @@ class SignalRService {
 
   async connect(userId: number): Promise<void> {
     try {
-  
+     
       const token = localStorage.getItem('token');
 
       const notificationBase = import.meta.env.VITE_NOTIFICATION_API_URL?.trim();
       const apiBase = import.meta.env.VITE_API_BASE_URL?.trim();
       const hubBases = [notificationBase, apiBase, 'http://localhost:5000', 'http://localhost:5009']
         .filter((value): value is string => !!value);
- 
+      
       if (this.connection && this.connection.state === signalR.HubConnectionState.Connected) {
         return;
       }
@@ -24,7 +23,7 @@ class SignalRService {
         try {
           await this.connection.stop();
         } catch {
-   
+        
         }
         this.connection = null;
       }
@@ -49,7 +48,6 @@ class SignalRService {
             this.notificationCallbacks.forEach(callback => callback(notification));
           });
 
-   
           await conn.start();
 
           if (conn.state !== signalR.HubConnectionState.Connected) {
@@ -57,7 +55,6 @@ class SignalRService {
             throw new Error('Connection not established after start()');
           }
 
-        
           conn.onclose(() => {
             console.log('SignalR disconnected');
             if (this.connection === conn) {
@@ -65,12 +62,10 @@ class SignalRService {
             }
           });
 
-   
           this.connection = conn;
 
           console.log('SignalR connected successfully to', hubUrl);
 
-        
           await delay(50);
 
           if (conn.state === signalR.HubConnectionState.Connected) {
@@ -86,19 +81,18 @@ class SignalRService {
           console.warn(`SignalR connection failed for ${hubBase}:`, err);
           lastError = err;
           try {
-      
-         
-           
+            
+            // eslint-disable-next-line @typescript-eslint/ban-ts-comment
             // @ts-ignore
             if (typeof conn !== 'undefined' && conn && conn.stop) await conn.stop();
           } catch {
-    
+            
           }
           if (this.connection) {
             try { await this.connection.stop(); } catch {}
             this.connection = null;
           }
-     
+         
           await delay(500);
         }
       }
@@ -134,3 +128,5 @@ class SignalRService {
 }
 
 export const signalRService = new SignalRService();
+
+

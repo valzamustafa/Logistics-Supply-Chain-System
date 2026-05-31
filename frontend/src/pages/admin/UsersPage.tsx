@@ -225,14 +225,14 @@ export function UsersPage() {
       case 'Driver': return 'bg-green-500/20 text-green-400';
       case 'WarehouseStaff': return 'bg-orange-500/20 text-orange-400';
       case 'Supplier': return 'bg-amber-500/20 text-amber-400';
-      default: return 'bg-slate-500/20 text-slate-400';
+      default: return 'bg-slate-500/20 text-slate-500';
     }
   };
 
   if (loading) {
     return (
       <div className="flex items-center justify-center h-64">
-        <div className="text-white">Loading...</div>
+        <div className="text-slate-900">Loading...</div>
       </div>
     );
   }
@@ -241,35 +241,35 @@ export function UsersPage() {
     <div className="flex flex-col gap-8 p-6">
       <div className="flex justify-between items-center">
         <div>
-          <h1 className="text-3xl font-bold text-white mb-2">User Management</h1>
-          <p className="text-slate-400">Manage system users and assign roles</p>
+          <h1 className="text-3xl font-bold text-slate-900 mb-2">User Management</h1>
+          <p className="text-slate-500">Manage system users and assign roles</p>
         </div>
         <button 
           onClick={() => setShowModal(true)} 
-          className="rounded-lg bg-gradient-to-r from-cyan-500 to-blue-500 px-4 py-2 text-white font-medium hover:from-cyan-400 hover:to-blue-400 transition"
+          className="rounded-lg bg-gradient-to-r from-cyan-500 to-blue-500 px-4 py-2 text-slate-900 font-medium hover:from-cyan-400 hover:to-blue-400 transition"
         >
           + Add New User
         </button>
       </div>
 
-      <div className="rounded-2xl border border-slate-700 bg-slate-800/50 p-6 backdrop-blur">
+      <div className="rounded-2xl border border-slate-200 bg-slate-100/90 p-6 backdrop-blur">
         <div className="overflow-x-auto">
           <table className="w-full">
             <thead>
-              <tr className="border-b border-slate-700">
-                <th className="text-left py-3 text-slate-400">Name</th>
-                <th className="text-left py-3 text-slate-400">Email</th>
-                <th className="text-left py-3 text-slate-400">Roles</th>
-                <th className="text-left py-3 text-slate-400">Status</th>
-                <th className="text-left py-3 text-slate-400">Created At</th>
-                <th className="text-left py-3 text-slate-400">Actions</th>
+              <tr className="border-b border-slate-200">
+                <th className="text-left py-3 text-slate-500">Name</th>
+                <th className="text-left py-3 text-slate-500">Email</th>
+                <th className="text-left py-3 text-slate-500">Roles</th>
+                <th className="text-left py-3 text-slate-500">Status</th>
+                <th className="text-left py-3 text-slate-500">Created At</th>
+                <th className="text-left py-3 text-slate-500">Actions</th>
               </tr>
             </thead>
             <tbody>
               {users.map((user) => (
-                <tr key={user.id} className="border-b border-slate-700/50">
-                  <td className="py-3 text-white">{user.firstName} {user.lastName}</td>
-                  <td className="py-3 text-slate-300">{user.email}</td>
+                <tr key={user.id} className="border-b border-slate-200/50">
+                  <td className="py-3 text-slate-900">{user.firstName} {user.lastName}</td>
+                  <td className="py-3 text-slate-500">{user.email}</td>
                   <td className="py-3">
                     <div className="flex flex-wrap gap-1">
                       {user.roles?.map((role) => (
@@ -288,7 +288,7 @@ export function UsersPage() {
                           setSelectedUser(user);
                           setShowRoleModal(true);
                         }}
-                        className="rounded-full px-2 py-1 text-xs bg-slate-700 text-slate-300 hover:bg-cyan-500/20 hover:text-cyan-400"
+                        className="rounded-full px-2 py-1 text-xs bg-slate-200 text-slate-500 hover:bg-cyan-500/20 hover:text-cyan-400"
                       >
                         + Add Role
                       </button>
@@ -299,7 +299,7 @@ export function UsersPage() {
                       {user.isActive ? 'Active' : 'Inactive'}
                     </span>
                    </td>
-                  <td className="py-3 text-slate-400">{new Date(user.createdAt).toLocaleDateString()} </td>
+                  <td className="py-3 text-slate-500">{new Date(user.createdAt).toLocaleDateString()} </td>
                   <td className="py-3">
                     <button 
                       onClick={() => {
@@ -330,66 +330,67 @@ export function UsersPage() {
         </div>
       </div>
 
-      {/* Add User Modal */}
+
+
       {showModal && (
         <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50" onClick={() => setShowModal(false)}>
-          <div className="bg-slate-800 rounded-2xl p-6 w-96 border border-slate-700" onClick={(e) => e.stopPropagation()}>
-            <h2 className="text-xl font-bold text-white mb-4">Add New User</h2>
+          <div className="bg-white rounded-2xl p-6 w-96 border border-slate-200" onClick={(e) => e.stopPropagation()}>
+            <h2 className="text-xl font-bold text-slate-900 mb-4">Add New User</h2>
             <div className="space-y-4">
-              <input type="text" placeholder="First Name" value={newUser.firstName} onChange={(e) => setNewUser({...newUser, firstName: e.target.value})} className="w-full rounded-lg border border-slate-600 bg-slate-900 px-4 py-2 text-white focus:border-cyan-400 focus:outline-none" />
-              <input type="text" placeholder="Last Name" value={newUser.lastName} onChange={(e) => setNewUser({...newUser, lastName: e.target.value})} className="w-full rounded-lg border border-slate-600 bg-slate-900 px-4 py-2 text-white" />
-              <input type="email" placeholder="Email" value={newUser.email} onChange={(e) => setNewUser({...newUser, email: e.target.value})} className="w-full rounded-lg border border-slate-600 bg-slate-900 px-4 py-2 text-white" />
-              <input type="password" placeholder="Password" value={newUser.password} onChange={(e) => setNewUser({...newUser, password: e.target.value})} className="w-full rounded-lg border border-slate-600 bg-slate-900 px-4 py-2 text-white" />
-              <select value={newUser.roleId} onChange={(e) => setNewUser({...newUser, roleId: parseInt(e.target.value)})} className="w-full rounded-lg border border-slate-600 bg-slate-900 px-4 py-2 text-white">
+              <input type="text" placeholder="First Name" value={newUser.firstName} onChange={(e) => setNewUser({...newUser, firstName: e.target.value})} className="w-full rounded-lg border border-slate-600 bg-slate-50 px-4 py-2 text-slate-900 focus:border-cyan-400 focus:outline-none" />
+              <input type="text" placeholder="Last Name" value={newUser.lastName} onChange={(e) => setNewUser({...newUser, lastName: e.target.value})} className="w-full rounded-lg border border-slate-600 bg-slate-50 px-4 py-2 text-slate-900" />
+              <input type="email" placeholder="Email" value={newUser.email} onChange={(e) => setNewUser({...newUser, email: e.target.value})} className="w-full rounded-lg border border-slate-600 bg-slate-50 px-4 py-2 text-slate-900" />
+              <input type="password" placeholder="Password" value={newUser.password} onChange={(e) => setNewUser({...newUser, password: e.target.value})} className="w-full rounded-lg border border-slate-600 bg-slate-50 px-4 py-2 text-slate-900" />
+              <select value={newUser.roleId} onChange={(e) => setNewUser({...newUser, roleId: parseInt(e.target.value)})} className="w-full rounded-lg border border-slate-600 bg-slate-50 px-4 py-2 text-slate-900">
                 {roles.map(role => (
                   <option key={role.id} value={role.id}>{role.name}</option>
                 ))}
               </select>
               <div className="flex gap-3 pt-4">
-                <button onClick={() => setShowModal(false)} className="flex-1 rounded-lg bg-slate-700 px-4 py-2 text-white">Cancel</button>
-                <button onClick={handleCreateUser} className="flex-1 rounded-lg bg-gradient-to-r from-cyan-500 to-blue-500 px-4 py-2 text-white">Create User</button>
+                <button onClick={() => setShowModal(false)} className="flex-1 rounded-lg bg-slate-200 px-4 py-2 text-slate-900">Cancel</button>
+                <button onClick={handleCreateUser} className="flex-1 rounded-lg bg-gradient-to-r from-cyan-500 to-blue-500 px-4 py-2 text-slate-900">Create User</button>
               </div>
             </div>
           </div>
         </div>
       )}
 
-      {/* Edit User Modal */}
+  
+  
       {showEditModal && (
         <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50" onClick={() => setShowEditModal(false)}>
-          <div className="bg-slate-800 rounded-2xl p-6 w-96 border border-slate-700" onClick={(e) => e.stopPropagation()}>
-            <h2 className="text-xl font-bold text-white mb-4">Edit User</h2>
+          <div className="bg-white rounded-2xl p-6 w-96 border border-slate-200" onClick={(e) => e.stopPropagation()}>
+            <h2 className="text-xl font-bold text-slate-900 mb-4">Edit User</h2>
             <div className="space-y-4">
-              <input type="text" placeholder="First Name" value={editUser.firstName} onChange={(e) => setEditUser({...editUser, firstName: e.target.value})} className="w-full rounded-lg border border-slate-600 bg-slate-900 px-4 py-2 text-white" />
-              <input type="text" placeholder="Last Name" value={editUser.lastName} onChange={(e) => setEditUser({...editUser, lastName: e.target.value})} className="w-full rounded-lg border border-slate-600 bg-slate-900 px-4 py-2 text-white" />
-              <input type="email" placeholder="Email" value={editUser.email} onChange={(e) => setEditUser({...editUser, email: e.target.value})} className="w-full rounded-lg border border-slate-600 bg-slate-900 px-4 py-2 text-white" />
+              <input type="text" placeholder="First Name" value={editUser.firstName} onChange={(e) => setEditUser({...editUser, firstName: e.target.value})} className="w-full rounded-lg border border-slate-600 bg-slate-50 px-4 py-2 text-slate-900" />
+              <input type="text" placeholder="Last Name" value={editUser.lastName} onChange={(e) => setEditUser({...editUser, lastName: e.target.value})} className="w-full rounded-lg border border-slate-600 bg-slate-50 px-4 py-2 text-slate-900" />
+              <input type="email" placeholder="Email" value={editUser.email} onChange={(e) => setEditUser({...editUser, email: e.target.value})} className="w-full rounded-lg border border-slate-600 bg-slate-50 px-4 py-2 text-slate-900" />
               <label className="flex items-center gap-3 cursor-pointer">
-                <input type="checkbox" checked={editUser.isActive} onChange={(e) => setEditUser({...editUser, isActive: e.target.checked})} className="w-4 h-4 rounded border-slate-600 bg-slate-900 text-cyan-500" />
-                <span className="text-white">Active</span>
+                <input type="checkbox" checked={editUser.isActive} onChange={(e) => setEditUser({...editUser, isActive: e.target.checked})} className="w-4 h-4 rounded border-slate-600 bg-slate-50 text-cyan-500" />
+                <span className="text-slate-900">Active</span>
               </label>
               <div className="flex gap-3 pt-4">
-                <button onClick={() => setShowEditModal(false)} className="flex-1 rounded-lg bg-slate-700 px-4 py-2 text-white">Cancel</button>
-                <button onClick={handleUpdateUser} className="flex-1 rounded-lg bg-gradient-to-r from-cyan-500 to-blue-500 px-4 py-2 text-white">Save Changes</button>
+                <button onClick={() => setShowEditModal(false)} className="flex-1 rounded-lg bg-slate-200 px-4 py-2 text-slate-900">Cancel</button>
+                <button onClick={handleUpdateUser} className="flex-1 rounded-lg bg-gradient-to-r from-cyan-500 to-blue-500 px-4 py-2 text-slate-900">Save Changes</button>
               </div>
             </div>
           </div>
         </div>
       )}
 
-      {/* Assign Role Modal */}
       {showRoleModal && selectedUser && (
         <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50" onClick={() => setShowRoleModal(false)}>
-          <div className="bg-slate-800 rounded-2xl p-6 w-96 border border-slate-700" onClick={(e) => e.stopPropagation()}>
-            <h2 className="text-xl font-bold text-white mb-4">Assign Role to {selectedUser.firstName} {selectedUser.lastName}</h2>
-            <select value={selectedRoleId} onChange={(e) => setSelectedRoleId(parseInt(e.target.value))} className="w-full rounded-lg border border-slate-600 bg-slate-900 px-4 py-2 text-white">
+          <div className="bg-white rounded-2xl p-6 w-96 border border-slate-200" onClick={(e) => e.stopPropagation()}>
+            <h2 className="text-xl font-bold text-slate-900 mb-4">Assign Role to {selectedUser.firstName} {selectedUser.lastName}</h2>
+            <select value={selectedRoleId} onChange={(e) => setSelectedRoleId(parseInt(e.target.value))} className="w-full rounded-lg border border-slate-600 bg-slate-50 px-4 py-2 text-slate-900">
               <option value={0}>Select a role</option>
               {roles.filter(r => !selectedUser.roles?.includes(r.name)).map(role => (
                 <option key={role.id} value={role.id}>{role.name}</option>
               ))}
             </select>
             <div className="flex gap-3 pt-4">
-              <button onClick={() => setShowRoleModal(false)} className="flex-1 rounded-lg bg-slate-700 px-4 py-2 text-white">Cancel</button>
-              <button onClick={handleAssignRole} disabled={!selectedRoleId} className="flex-1 rounded-lg bg-gradient-to-r from-cyan-500 to-blue-500 px-4 py-2 text-white disabled:opacity-50">Assign Role</button>
+              <button onClick={() => setShowRoleModal(false)} className="flex-1 rounded-lg bg-slate-200 px-4 py-2 text-slate-900">Cancel</button>
+              <button onClick={handleAssignRole} disabled={!selectedRoleId} className="flex-1 rounded-lg bg-gradient-to-r from-cyan-500 to-blue-500 px-4 py-2 text-slate-900 disabled:opacity-50">Assign Role</button>
             </div>
           </div>
         </div>
@@ -410,3 +411,7 @@ export function UsersPage() {
     </div>
   );
 }
+
+
+
+

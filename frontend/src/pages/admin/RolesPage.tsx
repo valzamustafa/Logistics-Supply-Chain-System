@@ -143,7 +143,7 @@ export function RolesPage() {
       case 'Manager': return 'bg-blue-500/20 text-blue-400';
       case 'Driver': return 'bg-green-500/20 text-green-400';
       case 'WarehouseStaff': return 'bg-orange-500/20 text-orange-400';
-      default: return 'bg-slate-500/20 text-slate-400';
+      default: return 'bg-slate-500/20 text-slate-500';
     }
   };
 
@@ -158,7 +158,7 @@ export function RolesPage() {
       <div className="flex items-center justify-center h-64">
         <div className="text-center">
           <div className="w-12 h-12 border-4 border-cyan-500 border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
-          <p className="text-slate-400">Loading roles...</p>
+          <p className="text-slate-500">Loading roles...</p>
         </div>
       </div>
     );
@@ -168,12 +168,12 @@ export function RolesPage() {
     <div className="flex flex-col gap-8 p-6">
       <div className="flex justify-between items-center">
         <div>
-          <h1 className="text-3xl font-bold text-white mb-2">Role Management</h1>
-          <p className="text-slate-400">Create, edit, and manage system roles and permissions</p>
+          <h1 className="text-3xl font-bold text-slate-900 mb-2">Role Management</h1>
+          <p className="text-slate-500">Create, edit, and manage system roles and permissions</p>
         </div>
         <button 
           onClick={() => setShowAddModal(true)} 
-          className="rounded-lg bg-gradient-to-r from-cyan-500 to-blue-500 px-4 py-2 text-white font-medium hover:from-cyan-400 hover:to-blue-400 transition"
+          className="rounded-lg bg-gradient-to-r from-cyan-500 to-blue-500 px-4 py-2 text-slate-900 font-medium hover:from-cyan-400 hover:to-blue-400 transition"
         >
           + Add New Role
         </button>
@@ -182,8 +182,8 @@ export function RolesPage() {
       <div className="grid grid-cols-1 gap-6 lg:grid-cols-3">
         <div className="lg:col-span-1 space-y-4">
           <div className="flex justify-between items-center">
-            <h2 className="text-xl font-bold text-white">Roles</h2>
-            <span className="text-sm text-slate-400">{roles.length} total</span>
+            <h2 className="text-xl font-bold text-slate-900">Roles</h2>
+            <span className="text-sm text-slate-500">{roles.length} total</span>
           </div>
           <div className="space-y-3 max-h-[500px] overflow-y-auto pr-2">
             {roles.map((role) => (
@@ -192,8 +192,8 @@ export function RolesPage() {
                 onClick={() => setSelectedRole(role)}
                 className={`cursor-pointer rounded-2xl border p-4 transition ${
                   selectedRole?.id === role.id
-                    ? 'border-cyan-500 bg-slate-800'
-                    : 'border-slate-700 bg-slate-800/50 hover:border-slate-600'
+                    ? 'border-cyan-500 bg-white'
+                    : 'border-slate-200 bg-slate-100/90 hover:border-slate-600'
                 }`}
               >
                 <div className="flex justify-between items-start">
@@ -204,7 +204,7 @@ export function RolesPage() {
                       </span>
                       <span className="text-xs text-slate-500">{role.userCount || 0} users</span>
                     </div>
-                    <p className="text-sm text-slate-400 mt-2">{role.description}</p>
+                    <p className="text-sm text-slate-500 mt-2">{role.description}</p>
                   </div>
                   <div className="flex gap-1">
                     <button 
@@ -230,15 +230,15 @@ export function RolesPage() {
 
         <div className="lg:col-span-2">
           {selectedRole ? (
-            <div className="rounded-2xl border border-slate-700 bg-slate-800/50 p-6 backdrop-blur">
+            <div className="rounded-2xl border border-slate-200 bg-slate-100/90 p-6 backdrop-blur">
               <div className="flex justify-between items-center mb-6">
                 <div>
-                  <h2 className="text-xl font-bold text-white">{selectedRole.name} - Permissions</h2>
-                  <p className="text-sm text-slate-400">{selectedRole.description}</p>
+                  <h2 className="text-xl font-bold text-slate-900">{selectedRole.name} - Permissions</h2>
+                  <p className="text-sm text-slate-500">{selectedRole.description}</p>
                 </div>
                 <button 
                   onClick={() => handleUpdatePermissions(selectedRole.id, selectedRole.permissions || [])}
-                  className="rounded-lg bg-cyan-500 px-4 py-2 text-white text-sm hover:bg-cyan-400 transition"
+                  className="rounded-lg bg-cyan-500 px-4 py-2 text-slate-900 text-sm hover:bg-cyan-400 transition"
                 >
                   Save Changes
                 </button>
@@ -247,10 +247,10 @@ export function RolesPage() {
               <div className="space-y-6 max-h-[500px] overflow-y-auto pr-2">
                 {Object.entries(groupedPermissions).map(([category, perms]) => (
                   <div key={category}>
-                    <h3 className="text-lg font-semibold text-white mb-3 border-b border-slate-700 pb-2">{category}</h3>
+                    <h3 className="text-lg font-semibold text-slate-900 mb-3 border-b border-slate-200 pb-2">{category}</h3>
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
                       {perms.map((perm) => (
-                        <label key={perm.id} className="flex items-center gap-3 p-2 rounded-lg hover:bg-slate-700/30 cursor-pointer">
+                        <label key={perm.id} className="flex items-center gap-3 p-2 rounded-lg hover:bg-slate-100/80 cursor-pointer">
                           <input
                             type="checkbox"
                             checked={selectedRole.permissions?.includes(perm.name) || false}
@@ -260,11 +260,11 @@ export function RolesPage() {
                                 : (selectedRole.permissions || []).filter(p => p !== perm.name);
                               setSelectedRole({ ...selectedRole, permissions: newPermissions });
                             }}
-                            className="w-4 h-4 rounded border-slate-600 bg-slate-700 text-cyan-500 focus:ring-cyan-500"
+                            className="w-4 h-4 rounded border-slate-600 bg-slate-200 text-cyan-500 focus:ring-cyan-500"
                           />
                           <div>
-                            <p className="text-white text-sm font-medium">{perm.name}</p>
-                            <p className="text-xs text-slate-400">{perm.description}</p>
+                            <p className="text-slate-900 text-sm font-medium">{perm.name}</p>
+                            <p className="text-xs text-slate-500">{perm.description}</p>
                           </div>
                         </label>
                       ))}
@@ -274,10 +274,10 @@ export function RolesPage() {
               </div>
             </div>
           ) : (
-            <div className="rounded-2xl border border-slate-700 bg-slate-800/50 p-12 backdrop-blur text-center">
+            <div className="rounded-2xl border border-slate-200 bg-slate-100/90 p-12 backdrop-blur text-center">
               <p className="text-6xl mb-4">🔑</p>
-              <h2 className="text-xl font-bold text-white mb-2">Select a Role</h2>
-              <p className="text-slate-400">Choose a role from the list to view and edit permissions</p>
+              <h2 className="text-xl font-bold text-slate-900 mb-2">Select a Role</h2>
+              <p className="text-slate-500">Choose a role from the list to view and edit permissions</p>
             </div>
           )}
         </div>
@@ -285,14 +285,14 @@ export function RolesPage() {
 
       {showAddModal && (
         <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50" onClick={() => setShowAddModal(false)}>
-          <div className="bg-slate-800 rounded-2xl p-6 w-[500px] max-w-[90vw] border border-slate-700" onClick={(e) => e.stopPropagation()}>
-            <h2 className="text-xl font-bold text-white mb-4">Add New Role</h2>
+          <div className="bg-white rounded-2xl p-6 w-[500px] max-w-[90vw] border border-slate-200" onClick={(e) => e.stopPropagation()}>
+            <h2 className="text-xl font-bold text-slate-900 mb-4">Add New Role</h2>
             <div className="space-y-4">
-              <input type="text" placeholder="Role Name" value={newRole.name} onChange={(e) => setNewRole({...newRole, name: e.target.value})} className="w-full rounded-lg border border-slate-600 bg-slate-900 px-4 py-2 text-white focus:border-cyan-400 focus:outline-none" />
-              <textarea placeholder="Description" value={newRole.description} onChange={(e) => setNewRole({...newRole, description: e.target.value})} className="w-full rounded-lg border border-slate-600 bg-slate-900 px-4 py-2 text-white h-24 resize-none focus:border-cyan-400 focus:outline-none" />
+              <input type="text" placeholder="Role Name" value={newRole.name} onChange={(e) => setNewRole({...newRole, name: e.target.value})} className="w-full rounded-lg border border-slate-600 bg-slate-50 px-4 py-2 text-slate-900 focus:border-cyan-400 focus:outline-none" />
+              <textarea placeholder="Description" value={newRole.description} onChange={(e) => setNewRole({...newRole, description: e.target.value})} className="w-full rounded-lg border border-slate-600 bg-slate-50 px-4 py-2 text-slate-900 h-24 resize-none focus:border-cyan-400 focus:outline-none" />
               <div className="flex gap-3 pt-4">
-                <button onClick={() => setShowAddModal(false)} className="flex-1 rounded-lg bg-slate-700 px-4 py-2 text-white hover:bg-slate-600 transition">Cancel</button>
-                <button onClick={handleCreateRole} className="flex-1 rounded-lg bg-gradient-to-r from-cyan-500 to-blue-500 px-4 py-2 text-white hover:from-cyan-400 hover:to-blue-400 transition">Create Role</button>
+                <button onClick={() => setShowAddModal(false)} className="flex-1 rounded-lg bg-slate-200 px-4 py-2 text-slate-900 hover:bg-slate-100 transition">Cancel</button>
+                <button onClick={handleCreateRole} className="flex-1 rounded-lg bg-gradient-to-r from-cyan-500 to-blue-500 px-4 py-2 text-slate-900 hover:from-cyan-400 hover:to-blue-400 transition">Create Role</button>
               </div>
             </div>
           </div>
@@ -301,14 +301,14 @@ export function RolesPage() {
 
       {showEditModal && (
         <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50" onClick={() => setShowEditModal(false)}>
-          <div className="bg-slate-800 rounded-2xl p-6 w-96 border border-slate-700" onClick={(e) => e.stopPropagation()}>
-            <h2 className="text-xl font-bold text-white mb-4">Edit Role</h2>
+          <div className="bg-white rounded-2xl p-6 w-96 border border-slate-200" onClick={(e) => e.stopPropagation()}>
+            <h2 className="text-xl font-bold text-slate-900 mb-4">Edit Role</h2>
             <div className="space-y-4">
-              <input type="text" value={editRole.name} onChange={(e) => setEditRole({...editRole, name: e.target.value})} className="w-full rounded-lg border border-slate-600 bg-slate-900 px-4 py-2 text-white focus:border-cyan-400 focus:outline-none" />
-              <textarea value={editRole.description} onChange={(e) => setEditRole({...editRole, description: e.target.value})} className="w-full rounded-lg border border-slate-600 bg-slate-900 px-4 py-2 text-white h-24 resize-none focus:border-cyan-400 focus:outline-none" />
+              <input type="text" value={editRole.name} onChange={(e) => setEditRole({...editRole, name: e.target.value})} className="w-full rounded-lg border border-slate-600 bg-slate-50 px-4 py-2 text-slate-900 focus:border-cyan-400 focus:outline-none" />
+              <textarea value={editRole.description} onChange={(e) => setEditRole({...editRole, description: e.target.value})} className="w-full rounded-lg border border-slate-600 bg-slate-50 px-4 py-2 text-slate-900 h-24 resize-none focus:border-cyan-400 focus:outline-none" />
               <div className="flex gap-3 pt-4">
-                <button onClick={() => setShowEditModal(false)} className="flex-1 rounded-lg bg-slate-700 px-4 py-2 text-white hover:bg-slate-600 transition">Cancel</button>
-                <button onClick={handleUpdateRole} className="flex-1 rounded-lg bg-gradient-to-r from-cyan-500 to-blue-500 px-4 py-2 text-white hover:from-cyan-400 hover:to-blue-400 transition">Save Changes</button>
+                <button onClick={() => setShowEditModal(false)} className="flex-1 rounded-lg bg-slate-200 px-4 py-2 text-slate-900 hover:bg-slate-100 transition">Cancel</button>
+                <button onClick={handleUpdateRole} className="flex-1 rounded-lg bg-gradient-to-r from-cyan-500 to-blue-500 px-4 py-2 text-slate-900 hover:from-cyan-400 hover:to-blue-400 transition">Save Changes</button>
               </div>
             </div>
           </div>
@@ -330,3 +330,7 @@ export function RolesPage() {
     </div>
   );
 }
+
+
+
+
