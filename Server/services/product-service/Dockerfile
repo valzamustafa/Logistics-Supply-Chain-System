@@ -1,9 +1,10 @@
 FROM mcr.microsoft.com/dotnet/sdk:9.0 AS build
 WORKDIR /src
-COPY product-service.csproj .
-RUN dotnet restore
-COPY . .
-RUN dotnet publish -c Release -o /app
+COPY services/product-service/product-service.csproj ./services/product-service/
+RUN dotnet restore ./services/product-service/product-service.csproj
+COPY services/product-service/. ./services/product-service/
+COPY BuildingBlocks/ ./BuildingBlocks/
+RUN dotnet publish ./services/product-service/product-service.csproj -c Release -o /app
 
 FROM mcr.microsoft.com/dotnet/aspnet:9.0
 WORKDIR /app

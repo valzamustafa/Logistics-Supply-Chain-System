@@ -1,9 +1,10 @@
 FROM mcr.microsoft.com/dotnet/sdk:9.0 AS build
 WORKDIR /src
-COPY inventory-service.csproj .
-RUN dotnet restore
-COPY . .
-RUN dotnet publish -c Release -o /app
+COPY services/inventory-service/inventory-service.csproj ./services/inventory-service/
+RUN dotnet restore ./services/inventory-service/inventory-service.csproj
+COPY services/inventory-service/. ./services/inventory-service/
+COPY BuildingBlocks/ ./BuildingBlocks/
+RUN dotnet publish ./services/inventory-service/inventory-service.csproj -c Release -o /app
 
 FROM mcr.microsoft.com/dotnet/aspnet:9.0
 WORKDIR /app

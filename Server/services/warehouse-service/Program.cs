@@ -1,3 +1,4 @@
+
 using Microsoft.EntityFrameworkCore;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.Authorization;
@@ -8,12 +9,21 @@ using WarehouseService.Data;
 using WarehouseService.Repositories.Interfaces;
 using WarehouseService.Repositories.Implementations;
 using WarehouseService.Services.Interfaces;
+using WarehouseService.Services;
 using WarehouseService.Business;
+using WarehouseService.Filters;
+using BuildingBlocks;
 
 var builder = WebApplication.CreateBuilder(args);
 
 
-builder.Services.AddControllers();
+builder.Services.AddScoped<IWarehouseNotificationService, WarehouseNotificationService>();
+
+builder.Services.AddHttpClient<INotificationClient, NotificationClient>(client =>
+{
+    client.Timeout = TimeSpan.FromSeconds(10);
+});
+builder.Services.AddControllers(options => options.Filters.Add<NotificationActionFilter>());
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen(c =>
 {
@@ -54,8 +64,14 @@ builder.Services.AddScoped<IWarehouseRepository, WarehouseRepository>();
 
 builder.Services.AddScoped<IWarehouseService, WarehouseService.Business.WarehouseService>();
 
+builder.Services.AddHttpClient<INotificationClient, NotificationClient>(client =>
+{
+    client.Timeout = TimeSpan.FromSeconds(10);
+});
+
 
 builder.Services.AddHttpClient();
+builder.Services.AddScoped<NotificationActionFilter>();
 
 
 builder.Services.AddLogging(logging =>
@@ -161,7 +177,7 @@ using (var scope = app.Services.CreateScope())
     var logger = scope.ServiceProvider.GetRequiredService<ILogger<Program>>();
     try
     {
-     
+        
         await dbContext.Database.EnsureCreatedAsync();
         logger.LogInformation("Database schema ensured successfully");
     }

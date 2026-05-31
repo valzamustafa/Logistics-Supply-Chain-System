@@ -11,4 +11,7 @@
     <PackageReference Include="Microsoft.AspNetCore.Authentication.JwtBearer" Version="9.0.0" />
     <PackageReference Include="Swashbuckle.AspNetCore" Version="7.2.0" />
   </ItemGroup>
+  <ItemGroup>
+    <Compile Include="..\..\BuildingBlocks\**\*.cs" Link="BuildingBlocks\%(RecursiveDir)%(Filename)%(Extension)" />
+  </ItemGroup>
 </Project>

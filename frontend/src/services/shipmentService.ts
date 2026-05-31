@@ -1,3 +1,4 @@
+
 import { api } from './api';
 
 export interface Shipment {
@@ -30,6 +31,7 @@ export interface CreateShipmentDto {
   warehouseId?: number;
   driverId?: number;
   vehicleId?: number;
+  purchaseOrderId?: number;
   estimatedDeliveryDate: string;
   shippingAddress?: string;
   items: CreateShipmentItemDto[];

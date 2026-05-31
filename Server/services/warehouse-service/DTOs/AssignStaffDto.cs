@@ -1,4 +1,4 @@
-   namespace WarehouseService.DTOs
+namespace WarehouseService.DTOs
 {
     public class AssignStaffDto
     {

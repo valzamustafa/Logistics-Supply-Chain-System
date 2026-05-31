@@ -1,3 +1,4 @@
+
 using System.ComponentModel.DataAnnotations;
 using System.ComponentModel.DataAnnotations.Schema;
 
@@ -20,7 +21,7 @@ namespace WarehouseService.Models
         
         public string? ShelfLocation { get; set; }
         
-       
+      
         [NotMapped]
         public string? ProductName { get; set; }
         

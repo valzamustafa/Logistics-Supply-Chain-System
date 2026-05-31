@@ -1,4 +1,5 @@
 
+
 import { api } from './api';
 
 export interface DriverShipment {
@@ -37,22 +38,10 @@ export const driverShipmentService = {
   getMyShipments: () => api.get<DriverShipment[]>('/api/shipments/driver/assigned'),
   getById: (id: string) => api.get<DriverShipment>(`/api/shipments/${id}`),
   
+
   updateStatus: async (id: string, data: UpdateShipmentStatusDto) => {
  
-    const result = await api.put<DriverShipment>(`/api/shipments/${id}/status`, data);
-    
-    try {
-      await api.post(`/api/shipments/${id}/notify-supplier`, {
-        status: data.status,
-        location: data.location,
-        notes: data.notes,
-        updatedBy: 'driver'
-      });
-    } catch (error) {
-      console.warn('Failed to notify supplier:', error);
-    }
-    
-    return result;
+    return api.put<DriverShipment>(`/api/shipments/${id}/status`, data);
   },
   
   startDelivery: (id: string) => 

@@ -13,7 +13,7 @@ namespace WarehouseService.DTOs
         public int MaximumStockLevel { get; set; }
         public string? ShelfLocation { get; set; }
         public bool IsLowStock { get; set; }      
-        public bool IsOutOfStock { get; set; }    
+        public bool IsOutOfStock { get; set; }   
         public bool IsOverstock { get; set; }   
     }
 }
