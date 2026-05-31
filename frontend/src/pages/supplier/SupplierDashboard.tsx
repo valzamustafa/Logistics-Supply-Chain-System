@@ -1,3 +1,4 @@
+
 import { useEffect, useMemo, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { loadStripe } from '@stripe/stripe-js';
@@ -12,7 +13,9 @@ import { notificationService } from '../../services/notificationService';
 import { dashboardSignalRService, OrderUpdateEvent } from '../../services/dashboardSignalRService';
 import { useAuth } from '../../hooks/useAuth';
 import { api } from '../../services/api';
-
+import { vehicleService, Vehicle } from '../../services/driverService';
+import { VehicleLiveTracker } from '../../components/vehicles/VehicleLiveTracker';
+import { Truck, Navigation, MapPin } from 'lucide-react';
 const stripePromise = loadStripe(import.meta.env.VITE_STRIPE_PUBLISHABLE_KEY ?? '');
 
 type ShipmentsByOrder = Record<number, Shipment[]>;
@@ -54,7 +57,9 @@ export function SupplierDashboard() {
   const [trackingLocation, setTrackingLocation] = useState<any>(null);
   const [updatingStatus, setUpdatingStatus] = useState(false);
   const [toastMessage, setToastMessage] = useState<{ type: 'success' | 'error' | 'info'; message: string } | null>(null);
-
+const [vehicles, setVehicles] = useState<Vehicle[]>([]);
+const [showTrackerModal, setShowTrackerModal] = useState<Vehicle | null>(null);
+const [vehicleStats, setVehicleStats] = useState<Record<number, { status: string; progress: number; location: string }>>({});
 
   const showToast = (type: 'success' | 'error' | 'info', message: string) => {
     setToastMessage({ type, message });
@@ -116,6 +121,28 @@ export function SupplierDashboard() {
       }
     };
   }, []);
+const fetchVehicles = async () => {
+  try {
+    const vehiclesData = await vehicleService.getAll();
+    setVehicles(vehiclesData);
+    const newStats: Record<number, any> = {};
+    for (const vehicle of vehiclesData) {
+      newStats[vehicle.id] = {
+        status: vehicle.isAvailable ? 'available' : 'maintenance',
+        progress: Math.floor(Math.random() * 100),
+        location: Math.random() > 0.5 ? 'In Route - Highway A1' : 'Warehouse',
+      };
+    }
+    setVehicleStats(newStats);
+  } catch (error) {
+    console.error('Failed to fetch vehicles:', error);
+  }
+};
+
+
+useEffect(() => {
+  fetchVehicles();
+}, []);
 
 
   const sendNotification = async (type: string, title: string, message: string, actionUrl?: string) => {
@@ -176,8 +203,7 @@ export function SupplierDashboard() {
         setShipmentsByOrder(Object.fromEntries(orderShipments));
         setWarehouses(Object.fromEntries(warehouseEntries));
         setAvailableDrivers(drivers);
-        
-      
+   
         if (dashboardData.supplierId && !localStorage.getItem('welcome_notification_sent')) {
           await sendNotification(
             'Welcome',
@@ -599,7 +625,7 @@ export function SupplierDashboard() {
 
   return (
     <>
-  
+   
       {toastMessage && (
         <div className="fixed bottom-4 right-4 z-50 animate-slide-up">
           <div className={`rounded-2xl px-4 py-3 shadow-lg flex items-center gap-3 ${
@@ -613,16 +639,16 @@ export function SupplierDashboard() {
         </div>
       )}
 
-      <div className="p-6 space-y-6 bg-slate-900 min-h-screen">
-        <div className="rounded-2xl border border-slate-700 bg-slate-800 p-6">
+      <div className="p-6 space-y-6 bg-slate-50 min-h-screen">
+        <div className="rounded-2xl border border-slate-200 bg-white p-6">
           <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
             <div>
-              <h1 className="text-3xl font-bold text-white">Supplier Dashboard</h1>
-              <p className="text-slate-400 mt-2">Track warehouse connections, active requests, and shipment assignments.</p>
+              <h1 className="text-3xl font-bold text-slate-900">Supplier Dashboard</h1>
+              <p className="text-slate-500 mt-2">Track warehouse connections, active requests, and shipment assignments.</p>
             </div>
             <button
               onClick={() => navigate('/supplier/products')}
-              className="inline-flex items-center justify-center rounded-lg bg-cyan-600 px-4 py-2 text-sm font-semibold text-white transition hover:bg-cyan-700"
+              className="inline-flex items-center justify-center rounded-lg bg-cyan-600 px-4 py-2 text-sm font-semibold text-slate-900 transition hover:bg-cyan-700"
             >
               Manage My Products
             </button>
@@ -630,57 +656,57 @@ export function SupplierDashboard() {
         </div>
 
         <div className="grid gap-4 md:grid-cols-4">
-          <div className="rounded-2xl border border-slate-700 bg-slate-800 p-6">
-            <p className="text-sm text-slate-400 uppercase tracking-wide">Supplier</p>
-            <h2 className="text-xl font-semibold text-white mt-2">{dashboard.supplierName}</h2>
-            <p className="text-slate-400 mt-2">{dashboard.supplierEmail ?? 'No email available'}</p>
+          <div className="rounded-2xl border border-slate-200 bg-white p-6">
+            <p className="text-sm text-slate-500 uppercase tracking-wide">Supplier</p>
+            <h2 className="text-xl font-semibold text-slate-900 mt-2">{dashboard.supplierName}</h2>
+            <p className="text-slate-500 mt-2">{dashboard.supplierEmail ?? 'No email available'}</p>
           </div>
 
-          <div className="rounded-2xl border border-slate-700 bg-slate-800 p-6">
-            <p className="text-sm text-slate-400 uppercase tracking-wide">Supplier staff</p>
-            <h2 className="text-xl font-semibold text-white mt-2">{supplierContact}</h2>
-            <p className="text-slate-400 mt-2">{supplierPhone}</p>
+          <div className="rounded-2xl border border-slate-200 bg-white p-6">
+            <p className="text-sm text-slate-500 uppercase tracking-wide">Supplier staff</p>
+            <h2 className="text-xl font-semibold text-slate-900 mt-2">{supplierContact}</h2>
+            <p className="text-slate-500 mt-2">{supplierPhone}</p>
           </div>
 
-          <div className="rounded-2xl border border-slate-700 bg-slate-800 p-6">
-            <p className="text-sm text-slate-400 uppercase tracking-wide">Warehouses served</p>
-            <h2 className="text-xl font-semibold text-white mt-2">{dashboard.warehouseIds.length}</h2>
-            <p className="text-slate-400 mt-2">Connected warehouses</p>
+          <div className="rounded-2xl border border-slate-200 bg-white p-6">
+            <p className="text-sm text-slate-500 uppercase tracking-wide">Warehouses served</p>
+            <h2 className="text-xl font-semibold text-slate-900 mt-2">{dashboard.warehouseIds.length}</h2>
+            <p className="text-slate-500 mt-2">Connected warehouses</p>
           </div>
 
-          <div className="rounded-2xl border border-slate-700 bg-slate-800 p-6">
-            <p className="text-sm text-slate-400 uppercase tracking-wide">Open requests</p>
-            <h2 className="text-xl font-semibold text-white mt-2">{pendingRequests.length}</h2>
-            <p className="text-slate-400 mt-2">Pending supplier requests</p>
+          <div className="rounded-2xl border border-slate-200 bg-white p-6">
+            <p className="text-sm text-slate-500 uppercase tracking-wide">Open requests</p>
+            <h2 className="text-xl font-semibold text-slate-900 mt-2">{pendingRequests.length}</h2>
+            <p className="text-slate-500 mt-2">Pending supplier requests</p>
           </div>
         </div>
 
         <div className="grid gap-4 xl:grid-cols-2">
-          <div className="rounded-2xl border border-slate-700 bg-slate-800 p-6">
-            <h2 className="text-xl font-semibold text-white mb-4">Shipments Overview</h2>
+          <div className="rounded-2xl border border-slate-200 bg-white p-6">
+            <h2 className="text-xl font-semibold text-slate-900 mb-4">Shipments Overview</h2>
             <div className="grid gap-3 sm:grid-cols-2">
-              <div className="rounded-2xl border border-slate-700 bg-slate-900 p-4">
-                <p className="text-sm text-slate-400 uppercase tracking-wide">Total shipments</p>
-                <p className="text-3xl font-semibold text-white mt-3">{totalShipments}</p>
+              <div className="rounded-2xl border border-slate-200 bg-slate-50 p-4">
+                <p className="text-sm text-slate-500 uppercase tracking-wide">Total shipments</p>
+                <p className="text-3xl font-semibold text-slate-900 mt-3">{totalShipments}</p>
               </div>
-              <div className="rounded-2xl border border-slate-700 bg-slate-900 p-4">
-                <p className="text-sm text-slate-400 uppercase tracking-wide">Drivers assigned</p>
-                <p className="text-3xl font-semibold text-white mt-3">{assignedDriverCount}</p>
+              <div className="rounded-2xl border border-slate-200 bg-slate-50 p-4">
+                <p className="text-sm text-slate-500 uppercase tracking-wide">Drivers assigned</p>
+                <p className="text-3xl font-semibold text-slate-900 mt-3">{assignedDriverCount}</p>
               </div>
             </div>
           </div>
 
-          <div className="rounded-2xl border border-slate-700 bg-slate-800 p-6">
-            <h2 className="text-xl font-semibold text-white mb-4">Pending Requests</h2>
+          <div className="rounded-2xl border border-slate-200 bg-white p-6">
+            <h2 className="text-xl font-semibold text-slate-900 mb-4">Pending Requests</h2>
             {pendingRequests.length === 0 ? (
-              <div className="rounded-xl border border-dashed border-slate-700 p-6 text-slate-400">No pending requests</div>
+              <div className="rounded-xl border border-dashed border-slate-200 p-6 text-slate-500">No pending requests</div>
             ) : (
               <div className="space-y-3">
                 {pendingRequests.slice(0, 5).map((request) => (
-                  <div key={request.id} className="rounded-2xl border border-slate-700 bg-slate-900 p-4">
-                    <p className="text-sm text-slate-400">Warehouse</p>
-                    <p className="text-white font-semibold mt-1">{getWarehouseLabel(request.warehouseId)}</p>
-                    <p className="text-slate-400 text-sm mt-2">{request.productName ?? 'Requested support'}</p>
+                  <div key={request.id} className="rounded-2xl border border-slate-200 bg-slate-50 p-4">
+                    <p className="text-sm text-slate-500">Warehouse</p>
+                    <p className="text-slate-900 font-semibold mt-1">{getWarehouseLabel(request.warehouseId)}</p>
+                    <p className="text-slate-500 text-sm mt-2">{request.productName ?? 'Requested support'}</p>
                   </div>
                 ))}
               </div>
@@ -688,11 +714,11 @@ export function SupplierDashboard() {
           </div>
         </div>
 
-        <div className="rounded-2xl border border-slate-700 bg-slate-800 p-6">
+        <div className="rounded-2xl border border-slate-200 bg-white p-6">
           <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
             <div>
-              <h2 className="text-xl font-semibold text-white">Purchase Orders</h2>
-              <p className="text-slate-400 mt-1">Manage order payments and arrange shipments from your current purchase orders.</p>
+              <h2 className="text-xl font-semibold text-slate-900">Purchase Orders</h2>
+              <p className="text-slate-500 mt-1">Manage order payments and arrange shipments from your current purchase orders.</p>
             </div>
             <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
               <div className="flex flex-wrap gap-2">
@@ -701,7 +727,7 @@ export function SupplierDashboard() {
                     key={status}
                     onClick={() => setStatusFilter(status)}
                     className={`rounded-full px-4 py-2 text-sm font-semibold transition ${
-                      statusFilter === status ? 'bg-cyan-500 text-slate-900' : 'bg-slate-900 text-slate-300 hover:bg-slate-700'
+                      statusFilter === status ? 'bg-cyan-500 text-white' : 'bg-slate-50 text-slate-500 hover:bg-slate-200'
                     }`}
                   >
                     {status}
@@ -714,23 +740,23 @@ export function SupplierDashboard() {
                   placeholder="Search orders..."
                   value={orderSearch}
                   onChange={(e) => setOrderSearch(e.target.value)}
-                  className="w-full rounded-2xl border border-slate-700 bg-slate-900 px-4 py-3 text-white outline-none focus:border-cyan-500"
+                  className="w-full rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 text-slate-900 outline-none focus:border-cyan-500"
                 />
               </div>
             </div>
           </div>
         </div>
 
-        <div className="rounded-2xl border border-slate-700 bg-slate-800 p-6">
-          <h2 className="text-xl font-semibold text-white mb-4">Purchase Orders</h2>
+        <div className="rounded-2xl border border-slate-200 bg-white p-6">
+          <h2 className="text-xl font-semibold text-slate-900 mb-4">Purchase Orders</h2>
           {filteredOrders.length === 0 ? (
-            <div className="rounded-xl border border-dashed border-slate-700 p-6 text-slate-400">
+            <div className="rounded-xl border border-dashed border-slate-200 p-6 text-slate-500">
               {dashboard.orders.length === 0 ? 'No purchase orders found' : 'No orders match the selected filter.'}
             </div>
           ) : (
             <div className="overflow-x-auto">
-              <table className="min-w-full text-left text-sm text-slate-300">
-                <thead className="border-b border-slate-700 text-slate-400">
+              <table className="min-w-full text-left text-sm text-slate-500">
+                <thead className="border-b border-slate-200 text-slate-500">
                   <tr>
                     <th className="p-3">PO #</th>
                     <th className="p-3">Warehouse</th>
@@ -745,8 +771,8 @@ export function SupplierDashboard() {
                   {filteredOrders.map((order) => {
                     const latestShipment = getLatestShipment(order.id);
                     return (
-                      <tr key={order.id} className="border-b border-slate-700 hover:bg-slate-900/40">
-                        <td className="p-3 text-white font-mono text-sm">{order.poNumber}</td>
+                      <tr key={order.id} className="border-b border-slate-200 hover:bg-slate-50/40">
+                        <td className="p-3 text-slate-900 font-mono text-sm">{order.poNumber}</td>
                         <td className="p-3">{getWarehouseLabel(order.warehouseId)}</td>
                         <td className="p-3">{new Date(order.orderDate).toLocaleDateString()}</td>
                         <td className="p-3">€{order.totalAmount.toFixed(2)}</td>
@@ -758,13 +784,13 @@ export function SupplierDashboard() {
                             order.status === 'Shipped' ? 'bg-purple-500/20 text-purple-400' :
                             order.status === 'Delivered' ? 'bg-green-500/20 text-green-400' :
                             order.status === 'Cancelled' ? 'bg-red-500/20 text-red-400' :
-                            'bg-slate-500/20 text-slate-400'
+                            'bg-slate-500/20 text-slate-500'
                           }`}
                           >
                             {order.status}
                           </span>
                         </td>
-                        <td className="p-3 text-slate-200">{getShipmentSummary(order.id)}</td>
+                        <td className="p-3 text-slate-500">{getShipmentSummary(order.id)}</td>
                         <td className="p-3 space-y-2">
                           {!latestShipment ? (
                             <button
@@ -783,14 +809,14 @@ export function SupplierDashboard() {
                           ) : (
                             <button
                               onClick={() => trackShipment(latestShipment)}
-                              className="w-full rounded-lg border border-slate-700 bg-slate-900 px-3 py-2 text-xs text-slate-200 hover:border-cyan-500 hover:text-white transition"
+                              className="w-full rounded-lg border border-slate-200 bg-slate-50 px-3 py-2 text-xs text-slate-500 hover:border-cyan-500 hover:text-slate-900 transition"
                             >
                               Track shipment
                             </button>
                           )}
                           <button
                             onClick={() => openPaymentModal(order)}
-                            className="w-full rounded-lg border border-slate-700 bg-emerald-500 px-3 py-2 text-xs font-semibold text-slate-900 hover:bg-emerald-400 transition"
+                            className="w-full rounded-lg border border-slate-200 bg-emerald-500 px-3 py-2 text-xs font-semibold text-slate-900 hover:bg-emerald-400 transition"
                           >
                             Payment / Arrange shipment
                           </button>
@@ -807,13 +833,13 @@ export function SupplierDashboard() {
 
       {showPaymentModal && selectedPaymentOrder && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 px-4 py-8">
-          <div className="w-full max-w-2xl rounded-3xl border border-slate-700 bg-slate-900 p-6 shadow-2xl">
+          <div className="w-full max-w-2xl rounded-3xl border border-slate-200 bg-slate-50 p-6 shadow-2xl">
             <div className="flex items-center justify-between gap-4">
               <div>
-                <h3 className="text-xl font-semibold text-white">Record payment for {selectedPaymentOrder.poNumber}</h3>
-                <p className="text-slate-400 text-sm">Store a supplier payment record for this purchase order.</p>
+                <h3 className="text-xl font-semibold text-slate-900">Record payment for {selectedPaymentOrder.poNumber}</h3>
+                <p className="text-slate-500 text-sm">Store a supplier payment record for this purchase order.</p>
               </div>
-              <button onClick={closePaymentModal} className="rounded-full border border-slate-700 px-3 py-2 text-slate-300 hover:bg-slate-800">Close</button>
+              <button onClick={closePaymentModal} className="rounded-full border border-slate-200 px-3 py-2 text-slate-500 hover:bg-white">Close</button>
             </div>
 
             {paymentError && <div className="mt-4 rounded-xl bg-red-500/10 border border-red-500/50 p-3 text-sm text-red-200">{paymentError}</div>}
@@ -821,52 +847,52 @@ export function SupplierDashboard() {
 
             <div className="mt-6 grid gap-4">
               <div>
-                <label className="text-sm text-slate-300">Payment Amount</label>
+                <label className="text-sm text-slate-500">Payment Amount</label>
                 <input
                   type="number"
                   min="0"
                   step="0.01"
                   value={paymentAmount}
                   onChange={(e) => setPaymentAmount(e.target.value)}
-                  className="mt-2 w-full rounded-2xl border border-slate-700 bg-slate-800 px-4 py-3 text-white outline-none focus:border-cyan-500"
+                  className="mt-2 w-full rounded-2xl border border-slate-200 bg-white px-4 py-3 text-slate-900 outline-none focus:border-cyan-500"
                 />
               </div>
               <div>
-                <label className="text-sm text-slate-300">Payment Method</label>
+                <label className="text-sm text-slate-500">Payment Method</label>
                 <select
                   value={paymentMethod}
                   onChange={(e) => setPaymentMethod(e.target.value)}
-                  className="mt-2 w-full rounded-2xl border border-slate-700 bg-slate-800 px-4 py-3 text-white outline-none focus:border-cyan-500"
+                  className="mt-2 w-full rounded-2xl border border-slate-200 bg-white px-4 py-3 text-slate-900 outline-none focus:border-cyan-500"
                 >
                   <option value="Stripe">Stripe</option>
                   <option value="BankTransfer">Bank Transfer</option>
                 </select>
               </div>
               <div>
-                <label className="text-sm text-slate-300">Transaction ID / Reference</label>
+                <label className="text-sm text-slate-500">Transaction ID / Reference</label>
                 <input
                   type="text"
                   value={transactionId}
                   onChange={(e) => setTransactionId(e.target.value)}
                   placeholder="Txn ID or bank reference"
                   disabled={paymentMethod === 'Stripe'}
-                  className="mt-2 w-full rounded-2xl border border-slate-700 bg-slate-800 px-4 py-3 text-white outline-none focus:border-cyan-500 disabled:opacity-50"
+                  className="mt-2 w-full rounded-2xl border border-slate-200 bg-white px-4 py-3 text-slate-900 outline-none focus:border-cyan-500 disabled:opacity-50"
                 />
               </div>
               <div>
-                <label className="text-sm text-slate-300">Notes</label>
+                <label className="text-sm text-slate-500">Notes</label>
                 <textarea
                   value={paymentNotes}
                   onChange={(e) => setPaymentNotes(e.target.value)}
                   rows={3}
                   placeholder="Optional note for the payment"
-                  className="mt-2 w-full rounded-2xl border border-slate-700 bg-slate-800 px-4 py-3 text-white outline-none focus:border-cyan-500"
+                  className="mt-2 w-full rounded-2xl border border-slate-200 bg-white px-4 py-3 text-slate-900 outline-none focus:border-cyan-500"
                 />
               </div>
               <div className="flex justify-end gap-3 pt-4">
                 <button
                   onClick={closePaymentModal}
-                  className="rounded-2xl border border-slate-700 bg-slate-800 px-4 py-3 text-slate-300 hover:bg-slate-700"
+                  className="rounded-2xl border border-slate-200 bg-white px-4 py-3 text-slate-500 hover:bg-slate-200"
                 >
                   Cancel
                 </button>
@@ -878,8 +904,8 @@ export function SupplierDashboard() {
                 </button>
               </div>
               {paymentMethod === 'BankTransfer' && (
-                <div className="mt-4 rounded-2xl border border-slate-700 bg-slate-900 p-4 text-sm text-slate-300">
-                  <p><strong className="text-white">Bank transfer instructions</strong></p>
+                <div className="mt-4 rounded-2xl border border-slate-200 bg-slate-50 p-4 text-sm text-slate-500">
+                  <p><strong className="text-slate-900">Bank transfer instructions</strong></p>
                   <p className="mt-2">Use a bank reference for this payment: <strong>{selectedPaymentOrder.poNumber}</strong>.</p>
                   <p className="mt-1">This will be stored as pending until the payment is reconciled.</p>
                 </div>
@@ -908,13 +934,13 @@ export function SupplierDashboard() {
       {/* Shipment Modal */}
       {showShipmentModal && selectedShipmentOrder && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 px-4 py-8">
-          <div className="w-full max-w-2xl rounded-3xl border border-slate-700 bg-slate-900 p-6 shadow-2xl">
+          <div className="w-full max-w-2xl rounded-3xl border border-slate-200 bg-slate-50 p-6 shadow-2xl">
             <div className="flex items-center justify-between gap-4">
               <div>
-                <h3 className="text-xl font-semibold text-white">{selectedShipment ? 'Assign driver to shipment' : 'Create shipment'}</h3>
-                <p className="text-slate-400 text-sm">Order: {selectedShipmentOrder.poNumber}</p>
+                <h3 className="text-xl font-semibold text-slate-900">{selectedShipment ? 'Assign driver to shipment' : 'Create shipment'}</h3>
+                <p className="text-slate-500 text-sm">Order: {selectedShipmentOrder.poNumber}</p>
               </div>
-              <button onClick={closeShipmentModal} className="rounded-full border border-slate-700 px-3 py-2 text-slate-300 hover:bg-slate-800">Close</button>
+              <button onClick={closeShipmentModal} className="rounded-full border border-slate-200 px-3 py-2 text-slate-500 hover:bg-white">Close</button>
             </div>
 
             {shipmentError && <div className="mt-4 rounded-xl bg-red-500/10 border border-red-500/50 p-3 text-sm text-red-200">{shipmentError}</div>}
@@ -922,8 +948,8 @@ export function SupplierDashboard() {
 
             <div className="mt-6 grid gap-4">
               <div>
-                <label className="text-sm text-slate-300">Driver</label>
-                <select value={selectedDriverId ?? ''} onChange={(e) => setSelectedDriverId(Number(e.target.value) || null)} className="mt-2 w-full rounded-2xl border border-slate-700 bg-slate-800 px-4 py-3 text-white outline-none focus:border-cyan-500">
+                <label className="text-sm text-slate-500">Driver</label>
+                <select value={selectedDriverId ?? ''} onChange={(e) => setSelectedDriverId(Number(e.target.value) || null)} className="mt-2 w-full rounded-2xl border border-slate-200 bg-white px-4 py-3 text-slate-900 outline-none focus:border-cyan-500">
                   <option value="">Select driver</option>
                   {availableDrivers.map((driver) => (
                     <option key={driver.id} value={driver.id}>{driver.firstName ?? 'Driver'} {driver.lastName ?? ''}</option>
@@ -932,16 +958,16 @@ export function SupplierDashboard() {
               </div>
               {!selectedShipment && (
                 <div>
-                  <label className="text-sm text-slate-300">Estimated delivery date</label>
-                  <input type="date" value={estimatedDeliveryDate} onChange={(e) => setEstimatedDeliveryDate(e.target.value)} className="mt-2 w-full rounded-2xl border border-slate-700 bg-slate-800 px-4 py-3 text-white outline-none focus:border-cyan-500" />
+                  <label className="text-sm text-slate-500">Estimated delivery date</label>
+                  <input type="date" value={estimatedDeliveryDate} onChange={(e) => setEstimatedDeliveryDate(e.target.value)} className="mt-2 w-full rounded-2xl border border-slate-200 bg-white px-4 py-3 text-slate-900 outline-none focus:border-cyan-500" />
                 </div>
               )}
               <div>
-                <label className="text-sm text-slate-300">Shipping address</label>
-                <input type="text" value={shipmentAddress} onChange={(e) => setShipmentAddress(e.target.value)} className="mt-2 w-full rounded-2xl border border-slate-700 bg-slate-800 px-4 py-3 text-white outline-none focus:border-cyan-500" />
+                <label className="text-sm text-slate-500">Shipping address</label>
+                <input type="text" value={shipmentAddress} onChange={(e) => setShipmentAddress(e.target.value)} className="mt-2 w-full rounded-2xl border border-slate-200 bg-white px-4 py-3 text-slate-900 outline-none focus:border-cyan-500" />
               </div>
-              <div className="rounded-2xl border border-slate-700 bg-slate-800 p-4 text-slate-300">
-                <p className="text-sm text-slate-400">Order items</p>
+              <div className="rounded-2xl border border-slate-200 bg-white p-4 text-slate-500">
+                <p className="text-sm text-slate-500">Order items</p>
                 <div className="mt-3 space-y-2">
                   {selectedShipmentOrder.items.map((item) => (
                     <div key={item.id} className="flex justify-between gap-4 text-sm">
@@ -952,7 +978,7 @@ export function SupplierDashboard() {
                 </div>
               </div>
               <div className="flex flex-col gap-3 sm:flex-row sm:justify-end">
-                <button onClick={closeShipmentModal} className="rounded-2xl border border-slate-700 bg-slate-800 px-4 py-3 text-slate-300 hover:bg-slate-700">Cancel</button>
+                <button onClick={closeShipmentModal} className="rounded-2xl border border-slate-200 bg-white px-4 py-3 text-slate-500 hover:bg-slate-200">Cancel</button>
                 <button onClick={handleShipmentSave} className="rounded-2xl bg-cyan-500 px-4 py-3 font-semibold text-slate-900 hover:bg-cyan-400">
                   {selectedShipment ? 'Assign driver' : 'Create shipment'}
                 </button>
@@ -965,20 +991,20 @@ export function SupplierDashboard() {
       {/* Live Tracking Modal */}
       {showTrackingModal && trackingShipment && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
-          <div className="w-full max-w-2xl rounded-3xl border border-slate-700 bg-slate-900 p-6 shadow-2xl">
+          <div className="w-full max-w-2xl rounded-3xl border border-slate-200 bg-slate-50 p-6 shadow-2xl">
             <div className="flex items-center justify-between mb-4">
-              <h3 className="text-xl font-semibold text-white">Live Tracking - {trackingShipment.trackingNumber}</h3>
-              <button onClick={() => setShowTrackingModal(false)} className="text-slate-400 hover:text-white">✕</button>
+              <h3 className="text-xl font-semibold text-slate-900">Live Tracking - {trackingShipment.trackingNumber}</h3>
+              <button onClick={() => setShowTrackingModal(false)} className="text-slate-500 hover:text-slate-900">✕</button>
             </div>
-            <div className="bg-slate-800 rounded-2xl p-4">
+            <div className="bg-white rounded-2xl p-4">
               <div className="flex items-center gap-2 mb-4">
                 <div className={`w-2 h-2 rounded-full ${trackingLocation?.currentLocation ? 'bg-green-400 animate-pulse' : 'bg-yellow-400'}`}></div>
-                <span className="text-sm text-slate-300">
+                <span className="text-sm text-slate-500">
                   {trackingLocation?.currentLocation ? 'Live tracking active' : 'Awaiting driver GPS...'}
                 </span>
               </div>
-              <div className="bg-slate-700 rounded-xl p-4">
-                <div className="rounded-2xl overflow-hidden border border-slate-700 bg-slate-800/40 h-72 flex items-center justify-center">
+              <div className="bg-slate-200 rounded-xl p-4">
+                <div className="rounded-2xl overflow-hidden border border-slate-200 bg-slate-100/80 h-72 flex items-center justify-center">
                   {getTrackingMapUrl() ? (
                     <iframe
                       title="Supplier live tracking map"
@@ -988,17 +1014,17 @@ export function SupplierDashboard() {
                     />
                   ) : (
                     <div className="text-center px-4">
-                      <p className="text-slate-400">Waiting for live driver GPS data...</p>
+                      <p className="text-slate-500">Waiting for live driver GPS data...</p>
                       <p className="text-slate-500 text-sm mt-2">The driver must start tracking before the live map appears.</p>
                     </div>
                   )}
                 </div>
                 <div className="mt-4 text-left space-y-2">
-                  <p className="text-slate-400 text-sm">Status: <span className="text-white">{trackingLocation?.status || trackingShipment.status}</span></p>
-                  <p className="text-slate-400 text-sm">Driver: <span className="text-white">{trackingLocation?.driverName || trackingShipment.driverName || 'Assigned driver'}</span></p>
-                  <p className="text-slate-400 text-sm">ETA: <span className="text-white">{trackingLocation?.eta ? new Date(trackingLocation.eta).toLocaleString() : new Date(trackingShipment.estimatedDeliveryDate).toLocaleString()}</span></p>
-                  <p className="text-slate-400 text-sm">Last update: <span className="text-white">{trackingLocation?.lastLocationUpdate ? new Date(trackingLocation.lastLocationUpdate).toLocaleString() : 'Awaiting update'}</span></p>
-                  <p className="text-slate-400 text-sm">Current Location: <span className="text-white">{trackingLocation?.currentLocation || 'No live GPS yet'}</span></p>
+                  <p className="text-slate-500 text-sm">Status: <span className="text-slate-900">{trackingLocation?.status || trackingShipment.status}</span></p>
+                  <p className="text-slate-500 text-sm">Driver: <span className="text-slate-900">{trackingLocation?.driverName || trackingShipment.driverName || 'Assigned driver'}</span></p>
+                  <p className="text-slate-500 text-sm">ETA: <span className="text-slate-900">{trackingLocation?.eta ? new Date(trackingLocation.eta).toLocaleString() : new Date(trackingShipment.estimatedDeliveryDate).toLocaleString()}</span></p>
+                  <p className="text-slate-500 text-sm">Last update: <span className="text-slate-900">{trackingLocation?.lastLocationUpdate ? new Date(trackingLocation.lastLocationUpdate).toLocaleString() : 'Awaiting update'}</span></p>
+                  <p className="text-slate-500 text-sm">Current Location: <span className="text-slate-900">{trackingLocation?.currentLocation || 'No live GPS yet'}</span></p>
                 </div>
               </div>
             </div>
@@ -1008,3 +1034,7 @@ export function SupplierDashboard() {
     </>
   );
 }
+
+
+
+

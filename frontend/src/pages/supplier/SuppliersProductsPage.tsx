@@ -133,13 +133,13 @@ export function SuppliersProductsPage() {
   }
 
   return (
-    <div className="p-6 space-y-6 bg-slate-900 min-h-screen">
+    <div className="p-6 space-y-6 bg-slate-50 min-h-screen">
       <div className="flex justify-between items-center">
         <div>
-          <h1 className="text-3xl font-bold text-white">My Products</h1>
-          <p className="text-slate-400 mt-1">Manage your products and view stock levels across warehouses</p>
+          <h1 className="text-3xl font-bold text-slate-900">My Products</h1>
+          <p className="text-slate-500 mt-1">Manage your products and view stock levels across warehouses</p>
         </div>
-        <button onClick={() => setShowProductModal(true)} className="px-4 py-2 bg-cyan-600 hover:bg-cyan-700 text-white rounded-lg flex items-center gap-2 transition">
+        <button onClick={() => setShowProductModal(true)} className="px-4 py-2 bg-cyan-600 hover:bg-cyan-700 text-slate-900 rounded-lg flex items-center gap-2 transition">
           <Plus className="w-4 h-4" /> Add Product
         </button>
       </div>
@@ -148,7 +148,7 @@ export function SuppliersProductsPage() {
 
       <div className="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-6">
         {products.map((product) => (
-          <div key={product.id} className="rounded-2xl border border-slate-700 bg-slate-800/50 p-6 hover:border-cyan-500/50 transition">
+          <div key={product.id} className="rounded-2xl border border-slate-200 bg-slate-100/90 p-6 hover:border-cyan-500/50 transition">
             {product.images && product.images.length > 0 && (
               <div className="mb-4">
                 <img
@@ -160,8 +160,8 @@ export function SuppliersProductsPage() {
             )}
             <div className="flex justify-between items-start mb-4">
               <div>
-                <h3 className="text-lg font-semibold text-white">{product.name}</h3>
-                <p className="text-slate-400 text-sm">{product.sku}</p>
+                <h3 className="text-lg font-semibold text-slate-900">{product.name}</h3>
+                <p className="text-slate-500 text-sm">{product.sku}</p>
               </div>
               <span className={`px-2 py-1 rounded-full text-xs ${product.isActive ? 'bg-green-500/20 text-green-400' : 'bg-red-500/20 text-red-400'}`}>
                 {product.isActive ? 'Active' : 'Pending approval'}
@@ -169,24 +169,24 @@ export function SuppliersProductsPage() {
             </div>
             
             <div className="grid grid-cols-2 gap-4 mb-4">
-              <div className="bg-slate-900/50 rounded-xl p-3 text-center">
+              <div className="bg-slate-50/50 rounded-xl p-3 text-center">
                 <div className="flex items-center justify-center gap-2 text-cyan-400">
                   <Building2 className="w-4 h-4" />
-                  <span className="text-2xl font-bold text-white">{product.warehousesCount || 0}</span>
+                  <span className="text-2xl font-bold text-slate-900">{product.warehousesCount || 0}</span>
                 </div>
-                <p className="text-xs text-slate-400 mt-1">Warehouses</p>
+                <p className="text-xs text-slate-500 mt-1">Warehouses</p>
               </div>
-              <div className="bg-slate-900/50 rounded-xl p-3 text-center">
+              <div className="bg-slate-50/50 rounded-xl p-3 text-center">
                 <div className="flex items-center justify-center gap-2 text-green-400">
                   <Package className="w-4 h-4" />
-                  <span className="text-2xl font-bold text-white">{product.totalStock || 0}</span>
+                  <span className="text-2xl font-bold text-slate-900">{product.totalStock || 0}</span>
                 </div>
-                <p className="text-xs text-slate-400 mt-1">Total Stock</p>
+                <p className="text-xs text-slate-500 mt-1">Total Stock</p>
               </div>
             </div>
 
             <div className="flex gap-2">
-              <button onClick={() => viewStockDetails(product)} className="flex-1 px-3 py-2 bg-slate-700 hover:bg-slate-600 rounded-lg text-white text-sm transition flex items-center justify-center gap-1">
+              <button onClick={() => viewStockDetails(product)} className="flex-1 px-3 py-2 bg-slate-200 hover:bg-slate-100 rounded-lg text-slate-900 text-sm transition flex items-center justify-center gap-1">
                 <Eye className="w-4 h-4" /> View Stock
               </button>
             </div>
@@ -194,22 +194,21 @@ export function SuppliersProductsPage() {
         ))}
       </div>
 
-    
+   
       {showProductModal && (
         <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
-          <div className="bg-slate-800 rounded-xl border border-slate-700 w-96 p-6 space-y-4 max-h-[90vh] overflow-y-auto">
-            <h2 className="text-xl font-bold text-white">Add New Product</h2>
-            <input type="text" placeholder="Product Name" value={formData.name} onChange={(e) => setFormData({...formData, name: e.target.value})} className="w-full bg-slate-700 border border-slate-600 rounded px-3 py-2 text-white" />
-            <input type="text" placeholder="SKU" value={formData.sku} onChange={(e) => setFormData({...formData, sku: e.target.value.toUpperCase()})} className="w-full bg-slate-700 border border-slate-600 rounded px-3 py-2 text-white" />
-            <textarea placeholder="Description" value={formData.description} onChange={(e) => setFormData({...formData, description: e.target.value})} className="w-full bg-slate-700 border border-slate-600 rounded px-3 py-2 text-white" rows={3} />
+          <div className="bg-white rounded-xl border border-slate-200 w-96 p-6 space-y-4 max-h-[90vh] overflow-y-auto">
+            <h2 className="text-xl font-bold text-slate-900">Add New Product</h2>
+            <input type="text" placeholder="Product Name" value={formData.name} onChange={(e) => setFormData({...formData, name: e.target.value})} className="w-full bg-slate-200 border border-slate-600 rounded px-3 py-2 text-slate-900" />
+            <input type="text" placeholder="SKU" value={formData.sku} onChange={(e) => setFormData({...formData, sku: e.target.value.toUpperCase()})} className="w-full bg-slate-200 border border-slate-600 rounded px-3 py-2 text-slate-900" />
+            <textarea placeholder="Description" value={formData.description} onChange={(e) => setFormData({...formData, description: e.target.value})} className="w-full bg-slate-200 border border-slate-600 rounded px-3 py-2 text-slate-900" rows={3} />
             <div className="grid grid-cols-2 gap-3">
-              <input type="number" placeholder="Price" step="0.01" value={formData.price} onChange={(e) => setFormData({...formData, price: e.target.value})} className="bg-slate-700 border border-slate-600 rounded px-3 py-2 text-white" />
-              <input type="number" placeholder="Cost" step="0.01" value={formData.cost} onChange={(e) => setFormData({...formData, cost: e.target.value})} className="bg-slate-700 border border-slate-600 rounded px-3 py-2 text-white" />
+              <input type="number" placeholder="Price" step="0.01" value={formData.price} onChange={(e) => setFormData({...formData, price: e.target.value})} className="bg-slate-200 border border-slate-600 rounded px-3 py-2 text-slate-900" />
+              <input type="number" placeholder="Cost" step="0.01" value={formData.cost} onChange={(e) => setFormData({...formData, cost: e.target.value})} className="bg-slate-200 border border-slate-600 rounded px-3 py-2 text-slate-900" />
             </div>
             
-            {/* Image Upload */}
             <div>
-              <label className="block text-sm text-slate-300 mb-2">Product Image</label>
+              <label className="block text-sm text-slate-500 mb-2">Product Image</label>
               <div className="space-y-2">
                 <input
                   type="file"
@@ -225,7 +224,7 @@ export function SuppliersProductsPage() {
                       setImagePreview(null);
                     }
                   }}
-                  className="w-full bg-slate-700 border border-slate-600 rounded px-3 py-2 text-white file:mr-4 file:py-1 file:px-3 file:rounded file:border-0 file:text-sm file:font-semibold file:bg-cyan-600 file:text-white hover:file:bg-cyan-700"
+                  className="w-full bg-slate-200 border border-slate-600 rounded px-3 py-2 text-slate-900 file:mr-4 file:py-1 file:px-3 file:rounded file:border-0 file:text-sm file:font-semibold file:bg-cyan-600 file:text-slate-900 hover:file:bg-cyan-700"
                 />
                 {imagePreview && (
                   <div className="relative">
@@ -252,40 +251,39 @@ export function SuppliersProductsPage() {
                 setShowProductModal(false);
                 setImageFile(null);
                 setImagePreview(null);
-              }} className="flex-1 px-4 py-2 bg-slate-700 hover:bg-slate-600 text-white rounded-lg">Cancel</button>
-              <button onClick={handleAddProduct} className="flex-1 px-4 py-2 bg-cyan-600 hover:bg-cyan-700 text-white rounded-lg">Create</button>
+              }} className="flex-1 px-4 py-2 bg-slate-200 hover:bg-slate-100 text-slate-900 rounded-lg">Cancel</button>
+              <button onClick={handleAddProduct} className="flex-1 px-4 py-2 bg-cyan-600 hover:bg-cyan-700 text-slate-900 rounded-lg">Create</button>
             </div>
           </div>
         </div>
       )}
 
-  
       {showStockModal && selectedProduct && (
         <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
-          <div className="bg-slate-800 rounded-xl border border-slate-700 w-[500px] max-h-[80vh] overflow-hidden flex flex-col">
-            <div className="p-6 border-b border-slate-700">
+          <div className="bg-white rounded-xl border border-slate-200 w-[500px] max-h-[80vh] overflow-hidden flex flex-col">
+            <div className="p-6 border-b border-slate-200">
               <div className="flex justify-between items-center">
-                <h2 className="text-xl font-bold text-white">{selectedProduct.name} - Stock Details</h2>
-                <button onClick={() => setShowStockModal(false)} className="text-slate-400 hover:text-white">✕</button>
+                <h2 className="text-xl font-bold text-slate-900">{selectedProduct.name} - Stock Details</h2>
+                <button onClick={() => setShowStockModal(false)} className="text-slate-500 hover:text-slate-900">✕</button>
               </div>
             </div>
             <div className="flex-1 overflow-y-auto p-6">
               {warehouseStocks.filter(s => s.productId === selectedProduct.id).length === 0 ? (
-                <div className="text-center text-slate-400 py-8">No stock records found in any warehouse</div>
+                <div className="text-center text-slate-500 py-8">No stock records found in any warehouse</div>
               ) : (
                 <div className="space-y-3">
                   {warehouseStocks.filter(s => s.productId === selectedProduct.id).map((stock) => (
-                    <div key={stock.warehouseId} className="bg-slate-700/30 rounded-lg p-4">
+                    <div key={stock.warehouseId} className="bg-slate-100/80 rounded-lg p-4">
                       <div className="flex justify-between items-center">
                         <div>
-                          <p className="text-white font-medium">{stock.warehouseName}</p>
-                          <p className="text-slate-400 text-sm">Location: {stock.shelfLocation || 'Not specified'}</p>
+                          <p className="text-slate-900 font-medium">{stock.warehouseName}</p>
+                          <p className="text-slate-500 text-sm">Location: {stock.shelfLocation || 'Not specified'}</p>
                         </div>
                         <div className="text-right">
                           <span className={`px-2 py-1 rounded-full text-xs ${stock.isOutOfStock ? 'bg-red-500/20 text-red-400' : stock.isLowStock ? 'bg-yellow-500/20 text-yellow-400' : 'bg-green-500/20 text-green-400'}`}>
                             {stock.isOutOfStock ? 'Out of Stock' : stock.isLowStock ? 'Low Stock' : 'In Stock'}
                           </span>
-                          <p className="text-2xl font-bold text-white mt-2">{stock.quantity} units</p>
+                          <p className="text-2xl font-bold text-slate-900 mt-2">{stock.quantity} units</p>
                         </div>
                       </div>
                     </div>
@@ -299,3 +297,8 @@ export function SuppliersProductsPage() {
     </div>
   );
 }
+
+
+
+
+

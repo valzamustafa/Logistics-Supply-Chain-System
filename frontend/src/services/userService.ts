@@ -49,3 +49,5 @@ export const roleService = {
   delete: (id: number) => api.delete<void>(`/api/auth/roles/${id}`),
   getPermissions: () => api.get<Permission[]>('/api/auth/permissions'),
 };
+
+

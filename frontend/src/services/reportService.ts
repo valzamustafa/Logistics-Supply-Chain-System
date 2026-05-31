@@ -32,3 +32,5 @@ export const reportService = {
     reportsByType: Record<string, number>;
   }>('/api/reports/summary'),
 };
+
+

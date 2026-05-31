@@ -1,5 +1,3 @@
-
-
 import { getLocalStorageItem } from '../utils/localStorage';
 
 export const API_BASE_URL = import.meta.env.VITE_API_BASE_URL ?? 'http://localhost:5000';
@@ -17,7 +15,8 @@ async function request<T>(
   const isForm = options.body instanceof FormData;
   const hasBody = options.body !== undefined && options.body !== null;
 
-   const isAbsolute = /^https?:\/\//i.test(endpoint);
+ 
+  const isAbsolute = /^https?:\/\//i.test(endpoint);
   const url = isAbsolute ? endpoint : `${API_BASE_URL}${endpoint}`;
 
   const headers: Record<string, string> = {
@@ -51,7 +50,7 @@ async function request<T>(
         const text = await response.text();
         if (text) errorMessage = text;
       } catch {
-     
+        
       }
     }
     throw new Error(errorMessage);
@@ -93,7 +92,7 @@ async function requestBlob(
       try {
         errorMessage = await clone.text() || errorMessage;
       } catch {
-
+     
       }
     }
     throw new Error(errorMessage);
@@ -111,3 +110,5 @@ export const api = {
   delete: <T>(endpoint: string) => request<T>(endpoint, { method: 'DELETE' }),
   download: (endpoint: string) => requestBlob(endpoint),
 };
+
+

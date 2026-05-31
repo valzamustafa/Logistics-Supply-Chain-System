@@ -1,4 +1,5 @@
-﻿import { useEffect, useMemo, useState } from 'react';
+﻿
+import { useEffect, useMemo, useState } from 'react';
 import { Package, AlertTriangle, Building2, PieChart, TrendingUp, TrendingDown, Box, Truck, Clock, CheckCircle, XCircle, Plus, Edit, Trash2, Users, MapPin, Phone, AlertCircle, Edit2 } from 'lucide-react';
 import { loadStripe } from '@stripe/stripe-js';
 import { Elements } from '@stripe/react-stripe-js';
@@ -16,7 +17,9 @@ import { shipmentService } from '../../services/shipmentService';
 import { driverService, Driver } from '../../services/driverService';
 import { supplierService, Supplier, SupplierProductDto, PurchaseOrderDto } from '../../services/supplierService';
 import { WarehouseInventory } from './Inventory';
-
+import { Navigation, RefreshCw, Eye } from 'lucide-react';
+import { vehicleService, Vehicle } from '../../services/driverService';
+import { VehicleLiveTracker } from '../../components/vehicles/VehicleLiveTracker';
 const stripePromise = loadStripe(import.meta.env.VITE_STRIPE_PUBLISHABLE_KEY ?? '');
 
 type WarehouseDashboardView = 'warehouses' | 'inventory';
@@ -42,7 +45,6 @@ export function WarehouseDashboard() {
   const [confirmDialog, setConfirmDialog] = useState<{ title: string; message: string; onConfirm: () => Promise<void> } | null>(null);
   const [stocksLoading, setStocksLoading] = useState(false);
   
-
   const [suppliers, setSuppliers] = useState<Supplier[]>([]);
   const [supplierProducts, setSupplierProducts] = useState<SupplierProductDto[]>([]);
   const [selectedSupplierId, setSelectedSupplierId] = useState<number>(0);
@@ -225,7 +227,6 @@ export function WarehouseDashboard() {
 
     loadSupplierProducts();
   }, [selectedSupplierId]);
-
 
   const openEditStockModal = (stock: WarehouseStock) => {
     setSelectedStockItem(stock);
@@ -578,15 +579,15 @@ export function WarehouseDashboard() {
   if (activeView === 'inventory') {
     return (
       <div className="space-y-4">
-        <div className="p-6 bg-slate-900">
+        <div className="p-6 bg-slate-50">
           <div className="flex items-center gap-4 mb-6">
             <button
               onClick={() => setActiveView('warehouses')}
-              className="px-4 py-2 bg-slate-700 hover:bg-slate-600 text-white rounded-lg transition"
+              className="px-4 py-2 bg-slate-200 hover:bg-slate-100 text-slate-900 rounded-lg transition"
             >
-              â† Back to Warehouses
+              ← Back to Warehouses
             </button>
-            <h1 className="text-2xl font-bold text-white">Inventory Management</h1>
+            <h1 className="text-2xl font-bold text-slate-900">Inventory Management</h1>
           </div>
         </div>
         <WarehouseInventory />
@@ -599,23 +600,23 @@ export function WarehouseDashboard() {
       <div className="flex h-full items-center justify-center">
         <div className="text-center">
           <div className="w-12 h-12 border-4 border-cyan-500 border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
-          <p className="text-slate-400">Loading warehouses...</p>
+          <p className="text-slate-500">Loading warehouses...</p>
         </div>
       </div>
     );
   }
 
   return (
-    <div className="p-6 space-y-6 bg-slate-900 min-h-screen">
+    <div className="p-6 space-y-6 bg-slate-50 min-h-screen">
       <div className="flex justify-between items-center">
         <div>
-          <h1 className="text-3xl font-bold text-white">Warehouse Management</h1>
-          <p className="text-slate-400 mt-1">Manage your warehouses, zones, staff, and product stock</p>
+          <h1 className="text-3xl font-bold text-slate-900">Warehouse Management</h1>
+          <p className="text-slate-500 mt-1">Manage your warehouses, zones, staff, and product stock</p>
         </div>
         <div className="flex gap-2">
           <button
             onClick={() => setActiveView('inventory')}
-            className="px-4 py-2 bg-purple-600 hover:bg-purple-700 text-white rounded-lg flex items-center gap-2 transition"
+            className="px-4 py-2 bg-purple-600 hover:bg-purple-700 text-slate-900 rounded-lg flex items-center gap-2 transition"
           >
             <TrendingDown className="w-4 h-4" />
             View Inventory
@@ -626,7 +627,7 @@ export function WarehouseDashboard() {
               setWarehouseForm({ name: '', location: '', phone: '' });
               setShowWarehouseModal(true);
             }}
-            className="px-4 py-2 bg-cyan-600 hover:bg-cyan-700 text-white rounded-lg flex items-center gap-2 transition"
+            className="px-4 py-2 bg-cyan-600 hover:bg-cyan-700 text-slate-900 rounded-lg flex items-center gap-2 transition"
           >
             <Plus className="w-4 h-4" />
             Add Warehouse
@@ -642,73 +643,73 @@ export function WarehouseDashboard() {
 
       {/* Stats Cards */}
       <div className="grid grid-cols-1 md:grid-cols-5 gap-5">
-        <div className="bg-gradient-to-br from-slate-800 to-slate-800/80 rounded-xl p-5 border border-slate-700">
+        <div className="bg-gradient-to-br from-slate-800 to-slate-800/80 rounded-xl p-5 border border-slate-200">
           <div className="w-12 h-12 rounded-xl bg-cyan-500/20 flex items-center justify-center">
             <Building2 className="w-6 h-6 text-cyan-400" />
           </div>
           <div className="mt-4">
-            <h3 className="text-2xl font-bold text-white">{totalWarehouses}</h3>
-            <p className="text-slate-400 text-sm">Warehouses</p>
+            <h3 className="text-2xl font-bold text-slate-900">{totalWarehouses}</h3>
+            <p className="text-slate-500 text-sm">Warehouses</p>
           </div>
         </div>
 
-        <div className="bg-gradient-to-br from-slate-800 to-slate-800/80 rounded-xl p-5 border border-slate-700">
+        <div className="bg-gradient-to-br from-slate-800 to-slate-800/80 rounded-xl p-5 border border-slate-200">
           <div className="w-12 h-12 rounded-xl bg-purple-500/20 flex items-center justify-center">
             <Box className="w-6 h-6 text-purple-400" />
           </div>
           <div className="mt-4">
-            <h3 className="text-2xl font-bold text-white">{totalZones}</h3>
-            <p className="text-slate-400 text-sm">Zones</p>
+            <h3 className="text-2xl font-bold text-slate-900">{totalZones}</h3>
+            <p className="text-slate-500 text-sm">Zones</p>
           </div>
         </div>
 
-        <div className="bg-gradient-to-br from-slate-800 to-slate-800/80 rounded-xl p-5 border border-slate-700">
+        <div className="bg-gradient-to-br from-slate-800 to-slate-800/80 rounded-xl p-5 border border-slate-200">
           <div className="w-12 h-12 rounded-xl bg-green-500/20 flex items-center justify-center">
             <Users className="w-6 h-6 text-green-400" />
           </div>
           <div className="mt-4">
-            <h3 className="text-2xl font-bold text-white">{totalStaff}</h3>
-            <p className="text-slate-400 text-sm">Staff Members</p>
+            <h3 className="text-2xl font-bold text-slate-900">{totalStaff}</h3>
+            <p className="text-slate-500 text-sm">Staff Members</p>
           </div>
         </div>
 
-        <div className="bg-gradient-to-br from-slate-800 to-slate-800/80 rounded-xl p-5 border border-slate-700">
+        <div className="bg-gradient-to-br from-slate-800 to-slate-800/80 rounded-xl p-5 border border-slate-200">
           <div className="w-12 h-12 rounded-xl bg-amber-500/20 flex items-center justify-center">
             <Package className="w-6 h-6 text-amber-400" />
           </div>
           <div className="mt-4">
-            <h3 className="text-2xl font-bold text-white">{totalProducts}</h3>
-            <p className="text-slate-400 text-sm">Unique Products</p>
+            <h3 className="text-2xl font-bold text-slate-900">{totalProducts}</h3>
+            <p className="text-slate-500 text-sm">Unique Products</p>
           </div>
         </div>
 
-        <div className="bg-gradient-to-br from-slate-800 to-slate-800/80 rounded-xl p-5 border border-slate-700">
+        <div className="bg-gradient-to-br from-slate-800 to-slate-800/80 rounded-xl p-5 border border-slate-200">
           <div className="w-12 h-12 rounded-xl bg-blue-500/20 flex items-center justify-center">
             <PieChart className="w-6 h-6 text-blue-400" />
           </div>
           <div className="mt-4">
-            <h3 className="text-2xl font-bold text-white">{totalStockQuantity.toLocaleString()}</h3>
-            <p className="text-slate-400 text-sm">Total Units</p>
+            <h3 className="text-2xl font-bold text-slate-900">{totalStockQuantity.toLocaleString()}</h3>
+            <p className="text-slate-500 text-sm">Total Units</p>
           </div>
         </div>
       </div>
 
-      <div className="rounded-2xl border border-slate-700 bg-slate-800 p-6">
+      <div className="rounded-2xl border border-slate-200 bg-white p-6">
         <div className="flex flex-col gap-4 md:flex-row md:items-end md:justify-between">
           <div>
-            <h2 className="text-xl font-semibold text-white">Supplier Reorder</h2>
-            <p className="text-slate-400 mt-1">Pick a supplier and order products directly from the warehouse dashboard.</p>
+            <h2 className="text-xl font-semibold text-slate-900">Supplier Reorder</h2>
+            <p className="text-slate-500 mt-1">Pick a supplier and order products directly from the warehouse dashboard.</p>
           </div>
           <div className="grid gap-3 sm:grid-cols-2 w-full md:w-auto">
             <div className="flex flex-col">
-              <label className="text-slate-400 text-sm mb-1">Warehouse</label>
+              <label className="text-slate-500 text-sm mb-1">Warehouse</label>
               <select
                 value={selectedWarehouse?.id ?? ''}
                 onChange={(e) => {
                   const warehouseId = e.target.value ? parseInt(e.target.value, 10) : null;
                   setSelectedWarehouse(warehouses.find((warehouse) => warehouse.id === warehouseId) ?? null);
                 }}
-                className="bg-slate-700 border border-slate-600 rounded px-3 py-2 text-white outline-none"
+                className="bg-slate-200 border border-slate-600 rounded px-3 py-2 text-slate-900 outline-none"
               >
                 <option value="">Select warehouse</option>
                 {warehouses.map((warehouse) => (
@@ -717,11 +718,11 @@ export function WarehouseDashboard() {
               </select>
             </div>
             <div className="flex flex-col">
-              <label className="text-slate-400 text-sm mb-1">Supplier</label>
+              <label className="text-slate-500 text-sm mb-1">Supplier</label>
               <select
                 value={selectedSupplierId}
                 onChange={(e) => setSelectedSupplierId(Number(e.target.value))}
-                className="bg-slate-700 border border-slate-600 rounded px-3 py-2 text-white outline-none"
+                className="bg-slate-200 border border-slate-600 rounded px-3 py-2 text-slate-900 outline-none"
               >
                 <option value={0}>Select supplier</option>
                 {suppliers.map((supplier) => (
@@ -733,17 +734,17 @@ export function WarehouseDashboard() {
         </div>
 
         {selectedSupplierId === 0 ? (
-          <div className="mt-6 rounded-2xl border border-dashed border-slate-700 bg-slate-900 p-6 text-slate-400">
+          <div className="mt-6 rounded-2xl border border-dashed border-slate-200 bg-slate-50 p-6 text-slate-500">
             Select a supplier to show available products and reorder options.
           </div>
         ) : supplierProducts.length === 0 ? (
-          <div className="mt-6 rounded-2xl border border-dashed border-slate-700 bg-slate-900 p-6 text-slate-400">
+          <div className="mt-6 rounded-2xl border border-dashed border-slate-200 bg-slate-50 p-6 text-slate-500">
             No products published for this supplier. Try another supplier or update the supplier catalog.
           </div>
         ) : (
           <div className="mt-6 overflow-x-auto">
-            <table className="min-w-full text-left text-sm text-slate-300">
-              <thead className="border-b border-slate-700 text-slate-400">
+            <table className="min-w-full text-left text-sm text-slate-500">
+              <thead className="border-b border-slate-200 text-slate-500">
                 <tr>
                   <th className="p-3">Product</th>
                   <th className="p-3">SKU</th>
@@ -755,10 +756,10 @@ export function WarehouseDashboard() {
                 {supplierProducts.map((mapping) => {
                   const product = products.find((item) => item.id === mapping.productId);
                   return (
-                    <tr key={mapping.id} className="border-b border-slate-700 hover:bg-slate-800/50 transition">
-                      <td className="p-3 text-white">{product?.name ?? `Product #${mapping.productId}`}</td>
-                      <td className="p-3">{product?.sku ?? mapping.supplierSKU ?? 'â€”'}</td>
-                      <td className="p-3 text-slate-300">{mapping.leadTimeDays ? `${mapping.leadTimeDays} days` : 'N/A'}</td>
+                    <tr key={mapping.id} className="border-b border-slate-200 hover:bg-slate-100/90 transition">
+                      <td className="p-3 text-slate-900">{product?.name ?? `Product #${mapping.productId}`}</td>
+                      <td className="p-3">{product?.sku ?? mapping.supplierSKU ?? '—'}</td>
+                      <td className="p-3 text-slate-500">{mapping.leadTimeDays ? `${mapping.leadTimeDays} days` : 'N/A'}</td>
                       <td className="p-3">
                         <button
                           onClick={() => openSupplierCatalogOrderModal(mapping)}
@@ -785,13 +786,13 @@ export function WarehouseDashboard() {
           const outOfStockCount = stocks.filter(s => s.isOutOfStock).length;
           
           return (
-            <div key={warehouse.id} className="bg-slate-800/50 rounded-xl border border-slate-700 overflow-hidden hover:border-cyan-500/50 transition-all">
-              <div className="p-5 border-b border-slate-700 bg-slate-800/80">
+            <div key={warehouse.id} className="bg-slate-100/90 rounded-xl border border-slate-200 overflow-hidden hover:border-cyan-500/50 transition-all">
+              <div className="p-5 border-b border-slate-200 bg-white/80">
                 <div className="flex justify-between items-start">
                   <div className="flex-1">
                     <div className="flex items-center gap-2 flex-wrap">
                       <Building2 className="w-5 h-5 text-cyan-400" />
-                      <h3 className="text-lg font-semibold text-white">{warehouse.name}</h3>
+                      <h3 className="text-lg font-semibold text-slate-900">{warehouse.name}</h3>
                       <span className={`px-2 py-0.5 rounded-full text-xs ${
                         warehouse.isActive ? 'bg-green-500/20 text-green-400' : 'bg-red-500/20 text-red-400'
                       }`}>
@@ -799,7 +800,7 @@ export function WarehouseDashboard() {
                       </span>
                     </div>
                     {(warehouse.location || warehouse.phone) && (
-                      <div className="flex items-center gap-4 mt-2 text-sm text-slate-400">
+                      <div className="flex items-center gap-4 mt-2 text-sm text-slate-500">
                         {warehouse.location && (
                           <span className="flex items-center gap-1">
                             <MapPin className="w-3 h-3" />
@@ -826,7 +827,7 @@ export function WarehouseDashboard() {
                         });
                         setShowWarehouseModal(true);
                       }}
-                      className="p-1.5 hover:bg-slate-600 rounded-lg transition"
+                      className="p-1.5 hover:bg-slate-100 rounded-lg transition"
                       title="Edit"
                     >
                       <Edit className="w-4 h-4 text-blue-400" />
@@ -842,12 +843,11 @@ export function WarehouseDashboard() {
                 </div>
               </div>
 
-              {/* Products/Stock Section - Cards like in the photo */}
-              <div className="p-5 border-b border-slate-700">
+              <div className="p-5 border-b border-slate-200">
                 <div className="flex items-center justify-between mb-3">
                   <div className="flex items-center gap-2">
                     <Package className="w-4 h-4 text-amber-400" />
-                    <h4 className="font-medium text-white">Products in Stock</h4>
+                    <h4 className="font-medium text-slate-900">Products in Stock</h4>
                     <span className="text-xs text-slate-500">({stocks.length} products)</span>
                   </div>
                 </div>
@@ -855,7 +855,7 @@ export function WarehouseDashboard() {
                 {stocksLoading ? (
                   <div className="text-center py-8">
                     <div className="w-8 h-8 border-2 border-cyan-500 border-t-transparent rounded-full animate-spin mx-auto"></div>
-                    <p className="text-slate-400 text-sm mt-2">Loading products...</p>
+                    <p className="text-slate-500 text-sm mt-2">Loading products...</p>
                   </div>
                 ) : stocks.length > 0 ? (
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4 max-h-96 overflow-y-auto">
@@ -866,7 +866,7 @@ export function WarehouseDashboard() {
                       const isOutOfStock = stock.quantity === 0;
                       
                       return (
-                        <div key={stock.id} className="bg-slate-900/50 rounded-lg p-4 hover:bg-slate-900/70 transition-all group">
+                        <div key={stock.id} className="bg-slate-50/50 rounded-lg p-4 hover:bg-slate-50/70 transition-all group">
                           <div className="relative mb-3">
                             <div className="h-32 bg-gradient-to-br from-slate-700 to-slate-800 rounded-lg flex items-center justify-center overflow-hidden">
                             {product?.images && product.images.length > 0 ? (
@@ -892,8 +892,8 @@ export function WarehouseDashboard() {
                           
                           <div className="space-y-2">
                             <div>
-                              <h5 className="font-semibold text-white text-sm line-clamp-1">{product?.name || `Product #${stock.productId}`}</h5>
-                              <p className="text-slate-400 text-xs">{product?.sku || 'N/A'}</p>
+                              <h5 className="font-semibold text-slate-900 text-sm line-clamp-1">{product?.name || `Product #${stock.productId}`}</h5>
+                              <p className="text-slate-500 text-xs">{product?.sku || 'N/A'}</p>
                             </div>
                             
                             <div className="flex items-center justify-between">
@@ -901,28 +901,28 @@ export function WarehouseDashboard() {
                                 <p className="text-2xl font-bold text-cyan-400">${product?.price.toFixed(2) || '0.00'}</p>
                               </div>
                               {category && (
-                                <span className="px-2 py-0.5 rounded-full text-xs bg-slate-700 text-slate-300">
+                                <span className="px-2 py-0.5 rounded-full text-xs bg-slate-200 text-slate-500">
                                   {category.name}
                                 </span>
                               )}
                             </div>
                             
-                            <div className="grid grid-cols-2 gap-2 pt-2 border-t border-slate-700">
+                            <div className="grid grid-cols-2 gap-2 pt-2 border-t border-slate-200">
                               <div>
                                 <p className="text-xs text-slate-500">Quantity</p>
-                                <p className={`text-lg font-semibold ${isOutOfStock ? 'text-red-400' : isLowStock ? 'text-yellow-400' : 'text-white'}`}>
+                                <p className={`text-lg font-semibold ${isOutOfStock ? 'text-red-400' : isLowStock ? 'text-yellow-400' : 'text-slate-900'}`}>
                                   {stock.quantity}
                                 </p>
                               </div>
                               <div>
                                 <p className="text-xs text-slate-500">Min Level</p>
-                                <p className="text-white text-lg font-semibold">{stock.minimumStockLevel}</p>
+                                <p className="text-slate-900 text-lg font-semibold">{stock.minimumStockLevel}</p>
                               </div>
                             </div>
                             
                             <button
                               onClick={() => openEditStockModal(stock)}
-                              className="w-full py-2 bg-gradient-to-r from-cyan-500 to-blue-500 hover:from-cyan-600 hover:to-blue-600 rounded-lg text-white text-sm font-semibold transition flex items-center justify-center gap-2"
+                              className="w-full py-2 bg-gradient-to-r from-cyan-500 to-blue-500 hover:from-cyan-600 hover:to-blue-600 rounded-lg text-slate-900 text-sm font-semibold transition flex items-center justify-center gap-2"
                             >
                               <Edit2 className="w-4 h-4" />
                               Update Stock
@@ -942,11 +942,11 @@ export function WarehouseDashboard() {
               </div>
 
               {/* Zones Section */}
-              <div className="p-5 border-b border-slate-700">
+              <div className="p-5 border-b border-slate-200">
                 <div className="flex justify-between items-center mb-3">
                   <div className="flex items-center gap-2">
                     <Box className="w-4 h-4 text-purple-400" />
-                    <h4 className="font-medium text-white">Zones</h4>
+                    <h4 className="font-medium text-slate-900">Zones</h4>
                     <span className="text-xs text-slate-500">({warehouse.zones?.length || 0})</span>
                   </div>
                   <button
@@ -955,7 +955,7 @@ export function WarehouseDashboard() {
                       setZoneForm({ warehouseId: warehouse.id, zoneName: '', description: '', capacity: 0 });
                       setShowZoneModal(true);
                     }}
-                    className="px-3 py-1.5 bg-cyan-600 hover:bg-cyan-700 text-white text-xs rounded-lg flex items-center gap-1 transition"
+                    className="px-3 py-1.5 bg-cyan-600 hover:bg-cyan-700 text-slate-900 text-xs rounded-lg flex items-center gap-1 transition"
                   >
                     <Plus className="w-3 h-3" /> Add Zone
                   </button>
@@ -963,11 +963,11 @@ export function WarehouseDashboard() {
                 {warehouse.zones && warehouse.zones.length > 0 ? (
                   <div className="space-y-2">
                     {warehouse.zones.map((zone) => (
-                      <div key={zone.id} className="bg-slate-900/50 rounded-lg p-3 flex justify-between items-center">
+                      <div key={zone.id} className="bg-slate-50/50 rounded-lg p-3 flex justify-between items-center">
                         <div>
-                          <p className="text-white text-sm font-medium">{zone.zoneName}</p>
+                          <p className="text-slate-900 text-sm font-medium">{zone.zoneName}</p>
                           {zone.description && (
-                            <p className="text-slate-400 text-xs">{zone.description}</p>
+                            <p className="text-slate-500 text-xs">{zone.description}</p>
                           )}
                           <p className="text-slate-500 text-xs mt-1">Capacity: {zone.capacity.toLocaleString()} units</p>
                         </div>
@@ -990,7 +990,7 @@ export function WarehouseDashboard() {
                 <div className="flex justify-between items-center mb-3">
                   <div className="flex items-center gap-2">
                     <Users className="w-4 h-4 text-green-400" />
-                    <h4 className="font-medium text-white">Staff</h4>
+                    <h4 className="font-medium text-slate-900">Staff</h4>
                     <span className="text-xs text-slate-500">({warehouse.staff?.length || 0})</span>
                   </div>
                   <button
@@ -999,7 +999,7 @@ export function WarehouseDashboard() {
                       setStaffForm({ userId: 0, position: '', hireDate: '' });
                       setShowStaffModal(true);
                     }}
-                    className="px-3 py-1.5 bg-green-600 hover:bg-green-700 text-white text-xs rounded-lg flex items-center gap-1 transition"
+                    className="px-3 py-1.5 bg-green-600 hover:bg-green-700 text-slate-900 text-xs rounded-lg flex items-center gap-1 transition"
                   >
                     <Plus className="w-3 h-3" /> Assign Staff
                   </button>
@@ -1007,11 +1007,11 @@ export function WarehouseDashboard() {
                 {warehouse.staff && warehouse.staff.length > 0 ? (
                   <div className="space-y-2">
                     {warehouse.staff.map((staff) => (
-                      <div key={staff.id} className="bg-slate-900/50 rounded-lg p-3 flex justify-between items-center">
+                      <div key={staff.id} className="bg-slate-50/50 rounded-lg p-3 flex justify-between items-center">
                         <div>
-                          <p className="text-white text-sm font-medium">User ID: {staff.userId}</p>
+                          <p className="text-slate-900 text-sm font-medium">User ID: {staff.userId}</p>
                           {staff.position && (
-                            <p className="text-slate-400 text-xs">{staff.position}</p>
+                            <p className="text-slate-500 text-xs">{staff.position}</p>
                           )}
                           {staff.hireDate && (
                             <p className="text-slate-500 text-xs">Hired: {new Date(staff.hireDate).toLocaleDateString()}</p>
@@ -1036,11 +1036,11 @@ export function WarehouseDashboard() {
       </div>
 
       {/* Customer Orders */}
-      <div className="rounded-2xl border border-slate-700 bg-slate-800 p-6">
+      <div className="rounded-2xl border border-slate-200 bg-white p-6">
         <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4 mb-6">
           <div>
-            <h2 className="text-xl font-semibold text-white">Customer Orders</h2>
-            <p className="text-slate-400 mt-1">View orders assigned to your warehouses and arrange shipment.</p>
+            <h2 className="text-xl font-semibold text-slate-900">Customer Orders</h2>
+            <p className="text-slate-500 mt-1">View orders assigned to your warehouses and arrange shipment.</p>
           </div>
           <div className="flex items-center gap-3">
             <select
@@ -1049,7 +1049,7 @@ export function WarehouseDashboard() {
                 const warehouseId = e.target.value ? parseInt(e.target.value, 10) : null;
                 setSelectedWarehouse(warehouses.find((warehouse) => warehouse.id === warehouseId) ?? null);
               }}
-              className="bg-slate-700 border border-slate-600 rounded px-3 py-2 text-white outline-none"
+              className="bg-slate-200 border border-slate-600 rounded px-3 py-2 text-slate-900 outline-none"
             >
               <option value="">All warehouses</option>
               {warehouses.map((warehouse) => (
@@ -1059,9 +1059,9 @@ export function WarehouseDashboard() {
           </div>
         </div>
 
-        <div className="overflow-x-auto rounded-2xl border border-slate-700 bg-slate-900/70">
-          <table className="min-w-full text-left text-sm text-slate-300">
-            <thead className="border-b border-slate-700 text-slate-400">
+        <div className="overflow-x-auto rounded-2xl border border-slate-200 bg-slate-50/70">
+          <table className="min-w-full text-left text-sm text-slate-500">
+            <thead className="border-b border-slate-200 text-slate-500">
               <tr>
                 <th className="p-3">Order #</th>
                 <th className="p-3">Warehouse</th>
@@ -1073,19 +1073,19 @@ export function WarehouseDashboard() {
             </thead>
             <tbody>
               {(selectedWarehouse ? orders.filter(o => o.warehouseId === selectedWarehouse.id) : orders).map((order) => (
-                <tr key={order.id} className="border-b border-slate-700/50 hover:bg-slate-800/50 transition">
-                  <td className="p-3 text-white">{order.orderNumber}</td>
-                  <td className="p-3 text-slate-300">{order.warehouseId ?? 'Unassigned'}</td>
-                  <td className="p-3 text-white">€{order.totalAmount.toFixed(2)}</td>
+                <tr key={order.id} className="border-b border-slate-200/50 hover:bg-slate-100/90 transition">
+                  <td className="p-3 text-slate-900">{order.orderNumber}</td>
+                  <td className="p-3 text-slate-500">{order.warehouseId ?? 'Unassigned'}</td>
+                  <td className="p-3 text-slate-900">�{order.totalAmount.toFixed(2)}</td>
                   <td className="p-3">
                     <span className={`px-2 py-1 rounded-full text-xs font-medium ${
                       order.status?.toLowerCase().includes('pending') ? 'bg-yellow-500/20 text-yellow-400' :
                       order.status?.toLowerCase().includes('processing') ? 'bg-blue-500/20 text-blue-400' :
                       order.status?.toLowerCase().includes('shipped') ? 'bg-purple-500/20 text-purple-400' :
-                      order.status?.toLowerCase().includes('delivered') ? 'bg-green-500/20 text-green-400' : 'bg-slate-500/20 text-slate-400'
+                      order.status?.toLowerCase().includes('delivered') ? 'bg-green-500/20 text-green-400' : 'bg-slate-500/20 text-slate-500'
                     }`}>{order.status}</span>
                   </td>
-                  <td className="p-3 text-slate-300">{order.billingName || 'Customer'}</td>
+                  <td className="p-3 text-slate-500">{order.billingName || 'Customer'}</td>
                   <td className="p-3">
                     <button
                       onClick={() => openOrderShipmentModal(order)}
@@ -1103,13 +1103,13 @@ export function WarehouseDashboard() {
 
       {showOrderShipmentModal && selectedOrder && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 p-4">
-          <div className="w-full max-w-2xl rounded-3xl bg-slate-900 border border-slate-700 p-6">
+          <div className="w-full max-w-2xl rounded-3xl bg-slate-50 border border-slate-200 p-6">
             <div className="flex items-start justify-between gap-4 mb-6">
               <div>
-                <h3 className="text-2xl font-semibold text-white">Arrange Shipment for Order {selectedOrder.orderNumber}</h3>
-                <p className="text-slate-400 mt-2">Select driver and delivery date for the shipment.</p>
+                <h3 className="text-2xl font-semibold text-slate-900">Arrange Shipment for Order {selectedOrder.orderNumber}</h3>
+                <p className="text-slate-500 mt-2">Select driver and delivery date for the shipment.</p>
               </div>
-              <button onClick={closeOrderShipmentModal} className="text-slate-400 hover:text-white">Close</button>
+              <button onClick={closeOrderShipmentModal} className="text-slate-500 hover:text-slate-900">Close</button>
             </div>
 
             {shipmentError && (
@@ -1125,11 +1125,11 @@ export function WarehouseDashboard() {
 
             <div className="grid gap-4 md:grid-cols-2 mb-6">
               <div>
-                <label className="block text-sm text-slate-400 mb-2">Available Driver</label>
+                <label className="block text-sm text-slate-500 mb-2">Available Driver</label>
                 <select
                   value={selectedDriverId ?? ''}
                   onChange={(e) => setSelectedDriverId(Number(e.target.value) || null)}
-                  className="w-full rounded-2xl border border-slate-700 bg-slate-800 px-4 py-3 text-white outline-none"
+                  className="w-full rounded-2xl border border-slate-200 bg-white px-4 py-3 text-slate-900 outline-none"
                 >
                   <option value="">Select driver</option>
                   {availableDrivers.map((driver) => (
@@ -1139,12 +1139,12 @@ export function WarehouseDashboard() {
               </div>
 
               <div>
-                <label className="block text-sm text-slate-400 mb-2">Estimated Delivery Date</label>
+                <label className="block text-sm text-slate-500 mb-2">Estimated Delivery Date</label>
                 <input
                   type="date"
                   value={shipmentDate}
                   onChange={(e) => setShipmentDate(e.target.value)}
-                  className="w-full rounded-2xl border border-slate-700 bg-slate-800 px-4 py-3 text-white outline-none"
+                  className="w-full rounded-2xl border border-slate-200 bg-white px-4 py-3 text-slate-900 outline-none"
                 />
               </div>
             </div>
@@ -1152,13 +1152,13 @@ export function WarehouseDashboard() {
             <div className="flex justify-end gap-3">
               <button
                 onClick={closeOrderShipmentModal}
-                className="px-4 py-2 rounded-2xl border border-slate-600 text-slate-200 hover:bg-slate-800 transition"
+                className="px-4 py-2 rounded-2xl border border-slate-600 text-slate-500 hover:bg-white transition"
               >
                 Cancel
               </button>
               <button
                 onClick={handleCreateOrderShipment}
-                className="px-4 py-2 rounded-2xl bg-cyan-600 text-slate-900 font-semibold hover:bg-cyan-500 transition"
+                className="px-4 py-2 rounded-2xl bg-cyan-600 text-white font-semibold hover:bg-cyan-500 transition"
               >
                 Create Shipment
               </button>
@@ -1167,53 +1167,53 @@ export function WarehouseDashboard() {
         </div>
       )}
 
-   
+      {/* Edit Stock Modal */}
       {showEditStockModal && selectedStockItem && (
         <div className="fixed inset-0 bg-black/70 flex items-center justify-center z-50 p-4">
-          <div className="bg-slate-800 rounded-xl w-full max-w-md border border-slate-700">
-            <div className="p-4 border-b border-slate-700 flex justify-between items-center">
-              <h2 className="text-xl font-bold text-white">Update Stock</h2>
-              <button onClick={() => setShowEditStockModal(false)} className="p-2 hover:bg-slate-700 rounded-lg">
-                <AlertCircle className="w-5 h-5 text-slate-400" />
+          <div className="bg-white rounded-xl w-full max-w-md border border-slate-200">
+            <div className="p-4 border-b border-slate-200 flex justify-between items-center">
+              <h2 className="text-xl font-bold text-slate-900">Update Stock</h2>
+              <button onClick={() => setShowEditStockModal(false)} className="p-2 hover:bg-slate-200 rounded-lg">
+                <AlertCircle className="w-5 h-5 text-slate-500" />
               </button>
             </div>
             <div className="p-6 space-y-4">
               <div>
-                <p className="text-slate-400 text-sm">Product</p>
-                <p className="text-white font-semibold">{selectedStockItem.productName || `Product #${selectedStockItem.productId}`}</p>
+                <p className="text-slate-500 text-sm">Product</p>
+                <p className="text-slate-900 font-semibold">{selectedStockItem.productName || `Product #${selectedStockItem.productId}`}</p>
               </div>
               <div>
-                <p className="text-slate-400 text-sm">Warehouse</p>
-                <p className="text-white">{selectedStockItem.warehouseName}</p>
+                <p className="text-slate-500 text-sm">Warehouse</p>
+                <p className="text-slate-900">{selectedStockItem.warehouseName}</p>
               </div>
               <div>
-                <p className="text-slate-400 text-sm">Current Quantity</p>
+                <p className="text-slate-500 text-sm">Current Quantity</p>
                 <p className="text-2xl font-bold text-cyan-400">{selectedStockItem.quantity}</p>
               </div>
               <div>
-                <label className="block text-sm text-slate-300 mb-2">New Quantity</label>
+                <label className="block text-sm text-slate-500 mb-2">New Quantity</label>
                 <input
                   type="number"
                   min={0}
                   value={editStockQuantity}
                   onChange={(e) => setEditStockQuantity(e.target.value)}
-                  className="w-full px-4 py-2 bg-slate-700 border border-slate-600 rounded-lg text-white focus:outline-none focus:border-cyan-500"
+                  className="w-full px-4 py-2 bg-slate-200 border border-slate-600 rounded-lg text-slate-900 focus:outline-none focus:border-cyan-500"
                 />
               </div>
               {editStockError && (
                 <p className="text-red-400 text-sm">{editStockError}</p>
               )}
             </div>
-            <div className="p-4 border-t border-slate-700 flex gap-3">
+            <div className="p-4 border-t border-slate-200 flex gap-3">
               <button
                 onClick={() => setShowEditStockModal(false)}
-                className="flex-1 px-4 py-2 bg-slate-700 hover:bg-slate-600 text-white rounded-lg transition"
+                className="flex-1 px-4 py-2 bg-slate-200 hover:bg-slate-100 text-slate-900 rounded-lg transition"
               >
                 Cancel
               </button>
               <button
                 onClick={handleStockUpdate}
-                className="flex-1 px-4 py-2 bg-cyan-600 hover:bg-cyan-700 text-white rounded-lg transition"
+                className="flex-1 px-4 py-2 bg-cyan-600 hover:bg-cyan-700 text-slate-900 rounded-lg transition"
               >
                 Update Stock
               </button>
@@ -1222,48 +1222,48 @@ export function WarehouseDashboard() {
         </div>
       )}
 
-  
+      {/* Warehouse Modal */}
       {showWarehouseModal && (
         <div className="fixed inset-0 bg-black/70 flex items-center justify-center z-50 p-4">
-          <div className="bg-slate-800 rounded-xl w-full max-w-md border border-slate-700">
-            <div className="p-4 border-b border-slate-700">
-              <h2 className="text-xl font-bold text-white">{editingWarehouse ? 'Edit Warehouse' : 'Add New Warehouse'}</h2>
+          <div className="bg-white rounded-xl w-full max-w-md border border-slate-200">
+            <div className="p-4 border-b border-slate-200">
+              <h2 className="text-xl font-bold text-slate-900">{editingWarehouse ? 'Edit Warehouse' : 'Add New Warehouse'}</h2>
             </div>
             <div className="p-6 space-y-4">
               <div>
-                <label className="block text-sm text-slate-400 mb-1">Warehouse Name *</label>
+                <label className="block text-sm text-slate-500 mb-1">Warehouse Name *</label>
                 <input
                   type="text"
                   value={warehouseForm.name}
                   onChange={(e) => setWarehouseForm({ ...warehouseForm, name: e.target.value })}
-                  className="w-full px-4 py-2 bg-slate-700 border border-slate-600 rounded-lg text-white focus:outline-none focus:border-cyan-500"
+                  className="w-full px-4 py-2 bg-slate-200 border border-slate-600 rounded-lg text-slate-900 focus:outline-none focus:border-cyan-500"
                   placeholder="e.g., Main Warehouse"
                 />
               </div>
               <div>
-                <label className="block text-sm text-slate-400 mb-1">Location</label>
+                <label className="block text-sm text-slate-500 mb-1">Location</label>
                 <input
                   type="text"
                   value={warehouseForm.location}
                   onChange={(e) => setWarehouseForm({ ...warehouseForm, location: e.target.value })}
-                  className="w-full px-4 py-2 bg-slate-700 border border-slate-600 rounded-lg text-white focus:outline-none focus:border-cyan-500"
+                  className="w-full px-4 py-2 bg-slate-200 border border-slate-600 rounded-lg text-slate-900 focus:outline-none focus:border-cyan-500"
                   placeholder="City, Address"
                 />
               </div>
               <div>
-                <label className="block text-sm text-slate-400 mb-1">Phone</label>
+                <label className="block text-sm text-slate-500 mb-1">Phone</label>
                 <input
                   type="text"
                   value={warehouseForm.phone}
                   onChange={(e) => setWarehouseForm({ ...warehouseForm, phone: e.target.value })}
-                  className="w-full px-4 py-2 bg-slate-700 border border-slate-600 rounded-lg text-white focus:outline-none focus:border-cyan-500"
+                  className="w-full px-4 py-2 bg-slate-200 border border-slate-600 rounded-lg text-slate-900 focus:outline-none focus:border-cyan-500"
                   placeholder="+1234567890"
                 />
               </div>
             </div>
-            <div className="p-4 border-t border-slate-700 flex gap-3">
-              <button onClick={() => { setShowWarehouseModal(false); setEditingWarehouse(null); setWarehouseForm({ name: '', location: '', phone: '' }); }} className="flex-1 px-4 py-2 bg-slate-700 hover:bg-slate-600 text-white rounded-lg transition">Cancel</button>
-              <button onClick={editingWarehouse ? handleUpdateWarehouse : handleCreateWarehouse} className="flex-1 px-4 py-2 bg-cyan-600 hover:bg-cyan-700 text-white rounded-lg transition">{editingWarehouse ? 'Update' : 'Create'}</button>
+            <div className="p-4 border-t border-slate-200 flex gap-3">
+              <button onClick={() => { setShowWarehouseModal(false); setEditingWarehouse(null); setWarehouseForm({ name: '', location: '', phone: '' }); }} className="flex-1 px-4 py-2 bg-slate-200 hover:bg-slate-100 text-slate-900 rounded-lg transition">Cancel</button>
+              <button onClick={editingWarehouse ? handleUpdateWarehouse : handleCreateWarehouse} className="flex-1 px-4 py-2 bg-cyan-600 hover:bg-cyan-700 text-slate-900 rounded-lg transition">{editingWarehouse ? 'Update' : 'Create'}</button>
             </div>
           </div>
         </div>
@@ -1272,177 +1272,178 @@ export function WarehouseDashboard() {
       {/* Zone Modal */}
       {showZoneModal && selectedWarehouse && (
         <div className="fixed inset-0 bg-black/70 flex items-center justify-center z-50 p-4">
-          <div className="bg-slate-800 rounded-xl w-full max-w-md border border-slate-700">
-            <div className="p-4 border-b border-slate-700">
-              <h2 className="text-xl font-bold text-white">Add Zone to {selectedWarehouse.name}</h2>
+          <div className="bg-white rounded-xl w-full max-w-md border border-slate-200">
+            <div className="p-4 border-b border-slate-200">
+              <h2 className="text-xl font-bold text-slate-900">Add Zone to {selectedWarehouse.name}</h2>
             </div>
             <div className="p-6 space-y-4">
               <div>
-                <label className="block text-sm text-slate-400 mb-1">Zone Name *</label>
+                <label className="block text-sm text-slate-500 mb-1">Zone Name *</label>
                 <input
                   type="text"
                   value={zoneForm.zoneName}
                   onChange={(e) => setZoneForm({ ...zoneForm, zoneName: e.target.value })}
-                  className="w-full px-4 py-2 bg-slate-700 border border-slate-600 rounded-lg text-white focus:outline-none focus:border-cyan-500"
+                  className="w-full px-4 py-2 bg-slate-200 border border-slate-600 rounded-lg text-slate-900 focus:outline-none focus:border-cyan-500"
                   placeholder="e.g., Aisle A"
                 />
               </div>
               <div>
-                <label className="block text-sm text-slate-400 mb-1">Description</label>
+                <label className="block text-sm text-slate-500 mb-1">Description</label>
                 <textarea
                   value={zoneForm.description}
                   onChange={(e) => setZoneForm({ ...zoneForm, description: e.target.value })}
-                  className="w-full px-4 py-2 bg-slate-700 border border-slate-600 rounded-lg text-white focus:outline-none focus:border-cyan-500"
+                  className="w-full px-4 py-2 bg-slate-200 border border-slate-600 rounded-lg text-slate-900 focus:outline-none focus:border-cyan-500"
                   rows={2}
                   placeholder="Optional description"
                 />
               </div>
               <div>
-                <label className="block text-sm text-slate-400 mb-1">Capacity</label>
+                <label className="block text-sm text-slate-500 mb-1">Capacity</label>
                 <input
                   type="number"
                   value={zoneForm.capacity || ''}
                   onChange={(e) => setZoneForm({ ...zoneForm, capacity: parseInt(e.target.value) || 0 })}
-                  className="w-full px-4 py-2 bg-slate-700 border border-slate-600 rounded-lg text-white focus:outline-none focus:border-cyan-500"
+                  className="w-full px-4 py-2 bg-slate-200 border border-slate-600 rounded-lg text-slate-900 focus:outline-none focus:border-cyan-500"
                   placeholder="Max units"
                 />
               </div>
             </div>
-            <div className="p-4 border-t border-slate-700 flex gap-3">
-              <button onClick={() => setShowZoneModal(false)} className="flex-1 px-4 py-2 bg-slate-700 hover:bg-slate-600 text-white rounded-lg">Cancel</button>
-              <button onClick={handleCreateZone} className="flex-1 px-4 py-2 bg-cyan-600 hover:bg-cyan-700 text-white rounded-lg">Create Zone</button>
+            <div className="p-4 border-t border-slate-200 flex gap-3">
+              <button onClick={() => setShowZoneModal(false)} className="flex-1 px-4 py-2 bg-slate-200 hover:bg-slate-100 text-slate-900 rounded-lg">Cancel</button>
+              <button onClick={handleCreateZone} className="flex-1 px-4 py-2 bg-cyan-600 hover:bg-cyan-700 text-slate-900 rounded-lg">Create Zone</button>
             </div>
           </div>
         </div>
       )}
 
-    
+      {/* Staff Modal */}
       {showStaffModal && selectedWarehouse && (
         <div className="fixed inset-0 bg-black/70 flex items-center justify-center z-50 p-4">
-          <div className="bg-slate-800 rounded-xl w-full max-w-md border border-slate-700">
-            <div className="p-4 border-b border-slate-700">
-              <h2 className="text-xl font-bold text-white">Assign Staff to {selectedWarehouse.name}</h2>
+          <div className="bg-white rounded-xl w-full max-w-md border border-slate-200">
+            <div className="p-4 border-b border-slate-200">
+              <h2 className="text-xl font-bold text-slate-900">Assign Staff to {selectedWarehouse.name}</h2>
             </div>
             <div className="p-6 space-y-4">
               <div>
-                <label className="block text-sm text-slate-400 mb-1">User ID *</label>
+                <label className="block text-sm text-slate-500 mb-1">User ID *</label>
                 <input
                   type="number"
                   value={staffForm.userId || ''}
                   onChange={(e) => setStaffForm({ ...staffForm, userId: parseInt(e.target.value) || 0 })}
-                  className="w-full px-4 py-2 bg-slate-700 border border-slate-600 rounded-lg text-white focus:outline-none focus:border-cyan-500"
+                  className="w-full px-4 py-2 bg-slate-200 border border-slate-600 rounded-lg text-slate-900 focus:outline-none focus:border-cyan-500"
                   placeholder="Enter user ID"
                 />
               </div>
               <div>
-                <label className="block text-sm text-slate-400 mb-1">Position</label>
+                <label className="block text-sm text-slate-500 mb-1">Position</label>
                 <input
                   type="text"
                   value={staffForm.position}
                   onChange={(e) => setStaffForm({ ...staffForm, position: e.target.value })}
-                  className="w-full px-4 py-2 bg-slate-700 border border-slate-600 rounded-lg text-white focus:outline-none focus:border-cyan-500"
+                  className="w-full px-4 py-2 bg-slate-200 border border-slate-600 rounded-lg text-slate-900 focus:outline-none focus:border-cyan-500"
                   placeholder="e.g., Warehouse Manager"
                 />
               </div>
               <div>
-                <label className="block text-sm text-slate-400 mb-1">Hire Date</label>
+                <label className="block text-sm text-slate-500 mb-1">Hire Date</label>
                 <input
                   type="date"
                   value={staffForm.hireDate}
                   onChange={(e) => setStaffForm({ ...staffForm, hireDate: e.target.value })}
-                  className="w-full px-4 py-2 bg-slate-700 border border-slate-600 rounded-lg text-white focus:outline-none focus:border-cyan-500"
+                  className="w-full px-4 py-2 bg-slate-200 border border-slate-600 rounded-lg text-slate-900 focus:outline-none focus:border-cyan-500"
                 />
               </div>
             </div>
-            <div className="p-4 border-t border-slate-700 flex gap-3">
-              <button onClick={() => setShowStaffModal(false)} className="flex-1 px-4 py-2 bg-slate-700 hover:bg-slate-600 text-white rounded-lg">Cancel</button>
-              <button onClick={handleAssignStaff} className="flex-1 px-4 py-2 bg-cyan-600 hover:bg-cyan-700 text-white rounded-lg">Assign Staff</button>
+            <div className="p-4 border-t border-slate-200 flex gap-3">
+              <button onClick={() => setShowStaffModal(false)} className="flex-1 px-4 py-2 bg-slate-200 hover:bg-slate-100 text-slate-900 rounded-lg">Cancel</button>
+              <button onClick={handleAssignStaff} className="flex-1 px-4 py-2 bg-cyan-600 hover:bg-cyan-700 text-slate-900 rounded-lg">Assign Staff</button>
             </div>
           </div>
         </div>
       )}
 
+      {/* Supplier Order Modal */}
       {showSupplierOrderModal && selectedSupplierQuickOrder && (
         <div className="fixed inset-0 bg-black/70 flex items-center justify-center z-50 p-4">
-          <div className="bg-slate-800 rounded-3xl w-full max-w-3xl border border-slate-700 shadow-xl overflow-hidden">
-            <div className="flex flex-col gap-3 p-5 border-b border-slate-700 sm:flex-row sm:items-center sm:justify-between">
+          <div className="bg-white rounded-3xl w-full max-w-3xl border border-slate-200 shadow-xl overflow-hidden">
+            <div className="flex flex-col gap-3 p-5 border-b border-slate-200 sm:flex-row sm:items-center sm:justify-between">
               <div>
-                <h2 className="text-2xl font-bold text-white">Supplier Reorder</h2>
-                <p className="text-slate-400">Create a purchase order and pay instantly using Stripe.</p>
+                <h2 className="text-2xl font-bold text-slate-900">Supplier Reorder</h2>
+                <p className="text-slate-500">Create a purchase order and pay instantly using Stripe.</p>
               </div>
               <button
                 onClick={() => setShowSupplierOrderModal(false)}
-                className="text-slate-400 hover:text-white"
+                className="text-slate-500 hover:text-slate-900"
               >
-                ✕
+                ?
               </button>
             </div>
             <div className="grid gap-6 p-6 md:grid-cols-2">
               <div className="space-y-4">
-                <div className="rounded-2xl bg-slate-900 border border-slate-700 p-5">
-                  <h3 className="text-lg font-semibold text-white">Product</h3>
-                  <p className="mt-2 text-slate-300">{selectedSupplierProduct?.name || 'Selected product'}</p>
-                  <p className="text-slate-400 text-sm">Supplier SKU: {selectedSupplierQuickOrder.supplierSKU || 'N/A'}</p>
+                <div className="rounded-2xl bg-slate-50 border border-slate-200 p-5">
+                  <h3 className="text-lg font-semibold text-slate-900">Product</h3>
+                  <p className="mt-2 text-slate-500">{selectedSupplierProduct?.name || 'Selected product'}</p>
+                  <p className="text-slate-500 text-sm">Supplier SKU: {selectedSupplierQuickOrder.supplierSKU || 'N/A'}</p>
                 </div>
-                <div className="rounded-2xl bg-slate-900 border border-slate-700 p-5 space-y-4">
+                <div className="rounded-2xl bg-slate-50 border border-slate-200 p-5 space-y-4">
                   <div>
-                    <label className="block text-sm text-slate-400 mb-1">Quantity</label>
+                    <label className="block text-sm text-slate-500 mb-1">Quantity</label>
                     <input
                       type="number"
                       min={1}
                       value={orderQuantity}
                       onChange={(e) => setOrderQuantity(e.target.value)}
-                      className="w-full rounded-2xl border border-slate-700 bg-slate-800 px-4 py-3 text-white outline-none focus:border-cyan-500"
+                      className="w-full rounded-2xl border border-slate-200 bg-white px-4 py-3 text-slate-900 outline-none focus:border-cyan-500"
                     />
                   </div>
                   <div>
-                    <label className="block text-sm text-slate-400 mb-1">Unit Price (€)</label>
+                    <label className="block text-sm text-slate-500 mb-1">Unit Price (�)</label>
                     <input
                       type="number"
                       min={0}
                       step="0.01"
                       value={orderUnitPrice}
                       onChange={(e) => setOrderUnitPrice(e.target.value)}
-                      className="w-full rounded-2xl border border-slate-700 bg-slate-800 px-4 py-3 text-white outline-none focus:border-cyan-500"
+                      className="w-full rounded-2xl border border-slate-200 bg-white px-4 py-3 text-slate-900 outline-none focus:border-cyan-500"
                     />
                   </div>
                   <div>
-                    <label className="block text-sm text-slate-400 mb-1">Payment Method</label>
+                    <label className="block text-sm text-slate-500 mb-1">Payment Method</label>
                     <select
                       value={paymentMethod}
                       onChange={(e) => setPaymentMethod(e.target.value as 'Stripe' | 'BankTransfer')}
-                      className="w-full rounded-2xl border border-slate-700 bg-slate-800 px-4 py-3 text-white outline-none focus:border-cyan-500"
+                      className="w-full rounded-2xl border border-slate-200 bg-white px-4 py-3 text-slate-900 outline-none focus:border-cyan-500"
                     >
                       <option value="Stripe">Stripe</option>
                       <option value="BankTransfer">Bank Transfer</option>
                     </select>
                   </div>
                   <div>
-                    <label className="block text-sm text-slate-400 mb-1">Notes</label>
+                    <label className="block text-sm text-slate-500 mb-1">Notes</label>
                     <textarea
                       rows={3}
                       value={paymentNotes}
                       onChange={(e) => setPaymentNotes(e.target.value)}
-                      className="w-full rounded-2xl border border-slate-700 bg-slate-800 px-4 py-3 text-white outline-none focus:border-cyan-500"
+                      className="w-full rounded-2xl border border-slate-200 bg-white px-4 py-3 text-slate-900 outline-none focus:border-cyan-500"
                     />
                   </div>
-                  <div className="flex items-center gap-3 text-sm text-slate-400">
+                  <div className="flex items-center gap-3 text-sm text-slate-500">
                     <input
                       type="checkbox"
                       checked={isEmergencyOrder}
                       onChange={(e) => setIsEmergencyOrder(e.target.checked)}
-                      className="h-4 w-4 rounded border-slate-600 bg-slate-700 text-cyan-500"
+                      className="h-4 w-4 rounded border-slate-600 bg-slate-200 text-cyan-500"
                     />
                     <span>Emergency reorder</span>
                   </div>
                   {isEmergencyOrder && (
                     <div>
-                      <label className="block text-sm text-slate-400 mb-1">Emergency Reason</label>
+                      <label className="block text-sm text-slate-500 mb-1">Emergency Reason</label>
                       <textarea
                         rows={2}
                         value={emergencyReason}
                         onChange={(e) => setEmergencyReason(e.target.value)}
-                        className="w-full rounded-2xl border border-slate-700 bg-slate-800 px-4 py-3 text-white outline-none focus:border-cyan-500"
+                        className="w-full rounded-2xl border border-slate-200 bg-white px-4 py-3 text-slate-900 outline-none focus:border-cyan-500"
                       />
                     </div>
                   )}
@@ -1450,16 +1451,16 @@ export function WarehouseDashboard() {
               </div>
 
               <div className="space-y-4">
-                <div className="rounded-2xl bg-slate-900 border border-slate-700 p-5">
-                  <h3 className="text-lg font-semibold text-white">Order Summary</h3>
-                  <div className="mt-4 space-y-3 text-slate-300">
+                <div className="rounded-2xl bg-slate-50 border border-slate-200 p-5">
+                  <h3 className="text-lg font-semibold text-slate-900">Order Summary</h3>
+                  <div className="mt-4 space-y-3 text-slate-500">
                     <div className="flex justify-between">
                       <span>Warehouse</span>
-                      <span className="text-white">{selectedWarehouse?.name || 'Select warehouse'}</span>
+                      <span className="text-slate-900">{selectedWarehouse?.name || 'Select warehouse'}</span>
                     </div>
                     <div className="flex justify-between">
                       <span>Supplier</span>
-                      <span className="text-white">{suppliers.find((s) => s.id === selectedSupplierId)?.name || 'Supplier'}</span>
+                      <span className="text-slate-900">{suppliers.find((s) => s.id === selectedSupplierId)?.name || 'Supplier'}</span>
                     </div>
                     <div className="flex justify-between">
                       <span>Quantity</span>
@@ -1467,11 +1468,11 @@ export function WarehouseDashboard() {
                     </div>
                     <div className="flex justify-between">
                       <span>Unit Price</span>
-                      <span>€{parseFloat(orderUnitPrice || '0').toFixed(2)}</span>
+                      <span>�{parseFloat(orderUnitPrice || '0').toFixed(2)}</span>
                     </div>
-                    <div className="flex justify-between border-t border-slate-700 pt-3 font-semibold text-white">
+                    <div className="flex justify-between border-t border-slate-200 pt-3 font-semibold text-slate-900">
                       <span>Total</span>
-                      <span>€{orderTotal.toFixed(2)}</span>
+                      <span>�{orderTotal.toFixed(2)}</span>
                     </div>
                   </div>
                 </div>
@@ -1485,7 +1486,7 @@ export function WarehouseDashboard() {
                 <div className="flex flex-col gap-3 sm:flex-row">
                   <button
                     onClick={() => setShowSupplierOrderModal(false)}
-                    className="w-full rounded-2xl border border-slate-700 bg-slate-800 px-4 py-3 text-slate-300 hover:bg-slate-700"
+                    className="w-full rounded-2xl border border-slate-200 bg-white px-4 py-3 text-slate-500 hover:bg-slate-200"
                   >
                     Cancel
                   </button>
@@ -1533,4 +1534,9 @@ export function WarehouseDashboard() {
     </div>
   );
 }
+
+
+
+
+
 
