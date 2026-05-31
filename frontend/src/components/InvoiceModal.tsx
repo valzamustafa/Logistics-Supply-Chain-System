@@ -1,3 +1,4 @@
+
 import React from 'react';
 import { Order } from '../services/orderService';
 import { useAuth } from '../hooks/useAuth';
@@ -34,7 +35,7 @@ export const InvoiceModal: React.FC<InvoiceModalProps> = ({ order, onClose }) =>
       if (response.ok) {
         const blob = await response.blob();
         
-
+    
         if (blob.type === 'application/pdf' || blob.type === 'application/octet-stream') {
           const url = window.URL.createObjectURL(blob);
           const a = document.createElement('a');
@@ -55,12 +56,12 @@ export const InvoiceModal: React.FC<InvoiceModalProps> = ({ order, onClose }) =>
       }
     } catch (error) {
       console.error('Error downloading invoice:', error);
-    
+     
       printInvoiceAsPDF();
     }
   };
 
-
+ 
   const printInvoiceAsPDF = () => {
     const printContent = document.getElementById('invoice-content');
     if (!printContent) {
@@ -101,84 +102,84 @@ export const InvoiceModal: React.FC<InvoiceModalProps> = ({ order, onClose }) =>
 
   return (
     <div className="fixed inset-0 bg-black/80 backdrop-blur-sm flex items-center justify-center z-50">
-      <div className="bg-slate-800 rounded-lg p-6 max-w-3xl w-full max-h-[90vh] overflow-y-auto border border-slate-700 shadow-xl">
-        <div className="flex justify-between items-center mb-4 pb-3 border-b border-slate-700">
-          <h2 className="text-2xl font-bold text-white">Tax Invoice</h2>
-          <button onClick={onClose} className="text-slate-400 hover:text-white transition text-2xl">
+      <div className="bg-white rounded-lg p-6 max-w-3xl w-full max-h-[90vh] overflow-y-auto border border-slate-200 shadow-xl">
+        <div className="flex justify-between items-center mb-4 pb-3 border-b border-slate-200">
+          <h2 className="text-2xl font-bold text-slate-900">Tax Invoice</h2>
+          <button onClick={onClose} className="text-slate-500 hover:text-slate-900 transition text-2xl">
             ×
           </button>
         </div>
 
         <div id="invoice-content">
-          <div className="text-center mb-6 pb-4 border-b border-slate-700">
+          <div className="text-center mb-6 pb-4 border-b border-slate-200">
             <h3 className="text-xl font-bold text-cyan-400">LOGJISTIKA SH.P.K.</h3>
-            <p className="text-slate-300 text-sm">Rr. Bill Clinton, Prishtinë 10000</p>
-            <p className="text-slate-300 text-sm">Tel: +383 49 123 456 | Email: info@logjistika.com</p>
-            <p className="text-slate-400 text-xs mt-2"><strong>NUIS: 81234567 | TVSH: 51234567</strong></p>
+            <p className="text-slate-500 text-sm">Rr. Bill Clinton, Prishtinë 10000</p>
+            <p className="text-slate-500 text-sm">Tel: +383 49 123 456 | Email: info@logjistika.com</p>
+            <p className="text-slate-500 text-xs mt-2"><strong>NUIS: 81234567 | TVSH: 51234567</strong></p>
           </div>
 
           <div className="flex justify-between mb-6">
             <div>
-              <p className="text-slate-300 text-sm"><strong className="text-white">Invoice Number:</strong> {order.orderNumber}</p>
-              <p className="text-slate-300 text-sm"><strong className="text-white">Invoice Date:</strong> {new Date(order.orderDate).toLocaleDateString()}</p>
+              <p className="text-slate-500 text-sm"><strong className="text-slate-900">Invoice Number:</strong> {order.orderNumber}</p>
+              <p className="text-slate-500 text-sm"><strong className="text-slate-900">Invoice Date:</strong> {new Date(order.orderDate).toLocaleDateString()}</p>
             </div>
             <div>
-              <p className="text-slate-300 text-sm"><strong className="text-white">Customer ID:</strong> {order.userId}</p>
+              <p className="text-slate-500 text-sm"><strong className="text-slate-900">Customer ID:</strong> {order.userId}</p>
             </div>
           </div>
 
           <div className="overflow-x-auto mb-6">
             <table className="w-full border-collapse">
               <thead>
-                <tr className="bg-slate-900 border-b border-slate-700">
-                  <th className="border border-slate-700 p-2 text-left text-slate-300 text-sm">Description</th>
-                  <th className="border border-slate-700 p-2 text-right text-slate-300 text-sm">Quantity</th>
-                  <th className="border border-slate-700 p-2 text-right text-slate-300 text-sm">Unit Price</th>
-                  <th className="border border-slate-700 p-2 text-right text-slate-300 text-sm">Total</th>
+                <tr className="bg-slate-50 border-b border-slate-200">
+                  <th className="border border-slate-200 p-2 text-left text-slate-500 text-sm">Description</th>
+                  <th className="border border-slate-200 p-2 text-right text-slate-500 text-sm">Quantity</th>
+                  <th className="border border-slate-200 p-2 text-right text-slate-500 text-sm">Unit Price</th>
+                  <th className="border border-slate-200 p-2 text-right text-slate-500 text-sm">Total</th>
                 </tr>
               </thead>
               <tbody>
                 {(order.items || []).map((item, index) => (
-                  <tr key={index} className="border-b border-slate-700">
-                    <td className="border border-slate-700 p-2 text-slate-300">{item.productName || `Product ${item.productId}`}</td>
-                    <td className="border border-slate-700 p-2 text-right text-slate-300">{item.quantity}</td>
-                    <td className="border border-slate-700 p-2 text-right text-slate-300">€{(item.unitPrice || 0).toFixed(2)}</td>
-                    <td className="border border-slate-700 p-2 text-right text-slate-300">€{(item.totalPrice || 0).toFixed(2)}</td>
+                  <tr key={index} className="border-b border-slate-200">
+                    <td className="border border-slate-200 p-2 text-slate-500">{item.productName || `Product ${item.productId}`}</td>
+                    <td className="border border-slate-200 p-2 text-right text-slate-500">{item.quantity}</td>
+                    <td className="border border-slate-200 p-2 text-right text-slate-500">€{(item.unitPrice || 0).toFixed(2)}</td>
+                    <td className="border border-slate-200 p-2 text-right text-slate-500">€{(item.totalPrice || 0).toFixed(2)}</td>
                   </tr>
                 ))}
               </tbody>
               <tfoot>
-                <tr className="border-b border-slate-700">
-                  <td colSpan={3} className="border border-slate-700 p-2 text-right font-bold text-white">Subtotal:</td>
-                  <td className="border border-slate-700 p-2 text-right text-cyan-400">€{calculateSubtotal().toFixed(2)}</td>
+                <tr className="border-b border-slate-200">
+                  <td colSpan={3} className="border border-slate-200 p-2 text-right font-bold text-slate-900">Subtotal:</td>
+                  <td className="border border-slate-200 p-2 text-right text-cyan-400">€{calculateSubtotal().toFixed(2)}</td>
                 </tr>
-                <tr className="border-b border-slate-700">
-                  <td colSpan={3} className="border border-slate-700 p-2 text-right font-bold text-white">VAT (18%):</td>
-                  <td className="border border-slate-700 p-2 text-right text-cyan-400">€{calculateTax().toFixed(2)}</td>
+                <tr className="border-b border-slate-200">
+                  <td colSpan={3} className="border border-slate-200 p-2 text-right font-bold text-slate-900">VAT (18%):</td>
+                  <td className="border border-slate-200 p-2 text-right text-cyan-400">€{calculateTax().toFixed(2)}</td>
                 </tr>
                 <tr>
-                  <td colSpan={3} className="border border-slate-700 p-2 text-right font-bold text-white">TOTAL:</td>
-                  <td className="border border-slate-700 p-2 text-right font-bold text-cyan-400">€{(order.totalAmount || 0).toFixed(2)}</td>
+                  <td colSpan={3} className="border border-slate-200 p-2 text-right font-bold text-slate-900">TOTAL:</td>
+                  <td className="border border-slate-200 p-2 text-right font-bold text-cyan-400">€{(order.totalAmount || 0).toFixed(2)}</td>
                 </tr>
               </tfoot>
             </table>
           </div>
 
-          <div className="border-t border-slate-700 pt-4 mt-4">
-            <h4 className="font-bold text-white mb-2">Payment Information:</h4>
-            <div className="bg-slate-900/50 rounded-lg p-3">
-              <p className="text-slate-300 text-sm">Bank: <span className="text-white">Banka Ekonomike</span></p>
-              <p className="text-slate-300 text-sm">IBAN: <span className="text-white">XK05 1234 5678 9012 3456</span></p>
-              <p className="text-slate-300 text-sm">SWIFT: <span className="text-white">BAKXKS10</span></p>
-              <p className="text-slate-300 text-sm">Reference: <span className="text-cyan-400">Order #{order.orderNumber}</span></p>
+          <div className="border-t border-slate-200 pt-4 mt-4">
+            <h4 className="font-bold text-slate-900 mb-2">Payment Information:</h4>
+            <div className="bg-slate-50/50 rounded-lg p-3">
+              <p className="text-slate-500 text-sm">Bank: <span className="text-slate-900">Banka Ekonomike</span></p>
+              <p className="text-slate-500 text-sm">IBAN: <span className="text-slate-900">XK05 1234 5678 9012 3456</span></p>
+              <p className="text-slate-500 text-sm">SWIFT: <span className="text-slate-900">BAKXKS10</span></p>
+              <p className="text-slate-500 text-sm">Reference: <span className="text-cyan-400">Order #{order.orderNumber}</span></p>
             </div>
           </div>
         </div>
 
-        <div className="flex justify-end space-x-3 mt-6 pt-4 border-t border-slate-700">
+        <div className="flex justify-end space-x-3 mt-6 pt-4 border-t border-slate-200">
           <button
             onClick={onClose}
-            className="px-4 py-2 border border-slate-600 rounded-md text-slate-300 hover:bg-slate-700 transition"
+            className="px-4 py-2 border border-slate-600 rounded-md text-slate-500 hover:bg-slate-200 transition"
           >
             Close
           </button>
@@ -193,3 +194,7 @@ export const InvoiceModal: React.FC<InvoiceModalProps> = ({ order, onClose }) =>
     </div>
   );
 };
+
+
+
+

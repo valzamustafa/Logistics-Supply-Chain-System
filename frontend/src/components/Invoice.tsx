@@ -1,3 +1,4 @@
+
 import React from 'react';
 import { Order } from '../services/orderService';
 
@@ -20,7 +21,7 @@ export const Invoice: React.FC<InvoiceProps> = ({ order, bankAccount }) => {
   };
 
   const downloadPDF = async () => {
-    // Thirr API për gjenerim PDF
+   
     const response = await fetch(`/api/orders/${order.id}/invoice`, {
       method: 'GET',
       headers: {
@@ -123,3 +124,5 @@ export const Invoice: React.FC<InvoiceProps> = ({ order, bankAccount }) => {
     </div>
   );
 };
+
+

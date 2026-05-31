@@ -83,7 +83,7 @@ export function OrdersPage() {
     if (lower === 'processing') return 'bg-blue-500/20 text-blue-400';
     if (lower === 'shipped') return 'bg-purple-500/20 text-purple-400';
     if (lower === 'delivered') return 'bg-green-500/20 text-green-400';
-    return 'bg-slate-500/20 text-slate-400';
+    return 'bg-slate-500/20 text-slate-500';
   };
 
   if (loading) {
@@ -91,7 +91,7 @@ export function OrdersPage() {
       <div className="flex h-screen items-center justify-center">
         <div className="text-center">
           <div className="w-16 h-16 border-4 border-cyan-500 border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
-          <p className="text-slate-400">Loading orders...</p>
+          <p className="text-slate-500">Loading orders...</p>
         </div>
       </div>
     );
@@ -101,12 +101,12 @@ export function OrdersPage() {
     <div className="flex flex-col gap-8 p-6">
       <div className="flex justify-between items-center">
         <div>
-          <h1 className="text-3xl font-bold text-white mb-2">Orders</h1>
-          <p className="text-slate-400">Manage and track all orders</p>
+          <h1 className="text-3xl font-bold text-slate-900 mb-2">Orders</h1>
+          <p className="text-slate-500">Manage and track all orders</p>
         </div>
         <button
           onClick={() => setShowCreateModal(true)}
-          className="flex items-center gap-2 px-4 py-2 bg-cyan-600 hover:bg-cyan-700 text-white rounded-lg transition"
+          className="flex items-center gap-2 px-4 py-2 bg-cyan-600 hover:bg-cyan-700 text-slate-900 rounded-lg transition"
         >
           <Plus className="w-4 h-4" />
           Create Order
@@ -127,14 +127,14 @@ export function OrdersPage() {
             placeholder="Search orders..."
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
-            className="w-full px-4 py-2 bg-slate-700 border border-slate-600 rounded-lg text-white placeholder-slate-400 focus:outline-none focus:border-cyan-500"
+            className="w-full px-4 py-2 bg-slate-200 border border-slate-600 rounded-lg text-slate-900 placeholder-slate-400 focus:outline-none focus:border-cyan-500"
           />
-          <Search className="absolute right-3 top-2.5 w-5 h-5 text-slate-400" />
+          <Search className="absolute right-3 top-2.5 w-5 h-5 text-slate-500" />
         </div>
         <select
           value={statusFilter}
           onChange={(e) => setStatusFilter(e.target.value as any)}
-          className="px-4 py-2 bg-slate-700 border border-slate-600 rounded-lg text-white focus:outline-none focus:border-cyan-500"
+          className="px-4 py-2 bg-slate-200 border border-slate-600 rounded-lg text-slate-900 focus:outline-none focus:border-cyan-500"
         >
           <option value="all">All Status</option>
           <option value="pending">Pending</option>
@@ -144,26 +144,26 @@ export function OrdersPage() {
         </select>
       </div>
 
-      <div className="overflow-x-auto rounded-lg border border-slate-700">
+      <div className="overflow-x-auto rounded-lg border border-slate-200">
         <table className="w-full">
-          <thead className="bg-slate-800/50">
-            <tr className="border-b border-slate-700">
-              <th className="text-left py-4 px-6 text-slate-400 font-medium">Order #</th>
-              <th className="text-left py-4 px-6 text-slate-400 font-medium">Date</th>
-              <th className="text-left py-4 px-6 text-slate-400 font-medium">Amount</th>
-              <th className="text-left py-4 px-6 text-slate-400 font-medium">Items</th>
-              <th className="text-left py-4 px-6 text-slate-400 font-medium">Status</th>
-              <th className="text-left py-4 px-6 text-slate-400 font-medium">Actions</th>
+          <thead className="bg-slate-100/90">
+            <tr className="border-b border-slate-200">
+              <th className="text-left py-4 px-6 text-slate-500 font-medium">Order #</th>
+              <th className="text-left py-4 px-6 text-slate-500 font-medium">Date</th>
+              <th className="text-left py-4 px-6 text-slate-500 font-medium">Amount</th>
+              <th className="text-left py-4 px-6 text-slate-500 font-medium">Items</th>
+              <th className="text-left py-4 px-6 text-slate-500 font-medium">Status</th>
+              <th className="text-left py-4 px-6 text-slate-500 font-medium">Actions</th>
             </tr>
           </thead>
           <tbody>
             {filteredOrders.length > 0 ? (
               filteredOrders.map((order) => (
-                <tr key={order.id} className="border-b border-slate-700/50 hover:bg-slate-800/30">
-                  <td className="py-4 px-6 text-white font-medium">{order.orderNumber}</td>
-                  <td className="py-4 px-6 text-slate-300">{new Date(order.orderDate).toLocaleDateString()}</td>
-                  <td className="py-4 px-6 text-white font-medium">${order.totalAmount.toLocaleString()}</td>
-                  <td className="py-4 px-6 text-slate-300">{order.items?.length || 0}</td>
+                <tr key={order.id} className="border-b border-slate-200/50 hover:bg-slate-100/80">
+                  <td className="py-4 px-6 text-slate-900 font-medium">{order.orderNumber}</td>
+                  <td className="py-4 px-6 text-slate-500">{new Date(order.orderDate).toLocaleDateString()}</td>
+                  <td className="py-4 px-6 text-slate-900 font-medium">${order.totalAmount.toLocaleString()}</td>
+                  <td className="py-4 px-6 text-slate-500">{order.items?.length || 0}</td>
                   <td className="py-4 px-6">
                     <span className={`px-3 py-1 rounded-full text-xs font-medium ${getStatusColor(order.status)}`}>
                       {order.status}
@@ -176,7 +176,7 @@ export function OrdersPage() {
               ))
             ) : (
               <tr>
-                <td colSpan={6} className="py-8 px-6 text-center text-slate-400">
+                <td colSpan={6} className="py-8 px-6 text-center text-slate-500">
                   No orders found
                 </td>
               </tr>
@@ -188,28 +188,28 @@ export function OrdersPage() {
       {/* Create Order Modal */}
       {showCreateModal && (
         <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
-          <div className="bg-slate-800 rounded-lg p-6 w-full max-w-2xl max-h-[90vh] overflow-y-auto">
-            <h2 className="text-2xl font-bold text-white mb-4">Create New Order</h2>
+          <div className="bg-white rounded-lg p-6 w-full max-w-2xl max-h-[90vh] overflow-y-auto">
+            <h2 className="text-2xl font-bold text-slate-900 mb-4">Create New Order</h2>
 
             <div className="space-y-4 mb-6">
               <div>
-                <label className="block text-sm font-medium text-slate-300 mb-2">Shipping Address</label>
+                <label className="block text-sm font-medium text-slate-500 mb-2">Shipping Address</label>
                 <input
                   type="text"
                   value={shippingAddress}
                   onChange={(e) => setShippingAddress(e.target.value)}
                   placeholder="Enter shipping address"
-                  className="w-full px-3 py-2 bg-slate-700 border border-slate-600 rounded-lg text-white placeholder-slate-400 focus:outline-none focus:border-cyan-500"
+                  className="w-full px-3 py-2 bg-slate-200 border border-slate-600 rounded-lg text-slate-900 placeholder-slate-400 focus:outline-none focus:border-cyan-500"
                 />
               </div>
 
               <div>
-                <h3 className="text-lg font-semibold text-white mb-2">Select Products</h3>
+                <h3 className="text-lg font-semibold text-slate-900 mb-2">Select Products</h3>
                 <div className="space-y-2 max-h-64 overflow-y-auto">
                   {products.filter(p => p.isActive).map((product) => {
                     const selected = selectedProducts.find(sp => sp.productId === product.id);
                     return (
-                      <div key={product.id} className="flex items-center gap-4 p-3 bg-slate-700/50 rounded-lg">
+                      <div key={product.id} className="flex items-center gap-4 p-3 bg-slate-100/80 rounded-lg">
                         <input
                           type="checkbox"
                           checked={!!selected}
@@ -223,8 +223,8 @@ export function OrdersPage() {
                           className="w-4 h-4"
                         />
                         <div className="flex-1">
-                          <p className="text-white font-medium">{product.name}</p>
-                          <p className="text-sm text-slate-400">${product.price}</p>
+                          <p className="text-slate-900 font-medium">{product.name}</p>
+                          <p className="text-sm text-slate-500">${product.price}</p>
                         </div>
                         {selected && (
                           <input
@@ -239,7 +239,7 @@ export function OrdersPage() {
                                 )
                               );
                             }}
-                            className="w-20 px-2 py-1 bg-slate-600 border border-slate-500 rounded text-white text-center"
+                            className="w-20 px-2 py-1 bg-slate-600 border border-slate-500 rounded text-slate-900 text-center"
                           />
                         )}
                       </div>
@@ -262,14 +262,14 @@ export function OrdersPage() {
                   setSelectedProducts([]);
                   setShippingAddress('');
                 }}
-                className="px-4 py-2 bg-slate-700 hover:bg-slate-600 text-white rounded-lg transition"
+                className="px-4 py-2 bg-slate-200 hover:bg-slate-100 text-slate-900 rounded-lg transition"
               >
                 Cancel
               </button>
               <button
                 onClick={handleCreateOrder}
                 disabled={selectedProducts.length === 0}
-                className="px-4 py-2 bg-cyan-600 hover:bg-cyan-700 text-white rounded-lg transition disabled:opacity-50 disabled:cursor-not-allowed"
+                className="px-4 py-2 bg-cyan-600 hover:bg-cyan-700 text-slate-900 rounded-lg transition disabled:opacity-50 disabled:cursor-not-allowed"
               >
                 Create Order
               </button>
@@ -280,3 +280,8 @@ export function OrdersPage() {
     </div>
   );
 }
+
+
+
+
+

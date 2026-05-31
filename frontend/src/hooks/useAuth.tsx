@@ -42,12 +42,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
       if (storedToken && storedUser) {
         try {
-          
+          // Verifiko nëse token-i është ende valid
           const userData = await getCurrentUser(storedToken);
           setToken(storedToken);
           setUser(userData);
         } catch (error) {
-          
+          // Token-i ka skaduar ose nuk është i vlefshëm - pastro localStorage
           console.error('Token validation failed:', error);
           removeLocalStorageItem('token');
           removeLocalStorageItem('user');
@@ -93,3 +93,5 @@ export function useAuth() {
   if (!context) throw new Error('useAuth must be used within AuthProvider');
   return context;
 }
+
+

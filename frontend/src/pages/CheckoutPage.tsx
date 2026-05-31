@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { loadStripe } from '@stripe/stripe-js';
 import { Elements } from '@stripe/react-stripe-js';
@@ -102,25 +103,25 @@ export const CheckoutPage: React.FC = () => {
         <div className="md:col-span-2">
           <h2 className="text-xl font-semibold mb-4">Order Summary</h2>
           {cart.map(item => (
-            <div key={item.productId} className="flex justify-between py-2 border-b border-slate-700">
+            <div key={item.productId} className="flex justify-between py-2 border-b border-slate-200">
               <span>{item.product.name} x {item.quantity}</span>
               <span>€{(item.unitPrice * item.quantity).toFixed(2)}</span>
             </div>
           ))}
-          <div className="flex justify-between py-2 font-bold text-white">
+          <div className="flex justify-between py-2 font-bold text-slate-900">
             <span>Total</span>
             <span>€{getCartTotal().toFixed(2)}</span>
           </div>
         </div>
         
-        <div className="rounded-3xl border border-slate-700 bg-slate-900 p-6">
+        <div className="rounded-3xl border border-slate-200 bg-slate-50 p-6">
           <h2 className="text-xl font-semibold mb-4">Warehouse Selection</h2>
           <div className="mb-6">
-            <label className="block text-sm text-slate-300 mb-2">Choose warehouse</label>
+            <label className="block text-sm text-slate-500 mb-2">Choose warehouse</label>
             <select
               value={selectedWarehouseId ?? ''}
               onChange={(e) => setSelectedWarehouseId(Number(e.target.value) || null)}
-              className="w-full rounded-2xl border border-slate-700 bg-slate-800 px-4 py-3 text-white outline-none"
+              className="w-full rounded-2xl border border-slate-200 bg-white px-4 py-3 text-slate-900 outline-none"
             >
               <option value="">Select warehouse</option>
               {warehouses.map((warehouse) => (
@@ -131,7 +132,7 @@ export const CheckoutPage: React.FC = () => {
 
           <h2 className="text-xl font-semibold mb-4">Payment Method</h2>
           <div className="space-y-4">
-            <label className="flex items-center gap-3 rounded-2xl border border-slate-700 bg-slate-800 p-4 cursor-pointer">
+            <label className="flex items-center gap-3 rounded-2xl border border-slate-200 bg-white p-4 cursor-pointer">
               <input
                 type="radio"
                 name="paymentMethod"
@@ -140,11 +141,11 @@ export const CheckoutPage: React.FC = () => {
                 onChange={() => setPaymentMethod('Stripe')}
               />
               <div>
-                <div className="font-semibold text-white">Stripe</div>
-                <div className="text-sm text-slate-400">Pay instantly with Stripe test card.</div>
+                <div className="font-semibold text-slate-900">Stripe</div>
+                <div className="text-sm text-slate-500">Pay instantly with Stripe test card.</div>
               </div>
             </label>
-            <label className="flex items-center gap-3 rounded-2xl border border-slate-700 bg-slate-800 p-4 cursor-pointer">
+            <label className="flex items-center gap-3 rounded-2xl border border-slate-200 bg-white p-4 cursor-pointer">
               <input
                 type="radio"
                 name="paymentMethod"
@@ -153,8 +154,8 @@ export const CheckoutPage: React.FC = () => {
                 onChange={() => setPaymentMethod('BankTransfer')}
               />
               <div>
-                <div className="font-semibold text-white">Bank Transfer</div>
-                <div className="text-sm text-slate-400">Pay later by bank transfer and confirm when ready.</div>
+                <div className="font-semibold text-slate-900">Bank Transfer</div>
+                <div className="text-sm text-slate-500">Pay later by bank transfer and confirm when ready.</div>
               </div>
             </label>
           </div>
@@ -202,3 +203,7 @@ export const CheckoutPage: React.FC = () => {
     </div>
   );
 };
+
+
+
+

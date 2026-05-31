@@ -1,3 +1,4 @@
+
 import { useEffect, useMemo, useState } from 'react';
 import { supplierService, Supplier, PurchaseOrderDto, CreatePurchaseOrderDto, SupplierProductDto } from '../services/supplierService';
 import { productService, Product } from '../services/productService';
@@ -127,10 +128,9 @@ export function SuppliersPage() {
       const selectedSupplier = suppliers.find(s => s.id === orderForm.supplierId);
       const selectedWarehouse = warehouses.find(w => w.id === orderForm.warehouseId);
       
-     
+      
       const createdOrder = await supplierService.createPurchaseOrder(orderForm);
       
-   
       if (user?.id) {
         await notificationService.sendNotification({
           userId: user.id,
@@ -141,7 +141,6 @@ export function SuppliersPage() {
         });
       }
       
-  
       if (selectedSupplier?.email) {
         
         console.log(`Purchase order created for supplier: ${selectedSupplier.email}`);
@@ -155,6 +154,7 @@ export function SuppliersPage() {
       console.error('Failed to create purchase order:', err);
       setError('Failed to create purchase order');
       
+     
       if (user?.id) {
         await notificationService.sendNotification({
           userId: user.id,
@@ -214,22 +214,22 @@ export function SuppliersPage() {
   }, [orderForm.supplierId, orderForm.items, supplierProducts, filteredProducts]);
 
   return (
-    <div className="p-6 space-y-6 bg-slate-900 min-h-screen">
+    <div className="p-6 space-y-6 bg-slate-50 min-h-screen">
       <div className="flex flex-col gap-4 md:flex-row md:justify-between md:items-center">
         <div>
-          <h1 className="text-3xl font-bold text-white">Purchase Orders</h1>
-          <p className="text-slate-400 mt-1">Manage purchase orders and connect warehouse reorder requests with suppliers.</p>
+          <h1 className="text-3xl font-bold text-slate-900">Purchase Orders</h1>
+          <p className="text-slate-500 mt-1">Manage purchase orders and connect warehouse reorder requests with suppliers.</p>
         </div>
         <div className="flex gap-2">
           <button
             onClick={() => setTab('suppliers')}
-            className={`rounded-lg px-4 py-2 text-sm font-semibold ${tab === 'suppliers' ? 'bg-cyan-500 text-slate-900' : 'bg-slate-800 text-slate-300 hover:bg-slate-700'}`}
+            className={`rounded-lg px-4 py-2 text-sm font-semibold ${tab === 'suppliers' ? 'bg-cyan-500 text-white' : 'bg-white text-slate-500 hover:bg-slate-200'}`}
           >
             Suppliers
           </button>
           <button
             onClick={() => setTab('orders')}
-            className={`rounded-lg px-4 py-2 text-sm font-semibold ${tab === 'orders' ? 'bg-cyan-500 text-slate-900' : 'bg-slate-800 text-slate-300 hover:bg-slate-700'}`}
+            className={`rounded-lg px-4 py-2 text-sm font-semibold ${tab === 'orders' ? 'bg-cyan-500 text-white' : 'bg-white text-slate-500 hover:bg-slate-200'}`}
           >
             Orders
           </button>
@@ -255,11 +255,11 @@ export function SuppliersPage() {
         <div className="grid gap-6 lg:grid-cols-[1.3fr_0.7fr]">
           <div className="space-y-6">
             {tab === 'suppliers' ? (
-              <div className="rounded-xl border border-slate-700 bg-slate-800 p-6">
-                <h2 className="text-xl font-semibold text-white mb-4">Supplier Directory</h2>
+              <div className="rounded-xl border border-slate-200 bg-white p-6">
+                <h2 className="text-xl font-semibold text-slate-900 mb-4">Supplier Directory</h2>
                 <div className="overflow-x-auto">
-                  <table className="w-full text-left text-sm text-slate-300">
-                    <thead className="border-b border-slate-700">
+                  <table className="w-full text-left text-sm text-slate-500">
+                    <thead className="border-b border-slate-200">
                       <tr>
                         <th className="p-3">Name</th>
                         <th className="p-3">Contact</th>
@@ -270,12 +270,12 @@ export function SuppliersPage() {
                     <tbody>
                       {suppliers.length === 0 ? (
                         <tr>
-                          <td colSpan={4} className="p-6 text-center text-slate-400">No suppliers available</td>
+                          <td colSpan={4} className="p-6 text-center text-slate-500">No suppliers available</td>
                         </tr>
                       ) : (
                         suppliers.map((supplier) => (
-                          <tr key={supplier.id} className="border-b border-slate-700 hover:bg-slate-900/40 transition">
-                            <td className="p-3 text-white font-medium">{supplier.name}</td>
+                          <tr key={supplier.id} className="border-b border-slate-200 hover:bg-slate-50/40 transition">
+                            <td className="p-3 text-slate-900 font-medium">{supplier.name}</td>
                             <td className="p-3">{supplier.contactPerson || '-'}</td>
                             <td className="p-3">{supplier.email || '-'}</td>
                             <td className="p-3">{supplier.phone || '-'}</td>
@@ -287,11 +287,11 @@ export function SuppliersPage() {
                 </div>
               </div>
             ) : (
-              <div className="rounded-xl border border-slate-700 bg-slate-800 p-6">
-                <h2 className="text-xl font-semibold text-white mb-4">Purchase Orders</h2>
+              <div className="rounded-xl border border-slate-200 bg-white p-6">
+                <h2 className="text-xl font-semibold text-slate-900 mb-4">Purchase Orders</h2>
                 <div className="overflow-x-auto">
-                  <table className="w-full text-left text-sm text-slate-300">
-                    <thead className="border-b border-slate-700">
+                  <table className="w-full text-left text-sm text-slate-500">
+                    <thead className="border-b border-slate-200">
                       <tr>
                         <th className="p-3">Order</th>
                         <th className="p-3">Supplier</th>
@@ -303,16 +303,16 @@ export function SuppliersPage() {
                     <tbody>
                       {orders.length === 0 ? (
                         <tr>
-                          <td colSpan={5} className="p-6 text-center text-slate-400">No supplier orders found</td>
+                          <td colSpan={5} className="p-6 text-center text-slate-500">No supplier orders found</td>
                         </tr>
                       ) : (
                         orders.map((order) => (
                           <tr
                             key={order.id}
                             onClick={() => setSelectedOrder(order)}
-                            className="border-b border-slate-700 hover:bg-slate-900/40 transition cursor-pointer"
+                            className="border-b border-slate-200 hover:bg-slate-50/40 transition cursor-pointer"
                           >
-                            <td className="p-3 text-white font-medium">{order.poNumber}</td>
+                            <td className="p-3 text-slate-900 font-medium">{order.poNumber}</td>
                             <td className="p-3">{suppliers.find((supplier) => supplier.id === order.supplierId)?.name || `Supplier #${order.supplierId}`}</td>
                             <td className="p-3">{new Date(order.orderDate).toLocaleDateString()}</td>
                             <td className="p-3">${order.totalAmount.toFixed(2)}</td>
@@ -324,7 +324,7 @@ export function SuppliersPage() {
                                 order.status === 'Delivered' ? 'bg-green-500/20 text-green-400' :
                                 order.status === 'Completed' ? 'bg-emerald-500/20 text-emerald-400' :
                                 order.status === 'Cancelled' ? 'bg-red-500/20 text-red-400' :
-                                'bg-slate-500/20 text-slate-400'
+                                'bg-slate-500/20 text-slate-500'
                               }`}>
                                 {order.status}
                               </span>
@@ -340,17 +340,17 @@ export function SuppliersPage() {
           </div>
 
           <div className="space-y-6">
- 
-            <div className="rounded-xl border border-slate-700 bg-slate-800 p-6">
-              <h2 className="text-xl font-semibold text-white mb-4">Create Purchase Order</h2>
-              <div className="space-y-3 text-sm text-slate-300">
+            {/* Create Supplier Order */}
+            <div className="rounded-xl border border-slate-200 bg-white p-6">
+              <h2 className="text-xl font-semibold text-slate-900 mb-4">Create Purchase Order</h2>
+              <div className="space-y-3 text-sm text-slate-500">
                 <div className="grid gap-3 sm:grid-cols-2">
                   <label className="block">
-                    <span className="text-slate-300">Supplier</span>
+                    <span className="text-slate-500">Supplier</span>
                     <select
                       value={orderForm.supplierId}
                       onChange={(e) => setOrderForm({ ...orderForm, supplierId: Number(e.target.value) })}
-                      className="mt-1 w-full rounded-lg border border-slate-700 bg-slate-900 px-3 py-2 text-white outline-none focus:border-cyan-500"
+                      className="mt-1 w-full rounded-lg border border-slate-200 bg-slate-50 px-3 py-2 text-slate-900 outline-none focus:border-cyan-500"
                     >
                       <option value={0}>Select supplier</option>
                       {suppliers.map((supplier) => (
@@ -360,11 +360,11 @@ export function SuppliersPage() {
                   </label>
 
                   <label className="block">
-                    <span className="text-slate-300">Warehouse</span>
+                    <span className="text-slate-500">Warehouse</span>
                     <select
                       value={orderForm.warehouseId}
                       onChange={(e) => setOrderForm({ ...orderForm, warehouseId: Number(e.target.value) })}
-                      className="mt-1 w-full rounded-lg border border-slate-700 bg-slate-900 px-3 py-2 text-white outline-none focus:border-cyan-500"
+                      className="mt-1 w-full rounded-lg border border-slate-200 bg-slate-50 px-3 py-2 text-slate-900 outline-none focus:border-cyan-500"
                     >
                       <option value={0}>Select warehouse</option>
                       {warehouses.map((warehouse) => (
@@ -375,14 +375,14 @@ export function SuppliersPage() {
                 </div>
                 
                 {orderForm.items.map((item, index) => (
-                  <div key={index} className="rounded-lg border border-slate-700 bg-slate-900 p-3">
+                  <div key={index} className="rounded-lg border border-slate-200 bg-slate-50 p-3">
                     <div className="grid gap-3 sm:grid-cols-3">
                       <label className="block">
-                        <span className="text-slate-300">Product</span>
+                        <span className="text-slate-500">Product</span>
                         <select
                           value={item.productId}
                           onChange={(e) => updateOrderItem(index, 'productId', Number(e.target.value))}
-                          className="mt-1 w-full rounded-lg border border-slate-700 bg-slate-950 px-3 py-2 text-white outline-none focus:border-cyan-500"
+                          className="mt-1 w-full rounded-lg border border-slate-200 bg-slate-50 px-3 py-2 text-slate-900 outline-none focus:border-cyan-500"
                         >
                           <option value={0}>Select product</option>
                           {filteredProducts.map((product) => (
@@ -394,24 +394,24 @@ export function SuppliersPage() {
                         </select>
                       </label>
                       <label className="block">
-                        <span className="text-slate-300">Quantity</span>
+                        <span className="text-slate-500">Quantity</span>
                         <input
                           type="number"
                           min={1}
                           value={item.quantity}
                           onChange={(e) => updateOrderItem(index, 'quantity', Number(e.target.value))}
-                          className="mt-1 w-full rounded-lg border border-slate-700 bg-slate-950 px-3 py-2 text-white outline-none focus:border-cyan-500"
+                          className="mt-1 w-full rounded-lg border border-slate-200 bg-slate-50 px-3 py-2 text-slate-900 outline-none focus:border-cyan-500"
                         />
                       </label>
                       <label className="block">
-                        <span className="text-slate-300">Unit Price</span>
+                        <span className="text-slate-500">Unit Price</span>
                         <input
                           type="number"
                           min={0}
                           step="0.01"
                           value={item.unitPrice}
                           onChange={(e) => updateOrderItem(index, 'unitPrice', Number(e.target.value))}
-                          className="mt-1 w-full rounded-lg border border-slate-700 bg-slate-950 px-3 py-2 text-white outline-none focus:border-cyan-500"
+                          className="mt-1 w-full rounded-lg border border-slate-200 bg-slate-50 px-3 py-2 text-slate-900 outline-none focus:border-cyan-500"
                         />
                       </label>
                     </div>
@@ -428,7 +428,7 @@ export function SuppliersPage() {
                 
                 <button
                   onClick={addOrderItem}
-                  className="rounded-lg bg-slate-700 px-4 py-2 text-slate-200 hover:bg-slate-600 transition"
+                  className="rounded-lg bg-slate-200 px-4 py-2 text-slate-500 hover:bg-slate-100 transition"
                 >
                   + Add order item
                 </button>
@@ -436,7 +436,7 @@ export function SuppliersPage() {
                 <button
                   onClick={handleCreateOrder}
                   disabled={loading}
-                  className="w-full rounded-lg bg-cyan-600 px-4 py-2 text-white hover:bg-cyan-500 transition disabled:opacity-50 disabled:cursor-not-allowed"
+                  className="w-full rounded-lg bg-cyan-600 px-4 py-2 text-slate-900 hover:bg-cyan-500 transition disabled:opacity-50 disabled:cursor-not-allowed"
                 >
                   {loading ? 'Creating...' : 'Create Order'}
                 </button>
@@ -444,54 +444,54 @@ export function SuppliersPage() {
             </div>
 
             {selectedOrder && (
-              <div className="rounded-xl border border-slate-700 bg-slate-800 p-6">
+              <div className="rounded-xl border border-slate-200 bg-white p-6">
                 <div className="flex justify-between items-center mb-4">
-                  <h2 className="text-xl font-semibold text-white">Order Details</h2>
+                  <h2 className="text-xl font-semibold text-slate-900">Order Details</h2>
                   <button
                     onClick={() => setSelectedOrder(null)}
-                    className="text-slate-400 hover:text-white transition"
+                    className="text-slate-500 hover:text-slate-900 transition"
                   >
                     ✕
                   </button>
                 </div>
-                <div className="space-y-2 text-slate-300">
-                  <p><span className="text-slate-400">Order Number:</span> <span className="text-white font-mono">{selectedOrder.poNumber}</span></p>
-                  <p><span className="text-slate-400">Supplier:</span> {suppliers.find((supplier) => supplier.id === selectedOrder.supplierId)?.name || `Supplier #${selectedOrder.supplierId}`}</p>
-                  <p><span className="text-slate-400">Warehouse:</span> {warehouses.find((warehouse) => warehouse.id === selectedOrder.warehouseId)?.name || `Warehouse #${selectedOrder.warehouseId}`}</p>
-                  <p><span className="text-slate-400">Order Date:</span> {new Date(selectedOrder.orderDate).toLocaleString()}</p>
-                  <p><span className="text-slate-400">Status:</span> 
+                <div className="space-y-2 text-slate-500">
+                  <p><span className="text-slate-500">Order Number:</span> <span className="text-slate-900 font-mono">{selectedOrder.poNumber}</span></p>
+                  <p><span className="text-slate-500">Supplier:</span> {suppliers.find((supplier) => supplier.id === selectedOrder.supplierId)?.name || `Supplier #${selectedOrder.supplierId}`}</p>
+                  <p><span className="text-slate-500">Warehouse:</span> {warehouses.find((warehouse) => warehouse.id === selectedOrder.warehouseId)?.name || `Warehouse #${selectedOrder.warehouseId}`}</p>
+                  <p><span className="text-slate-500">Order Date:</span> {new Date(selectedOrder.orderDate).toLocaleString()}</p>
+                  <p><span className="text-slate-500">Status:</span> 
                     <span className={`ml-2 px-2 py-1 rounded-full text-xs font-semibold ${
                       selectedOrder.status === 'Pending' ? 'bg-yellow-500/20 text-yellow-400' :
                       selectedOrder.status === 'Processing' ? 'bg-blue-500/20 text-blue-400' :
                       selectedOrder.status === 'Shipped' ? 'bg-purple-500/20 text-purple-400' :
                       selectedOrder.status === 'Delivered' ? 'bg-green-500/20 text-green-400' :
                       selectedOrder.status === 'Completed' ? 'bg-emerald-500/20 text-emerald-400' :
-                      'bg-slate-500/20 text-slate-400'
+                      'bg-slate-500/20 text-slate-500'
                     }`}>
                       {selectedOrder.status}
                     </span>
                   </p>
-                  <p><span className="text-slate-400">Total Amount:</span> <span className="text-white font-bold">${selectedOrder.totalAmount.toFixed(2)}</span></p>
+                  <p><span className="text-slate-500">Total Amount:</span> <span className="text-slate-900 font-bold">${selectedOrder.totalAmount.toFixed(2)}</span></p>
                 </div>
                 
-                <h3 className="text-lg font-semibold text-white mt-4 mb-2">Items</h3>
+                <h3 className="text-lg font-semibold text-slate-900 mt-4 mb-2">Items</h3>
                 <div className="space-y-2">
                   {selectedOrder.items.map((item) => (
-                    <div key={item.id} className="rounded-lg bg-slate-900 p-3 text-slate-200">
+                    <div key={item.id} className="rounded-lg bg-slate-50 p-3 text-slate-500">
                       <div className="grid grid-cols-2 gap-2 text-sm">
-                        <p><span className="text-slate-400">Product ID:</span> {item.productId}</p>
-                        <p><span className="text-slate-400">Quantity:</span> {item.quantity}</p>
-                        <p><span className="text-slate-400">Unit Price:</span> ${item.unitPrice.toFixed(2)}</p>
-                        <p><span className="text-slate-400">Total:</span> <span className="text-cyan-400">${item.totalPrice.toFixed(2)}</span></p>
+                        <p><span className="text-slate-500">Product ID:</span> {item.productId}</p>
+                        <p><span className="text-slate-500">Quantity:</span> {item.quantity}</p>
+                        <p><span className="text-slate-500">Unit Price:</span> ${item.unitPrice.toFixed(2)}</p>
+                        <p><span className="text-slate-500">Total:</span> <span className="text-cyan-400">${item.totalPrice.toFixed(2)}</span></p>
                       </div>
                     </div>
                   ))}
                 </div>
                 
                 {selectedOrder.notes && (
-                  <div className="mt-4 p-3 bg-slate-900 rounded-lg">
-                    <p className="text-slate-400 text-sm">Notes:</p>
-                    <p className="text-slate-200 text-sm">{selectedOrder.notes}</p>
+                  <div className="mt-4 p-3 bg-slate-50 rounded-lg">
+                    <p className="text-slate-500 text-sm">Notes:</p>
+                    <p className="text-slate-500 text-sm">{selectedOrder.notes}</p>
                   </div>
                 )}
               </div>
@@ -502,3 +502,7 @@ export function SuppliersPage() {
     </div>
   );
 }
+
+
+
+

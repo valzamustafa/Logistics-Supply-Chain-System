@@ -10,7 +10,6 @@ export const useNotifications = (userId?: number) => {
   const [isLoading, setIsLoading] = useState(false);
   const [open, setOpen] = useState(false);
 
-  // Load initial notifications
   const loadNotifications = async () => {
     if (!userId) return;
     
@@ -30,7 +29,6 @@ export const useNotifications = (userId?: number) => {
     }
   };
 
-
   const toggleOpen = () => {
     setOpen(prev => !prev);
   };
@@ -42,7 +40,6 @@ export const useNotifications = (userId?: number) => {
   const refresh = () => {
     loadNotifications();
   };
-
 
   useEffect(() => {
     if (!userId) return;
@@ -65,13 +62,10 @@ export const useNotifications = (userId?: number) => {
       }
     };
 
-    
     loadNotifications();
 
-   
     initializeSignalR();
 
-   
     const unsubscribe = signalRService.onNotificationReceived((notification: NotificationDto) => {
       if (mounted) {
         setNotifications(prev => [notification, ...prev]);
@@ -80,7 +74,6 @@ export const useNotifications = (userId?: number) => {
         }
       }
     });
-
 
     return () => {
       mounted = false;
@@ -148,3 +141,5 @@ export const useNotifications = (userId?: number) => {
     refresh
   };
 };
+
+

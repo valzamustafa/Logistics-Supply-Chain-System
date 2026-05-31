@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { useAuth } from '../hooks/useAuth';
 import { orderService, Order } from '../services/orderService';
@@ -70,81 +71,81 @@ export const MyOrdersPage: React.FC = () => {
   if (loading) {
     return (
       <div className="flex justify-center items-center h-64">
-        <div className="text-slate-400">Loading your orders...</div>
+        <div className="text-slate-500">Loading your orders...</div>
       </div>
     );
   }
 
   return (
     <div className="p-6">
-      <h1 className="text-2xl font-bold text-white mb-6">My Orders</h1>
+      <h1 className="text-2xl font-bold text-slate-900 mb-6">My Orders</h1>
 
-   
+      {/* Stats Cards - Dark Theme */}
       <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-8">
-        <div className="bg-slate-800 rounded-lg shadow p-4 border border-slate-700">
-          <div className="text-slate-400 text-sm">Total Orders</div>
-          <div className="text-2xl font-bold text-white">{orders.length}</div>
+        <div className="bg-white rounded-lg shadow p-4 border border-slate-200">
+          <div className="text-slate-500 text-sm">Total Orders</div>
+          <div className="text-2xl font-bold text-slate-900">{orders.length}</div>
         </div>
-        <div className="bg-slate-800 rounded-lg shadow p-4 border border-slate-700">
-          <div className="text-slate-400 text-sm">Delivered</div>
+        <div className="bg-white rounded-lg shadow p-4 border border-slate-200">
+          <div className="text-slate-500 text-sm">Delivered</div>
           <div className="text-2xl font-bold text-green-400">
             {orders.filter(o => o.status?.toLowerCase() === 'delivered').length}
           </div>
         </div>
-        <div className="bg-slate-800 rounded-lg shadow p-4 border border-slate-700">
-          <div className="text-slate-400 text-sm">In Transit</div>
+        <div className="bg-white rounded-lg shadow p-4 border border-slate-200">
+          <div className="text-slate-500 text-sm">In Transit</div>
           <div className="text-2xl font-bold text-blue-400">
             {orders.filter(o => o.status?.toLowerCase() === 'in transit' || o.status?.toLowerCase() === 'shipped').length}
           </div>
         </div>
-        <div className="bg-slate-800 rounded-lg shadow p-4 border border-slate-700">
-          <div className="text-slate-400 text-sm">Total Spent</div>
+        <div className="bg-white rounded-lg shadow p-4 border border-slate-200">
+          <div className="text-slate-500 text-sm">Total Spent</div>
           <div className="text-2xl font-bold text-cyan-400">
             €{orders.reduce((sum, o) => sum + (o.totalAmount || 0), 0).toFixed(2)}
           </div>
         </div>
       </div>
 
-     
-      <div className="bg-slate-800 rounded-lg shadow overflow-hidden border border-slate-700">
+      {/* Orders Table - Dark Theme */}
+      <div className="bg-white rounded-lg shadow overflow-hidden border border-slate-200">
         <table className="min-w-full divide-y divide-slate-700">
-          <thead className="bg-slate-900">
+          <thead className="bg-slate-50">
             <tr>
-              <th className="px-6 py-3 text-left text-xs font-medium text-slate-400 uppercase tracking-wider">
+              <th className="px-6 py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">
                 Order ID
               </th>
-              <th className="px-6 py-3 text-left text-xs font-medium text-slate-400 uppercase tracking-wider">
+              <th className="px-6 py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">
                 Date
               </th>
-              <th className="px-6 py-3 text-left text-xs font-medium text-slate-400 uppercase tracking-wider">
+              <th className="px-6 py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">
                 Items
               </th>
-              <th className="px-6 py-3 text-left text-xs font-medium text-slate-400 uppercase tracking-wider">
+              <th className="px-6 py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">
                 Total
               </th>
-              <th className="px-6 py-3 text-left text-xs font-medium text-slate-400 uppercase tracking-wider">
+              <th className="px-6 py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">
                 Status
               </th>
-              <th className="px-6 py-3 text-left text-xs font-medium text-slate-400 uppercase tracking-wider">
+              <th className="px-6 py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">
                 Tracking
               </th>
-              <th className="px-6 py-3 text-left text-xs font-medium text-slate-400 uppercase tracking-wider">
+              <th className="px-6 py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">
                 Actions
               </th>
             </tr>
           </thead>
-          <tbody className="bg-slate-800 divide-y divide-slate-700">
+          <tbody className="bg-white divide-y divide-slate-700">
             {orders.map((order) => {
               const shipment = shipments.get(order.id);
               return (
-                <tr key={order.id} className="hover:bg-slate-700/50 transition">
-                  <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-white">
+                <tr key={order.id} className="hover:bg-slate-100/80 transition">
+                  <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-slate-900">
                     {order.orderNumber}
                   </td>
-                  <td className="px-6 py-4 whitespace-nowrap text-sm text-slate-300">
+                  <td className="px-6 py-4 whitespace-nowrap text-sm text-slate-500">
                     {new Date(order.orderDate).toLocaleDateString()}
                   </td>
-                  <td className="px-6 py-4 whitespace-nowrap text-sm text-slate-300">
+                  <td className="px-6 py-4 whitespace-nowrap text-sm text-slate-500">
                     {order.items?.length || 0} {(order.items?.length || 0) === 1 ? 'item' : 'items'}
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap text-sm text-cyan-400 font-medium">
@@ -182,13 +183,13 @@ export const MyOrdersPage: React.FC = () => {
         </table>
 
         {orders.length === 0 && (
-          <div className="text-center py-8 text-slate-400">
+          <div className="text-center py-8 text-slate-500">
             You haven't placed any orders yet.
           </div>
         )}
       </div>
 
-
+      {/* Invoice Modal */}
       {showInvoice && selectedOrder && (
         <InvoiceModal
           order={selectedOrder}
@@ -201,3 +202,7 @@ export const MyOrdersPage: React.FC = () => {
     </div>
   );
 };
+
+
+
+

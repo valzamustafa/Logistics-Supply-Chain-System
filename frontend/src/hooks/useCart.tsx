@@ -1,3 +1,4 @@
+
 import { useState, useEffect, createContext, useContext, ReactNode } from 'react';
 import { useAuth } from './useAuth';
 import { Product } from '../services/productService';
@@ -153,10 +154,8 @@ export function CartProvider({ children }: { children: ReactNode }) {
     
       const newOrder = response;
       
-    
       clearCart();
       
-    
       if (user?.id) {
         localStorage.removeItem(`cart_${user.id}`);
       }
@@ -199,3 +198,5 @@ export function useCart() {
   }
   return context;
 }
+
+

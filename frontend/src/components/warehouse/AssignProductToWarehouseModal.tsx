@@ -98,18 +98,18 @@ export function AssignProductToWarehouseModal({
 
   return (
     <div className="fixed inset-0 bg-black/70 flex items-center justify-center z-50 p-4">
-      <div className="bg-slate-800 rounded-xl w-full max-w-md border border-slate-700">
-        <div className="flex justify-between items-center p-4 border-b border-slate-700">
-          <h2 className="text-xl font-bold text-white">Assign Product to Warehouse</h2>
-          <button onClick={onClose} className="text-slate-400 hover:text-white">
+      <div className="bg-white rounded-xl w-full max-w-md border border-slate-200">
+        <div className="flex justify-between items-center p-4 border-b border-slate-200">
+          <h2 className="text-xl font-bold text-slate-900">Assign Product to Warehouse</h2>
+          <button onClick={onClose} className="text-slate-500 hover:text-slate-900">
             <X className="w-5 h-5" />
           </button>
         </div>
         
         <div className="p-6 space-y-4">
           <div>
-            <label className="block text-sm text-slate-400 mb-1">Warehouse</label>
-            <p className="text-white font-medium">{warehouseName}</p>
+            <label className="block text-sm text-slate-500 mb-1">Warehouse</label>
+            <p className="text-slate-900 font-medium">{warehouseName}</p>
           </div>
           
           {error && (
@@ -120,20 +120,20 @@ export function AssignProductToWarehouseModal({
           )}
           
           <div>
-            <label className="block text-sm text-slate-400 mb-1">Select Product *</label>
+            <label className="block text-sm text-slate-500 mb-1">Select Product *</label>
             {loading ? (
               <div className="flex items-center justify-center py-4">
                 <div className="w-6 h-6 border-2 border-cyan-500 border-t-transparent rounded-full animate-spin"></div>
               </div>
             ) : products.length === 0 ? (
-              <div className="bg-slate-700/30 rounded-lg p-3 text-center text-slate-400 text-sm">
+              <div className="bg-slate-100/80 rounded-lg p-3 text-center text-slate-500 text-sm">
                 No unassigned products available. Create new products first.
               </div>
             ) : (
               <select
                 value={selectedProductId}
                 onChange={(e) => setSelectedProductId(Number(e.target.value))}
-                className="w-full px-4 py-2 bg-slate-700 border border-slate-600 rounded-lg text-white focus:outline-none focus:border-cyan-500"
+                className="w-full px-4 py-2 bg-slate-200 border border-slate-600 rounded-lg text-slate-900 focus:outline-none focus:border-cyan-500"
               >
                 <option value={0}>Select a product</option>
                 {products.map(product => (
@@ -148,64 +148,64 @@ export function AssignProductToWarehouseModal({
           {selectedProductId > 0 && (
             <>
               <div>
-                <label className="block text-sm text-slate-400 mb-1">Initial Quantity *</label>
+                <label className="block text-sm text-slate-500 mb-1">Initial Quantity *</label>
                 <input
                   type="number"
                   min="0"
                   value={initialQuantity}
                   onChange={(e) => setInitialQuantity(e.target.value)}
                   placeholder="0"
-                  className="w-full px-4 py-2 bg-slate-700 border border-slate-600 rounded-lg text-white focus:outline-none focus:border-cyan-500"
+                  className="w-full px-4 py-2 bg-slate-200 border border-slate-600 rounded-lg text-slate-900 focus:outline-none focus:border-cyan-500"
                 />
               </div>
               
               <div className="grid grid-cols-2 gap-3">
                 <div>
-                  <label className="block text-sm text-slate-400 mb-1">Min Stock Level *</label>
+                  <label className="block text-sm text-slate-500 mb-1">Min Stock Level *</label>
                   <input
                     type="number"
                     min="0"
                     value={minimumStockLevel}
                     onChange={(e) => setMinimumStockLevel(e.target.value)}
                     placeholder="10"
-                    className="w-full px-4 py-2 bg-slate-700 border border-slate-600 rounded-lg text-white focus:outline-none focus:border-cyan-500"
+                    className="w-full px-4 py-2 bg-slate-200 border border-slate-600 rounded-lg text-slate-900 focus:outline-none focus:border-cyan-500"
                   />
                 </div>
                 <div>
-                  <label className="block text-sm text-slate-400 mb-1">Max Stock Level *</label>
+                  <label className="block text-sm text-slate-500 mb-1">Max Stock Level *</label>
                   <input
                     type="number"
                     min="0"
                     value={maximumStockLevel}
                     onChange={(e) => setMaximumStockLevel(e.target.value)}
                     placeholder="100"
-                    className="w-full px-4 py-2 bg-slate-700 border border-slate-600 rounded-lg text-white focus:outline-none focus:border-cyan-500"
+                    className="w-full px-4 py-2 bg-slate-200 border border-slate-600 rounded-lg text-slate-900 focus:outline-none focus:border-cyan-500"
                   />
                 </div>
               </div>
               
               <div>
-                <label className="block text-sm text-slate-400 mb-1">Shelf Location (Optional)</label>
+                <label className="block text-sm text-slate-500 mb-1">Shelf Location (Optional)</label>
                 <input
                   type="text"
                   value={shelfLocation}
                   onChange={(e) => setShelfLocation(e.target.value)}
                   placeholder="A-12-3"
-                  className="w-full px-4 py-2 bg-slate-700 border border-slate-600 rounded-lg text-white focus:outline-none focus:border-cyan-500"
+                  className="w-full px-4 py-2 bg-slate-200 border border-slate-600 rounded-lg text-slate-900 focus:outline-none focus:border-cyan-500"
                 />
               </div>
             </>
           )}
         </div>
         
-        <div className="flex gap-3 p-4 border-t border-slate-700">
-          <button onClick={onClose} className="flex-1 px-4 py-2 bg-slate-700 hover:bg-slate-600 text-white rounded-lg transition">
+        <div className="flex gap-3 p-4 border-t border-slate-200">
+          <button onClick={onClose} className="flex-1 px-4 py-2 bg-slate-200 hover:bg-slate-100 text-slate-900 rounded-lg transition">
             Cancel
           </button>
           <button 
             onClick={handleSubmit} 
             disabled={submitting || !selectedProductId}
-            className="flex-1 px-4 py-2 bg-cyan-600 hover:bg-cyan-700 text-white rounded-lg transition disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+            className="flex-1 px-4 py-2 bg-cyan-600 hover:bg-cyan-700 text-slate-900 rounded-lg transition disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
           >
             {submitting ? (
               <>
@@ -224,3 +224,7 @@ export function AssignProductToWarehouseModal({
     </div>
   );
 }
+
+
+
+

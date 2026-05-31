@@ -21,14 +21,14 @@ export const ConfirmModal: React.FC<ConfirmModalProps> = ({
 }) => {
   return (
     <div className="fixed inset-0 bg-black/80 backdrop-blur-sm flex items-center justify-center z-50">
-      <div className="bg-slate-800 rounded-lg p-6 max-w-md w-full border border-slate-700 shadow-xl">
-        <h2 className="text-2xl font-bold text-white mb-4">{title}</h2>
-        <p className="text-slate-300 mb-6">{message}</p>
+      <div className="bg-white rounded-lg p-6 max-w-md w-full border border-slate-200 shadow-xl">
+        <h2 className="text-2xl font-bold text-slate-900 mb-4">{title}</h2>
+        <p className="text-slate-500 mb-6">{message}</p>
         <div className="flex gap-3">
           <button
             type="button"
             onClick={onCancel}
-            className="flex-1 px-4 py-2 bg-slate-700 text-white rounded-lg hover:bg-slate-600 transition"
+            className="flex-1 px-4 py-2 bg-slate-200 text-slate-900 rounded-lg hover:bg-slate-100 transition"
             disabled={isProcessing}
           >
             {cancelLabel}
@@ -46,3 +46,8 @@ export const ConfirmModal: React.FC<ConfirmModalProps> = ({
     </div>
   );
 };
+
+
+
+
+
