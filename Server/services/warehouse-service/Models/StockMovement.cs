@@ -1,3 +1,4 @@
+
 using System.ComponentModel.DataAnnotations;
 using System.ComponentModel.DataAnnotations.Schema;
 
@@ -34,7 +35,7 @@ namespace WarehouseService.Models
         [ForeignKey(nameof(WarehouseStockId))]
         public virtual WarehouseStock WarehouseStock { get; set; } = null!;
         
-     
+
         [NotMapped]
         public string? SourceWarehouseName { get; set; }
         

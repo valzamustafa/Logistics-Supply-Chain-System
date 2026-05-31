@@ -1,3 +1,4 @@
+
 using Microsoft.EntityFrameworkCore;
 using WarehouseService.Data;
 using WarehouseService.Models;
@@ -14,7 +15,7 @@ namespace WarehouseService.Repositories.Implementations
             _context = context;
         }
 
-       
+     
         public async Task<Warehouse?> GetWarehouseByIdAsync(int id)
         {
             return await _context.Warehouses
@@ -55,7 +56,7 @@ namespace WarehouseService.Repositories.Implementations
             }
         }
 
-        public async Task<WarehouseStock?> GetStockByIdAsync(int id)
+              public async Task<WarehouseStock?> GetStockByIdAsync(int id)
         {
             return await _context.WarehouseStocks
                 .Include(ws => ws.Warehouse)
@@ -147,7 +148,7 @@ namespace WarehouseService.Repositories.Implementations
             return await query.ToListAsync();
         }
 
-    
+   
         public async Task<WarehouseZone?> GetZoneByIdAsync(int id)
         {
             return await _context.WarehouseZones.FindAsync(id);
@@ -184,7 +185,7 @@ namespace WarehouseService.Repositories.Implementations
             }
         }
 
-   
+     
         public async Task<WarehouseStaff?> GetStaffByIdAsync(int id)
         {
             return await _context.WarehouseStaff.FindAsync(id);
@@ -194,6 +195,13 @@ namespace WarehouseService.Repositories.Implementations
         {
             return await _context.WarehouseStaff
                 .Where(s => s.WarehouseId == warehouseId)
+                .ToListAsync();
+        }
+
+        public async Task<IEnumerable<WarehouseStaff>> GetStaffByUserAsync(int userId)
+        {
+            return await _context.WarehouseStaff
+                .Where(s => s.UserId == userId)
                 .ToListAsync();
         }
 

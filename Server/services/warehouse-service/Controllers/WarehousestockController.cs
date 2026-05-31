@@ -1,3 +1,4 @@
+
 using Microsoft.AspNetCore.Mvc;
 using WarehouseService.DTOs;
 using WarehouseService.Services.Interfaces;
@@ -23,7 +24,7 @@ namespace WarehouseService.Controllers
             return Ok(stock);
         }
 
-     
+       
         [HttpGet("warehouse/{warehouseId}")]
         public async Task<IActionResult> GetByWarehouse(int warehouseId)
         {
@@ -31,7 +32,7 @@ namespace WarehouseService.Controllers
             return Ok(stock);
         }
 
-      
+        
         [HttpGet("product/{productId}")]
         public async Task<IActionResult> GetByProduct(int productId)
         {
@@ -50,7 +51,7 @@ namespace WarehouseService.Controllers
             return Ok(stock);
         }
 
-      
+       
         [HttpPost("warehouse/{warehouseId}/assign")]
         public async Task<IActionResult> AssignProductToWarehouse(int warehouseId, [FromBody] AssignProductToWarehouseDto dto)
         {
@@ -65,7 +66,7 @@ namespace WarehouseService.Controllers
             }
         }
 
-    
+        
         [HttpGet("warehouse/{warehouseId}/unassigned-products")]
         public async Task<IActionResult> GetUnassignedProducts(int warehouseId)
         {
@@ -73,7 +74,7 @@ namespace WarehouseService.Controllers
             return Ok(new List<object>());
         }
 
-        
+      
         [HttpPut("warehouse/{warehouseId}/product/{productId}/stock")]
         public async Task<IActionResult> UpdateStock(int warehouseId, int productId, [FromBody] UpdateStockDto dto)
         {
@@ -119,7 +120,7 @@ namespace WarehouseService.Controllers
             return Ok(alerts);
         }
 
-     
+       
         [HttpGet("warehouse/{warehouseId}/product/{productId}/availability")]
         public async Task<IActionResult> CheckAvailability(int warehouseId, int productId, [FromQuery] int quantity)
         {

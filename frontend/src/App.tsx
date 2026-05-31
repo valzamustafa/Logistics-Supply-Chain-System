@@ -1,3 +1,4 @@
+
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 import { LoginPage } from './pages/LoginPage';
 import { RegisterPage } from './pages/RegisterPage';
@@ -28,9 +29,10 @@ import { CartProvider } from './hooks/useCart';
 function AppContent() {
   const { user, isLoading } = useAuth();
   
-
+ 
   const rolePriority = ['Admin', 'Manager', 'Supplier', 'Driver', 'WarehouseStaff', 'Warehouse', 'User'];
   const userRole = user?.roles?.find((role) => rolePriority.includes(role)) || 'User';
+
 
   if (isLoading) {
     return (
@@ -42,6 +44,7 @@ function AppContent() {
       </div>
     );
   }
+
 
   const getDashboardPath = () => {
     switch (userRole) {
@@ -58,10 +61,11 @@ function AppContent() {
 
   return (
     <Routes>
-    
+
       <Route path="/login" element={<LoginPage />} />
       <Route path="/register" element={<RegisterPage />} />
       
+   
       <Route path="/admin" element={<ProtectedLayout allowedRoles={['Admin']}><AdminDashboard /></ProtectedLayout>} />
       <Route path="/manager" element={<ProtectedLayout allowedRoles={['Manager']}><ManagerDashboard /></ProtectedLayout>} />
       <Route path="/manager/staff" element={<ProtectedLayout allowedRoles={['Manager']}><ManagerDashboard /></ProtectedLayout>} />
@@ -69,12 +73,13 @@ function AppContent() {
       <Route path="/supplier" element={<ProtectedLayout allowedRoles={['Supplier']}><SupplierDashboard /></ProtectedLayout>} />
       <Route path="/warehouse" element={<ProtectedLayout allowedRoles={['WarehouseStaff', 'Warehouse']}><WarehouseDashboard /></ProtectedLayout>} />
       <Route path="/dashboard" element={<ProtectedLayout allowedRoles={['User']}><UserDashboard /></ProtectedLayout>} />
-     
+      
+   
       <Route path="/create-order" element={<ProtectedLayout allowedRoles={['User']}><CreateOrderPage /></ProtectedLayout>} />
       <Route path="/my-orders" element={<ProtectedLayout allowedRoles={['User']}><MyOrdersPage /></ProtectedLayout>} />
       <Route path="/track-shipment/:id?" element={<ProtectedLayout allowedRoles={['User']}><TrackShipment /></ProtectedLayout>} />
       
-     
+    
       <Route path="/tracking" element={<ProtectedLayout allowedRoles={['Admin', 'Manager', 'User', 'Driver']}><TrackingPage /></ProtectedLayout>} />
       <Route path="/orders" element={<ProtectedLayout allowedRoles={['Admin', 'Manager']}><OrdersPage /></ProtectedLayout>} />
       <Route path="/products" element={<ProtectedLayout allowedRoles={['Admin', 'Manager', 'User', 'WarehouseStaff', 'Warehouse', 'Supplier']}><ProductsPage /></ProtectedLayout>} />
@@ -84,14 +89,16 @@ function AppContent() {
       <Route path="/reports" element={<ProtectedLayout allowedRoles={['Admin', 'Manager']}><ReportsPage /></ProtectedLayout>} />
       <Route path="/suppliers" element={<ProtectedLayout allowedRoles={['Admin', 'Manager', 'WarehouseStaff', 'Warehouse']}><SuppliersPage /></ProtectedLayout>} />
       
-      {/* Admin Only Routes */}
+   
       <Route path="/admin/users" element={<ProtectedLayout allowedRoles={['Admin']}><UsersPage /></ProtectedLayout>} />
       <Route path="/admin/roles" element={<ProtectedLayout allowedRoles={['Admin']}><RolesPage /></ProtectedLayout>} />
       
-      {/* Manager Only Routes */}
+     
       <Route path="/warehouses" element={<ProtectedLayout allowedRoles={['Admin', 'Manager']}><WarehouseManagement /></ProtectedLayout>} />
       
+     
       <Route path="/" element={<Navigate to={getDashboardPath()} replace />} />
+      
      
       <Route path="*" element={<Navigate to={getDashboardPath()} replace />} />
     </Routes>

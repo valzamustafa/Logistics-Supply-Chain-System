@@ -69,20 +69,39 @@ export async function register(email: string, password: string, firstName: strin
 export async function getCurrentUser(token?: string): Promise<User> {
   const authToken = token || getLocalStorageItem('token');
 
-  const headers: Record<string, string> = {
-    'Content-Type': 'application/json'
-  };
-
-  if (authToken) {
-    headers['Authorization'] = `Bearer ${authToken}`;
+  if (!authToken) {
+    throw new Error('No authentication token available');
   }
 
+  const headers: Record<string, string> = {
+    'Content-Type': 'application/json',
+    'Authorization': `Bearer ${authToken}`
+  };
+
   const response = await fetch(`${apiBaseUrl}/api/auth/me`, {
+    method: 'GET',
+    mode: 'cors',
+    credentials: 'include',
     headers
   });
 
   if (!response.ok) {
-    throw new Error('Failed to get current user');
+    if (response.status === 401 || response.status === 403) {
+      removeLocalStorageItem('token');
+      removeLocalStorageItem('user');
+    }
+
+    let errorMessage = `Failed to get current user: HTTP ${response.status}`;
+    try {
+      const errorData = await response.json();
+      if (errorData?.message) {
+        errorMessage = `${errorMessage} - ${errorData.message}`;
+      }
+    } catch {
+  
+    }
+
+    throw new Error(errorMessage);
   }
 
   return response.json();
@@ -110,7 +129,7 @@ export async function createUser(userData: {
   password: string;
   firstName: string;
   lastName: string;
-  role?: string;  
+  role?: string;  // Shto këtë
 }): Promise<User> {
   const token = getLocalStorageItem('token');
   const response = await fetch(`${apiBaseUrl}/api/auth/register`, {

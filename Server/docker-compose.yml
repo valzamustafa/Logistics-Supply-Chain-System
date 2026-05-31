@@ -46,7 +46,9 @@ services:
       start_period: 30s
 
   auth-service:
-    build: ./services/auth-service
+    build:
+      context: .
+      dockerfile: ./services/auth-service/Dockerfile
     container_name: auth-service
     depends_on:
       mssql:
@@ -66,7 +68,9 @@ services:
     restart: unless-stopped
 
   product-service:
-    build: ./services/product-service
+    build:
+      context: .
+      dockerfile: ./services/product-service/Dockerfile
     container_name: product-service
     depends_on:
       mssql:
@@ -87,7 +91,9 @@ services:
     restart: unless-stopped
 
   order-service:
-    build: ./services/order-service
+    build:
+      context: .
+      dockerfile: ./services/order-service/Dockerfile
     container_name: order-service
     depends_on:
       mssql:
@@ -102,8 +108,8 @@ services:
       - Services__InventoryService=http://inventory-service:80
       - Services__WarehouseService=http://warehouse-service:80
       - Services__ShipmentService=http://shipment-service:80
-      - Stripe__SecretKey=${STRIPE_SECRET_KEY}
-      - Stripe__PublishableKey=${STRIPE_PUBLISHABLE_KEY}
+      - Stripe__SecretKey=YOUR_STRIPE_SECRET_KEY
+      - Stripe__PublishableKey=pk_test_51SZvQfKCIdvvVhXAhi8H9VOBq1v5GG73BHBqBeKcx8DAM2NQgAzzWZzSCdrXeHkz7N9Q6nBOAW8q0bcaFsWOhfXV00ARu4owUK
     ports:
       - "5002:80"
     networks:
@@ -111,7 +117,9 @@ services:
     restart: unless-stopped
 
   inventory-service:
-    build: ./services/inventory-service
+    build:
+      context: .
+      dockerfile: ./services/inventory-service/Dockerfile
     container_name: inventory-service
     depends_on:
       mssql:
@@ -151,7 +159,9 @@ services:
     restart: unless-stopped
 
   warehouse-service:
-    build: ./services/warehouse-service
+    build:
+      context: .
+      dockerfile: ./services/warehouse-service/Dockerfile
     container_name: warehouse-service
     depends_on:
       mssql:
@@ -190,7 +200,9 @@ services:
     restart: unless-stopped
 
   report-service:
-    build: ./services/report-service
+    build:
+      context: .
+      dockerfile: ./services/report-service/Dockerfile
     container_name: report-service
     depends_on:
       mssql:
@@ -209,7 +221,9 @@ services:
     restart: unless-stopped
 
   supplier-service:
-    build: ./services/supplier-service
+    build:
+      context: .
+      dockerfile: ./services/supplier-service/Dockerfile
     container_name: supplier-service
     depends_on:
       mssql:
@@ -228,7 +242,9 @@ services:
     restart: unless-stopped
 
   tracking-services:
-    build: ./services/tracking-services
+    build:
+      context: .
+      dockerfile: ./services/tracking-services/Dockerfile
     container_name: tracking-services
     depends_on:
       mssql:
@@ -252,7 +268,7 @@ services:
   api-gateway:
     build: ./api-gateway
     container_name: api-gateway
-
+   
     depends_on:
       - auth-service
       - product-service

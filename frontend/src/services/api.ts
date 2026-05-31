@@ -1,4 +1,5 @@
 
+
 import { getLocalStorageItem } from '../utils/localStorage';
 
 export const API_BASE_URL = import.meta.env.VITE_API_BASE_URL ?? 'http://localhost:5000';
@@ -14,23 +15,27 @@ async function request<T>(
 ): Promise<T> {
   const token = getLocalStorageItem('token');
   const isForm = options.body instanceof FormData;
+  const hasBody = options.body !== undefined && options.body !== null;
+
+   const isAbsolute = /^https?:\/\//i.test(endpoint);
+  const url = isAbsolute ? endpoint : `${API_BASE_URL}${endpoint}`;
 
   const headers: Record<string, string> = {
     ...(token && { 'Authorization': `Bearer ${token}` }),
     ...(options.headers as Record<string, string>),
   };
 
-  if (!isForm) {
+  if (!isForm && hasBody) {
     headers['Content-Type'] = headers['Content-Type'] || 'application/json';
   }
 
   const body = options.body instanceof FormData
     ? options.body
-    : options.body !== undefined && typeof options.body !== 'string'
+    : hasBody && typeof options.body !== 'string'
       ? JSON.stringify(options.body)
       : options.body;
 
-  const response = await fetch(`${API_BASE_URL}${endpoint}`, {
+  const response = await fetch(url, {
     ...options,
     headers,
     body,
@@ -64,12 +69,16 @@ async function requestBlob(
   options: RequestInit = {}
 ): Promise<Blob> {
   const token = getLocalStorageItem('token');
+
+  const isAbsolute = /^https?:\/\//i.test(endpoint);
+  const url = isAbsolute ? endpoint : `${API_BASE_URL}${endpoint}`;
+
   const headers: HeadersInit = {
     ...(token && { 'Authorization': `Bearer ${token}` }),
     ...options.headers,
   };
 
-  const response = await fetch(`${API_BASE_URL}${endpoint}`, {
+  const response = await fetch(url, {
     ...options,
     headers,
   });
@@ -84,7 +93,7 @@ async function requestBlob(
       try {
         errorMessage = await clone.text() || errorMessage;
       } catch {
-     
+
       }
     }
     throw new Error(errorMessage);

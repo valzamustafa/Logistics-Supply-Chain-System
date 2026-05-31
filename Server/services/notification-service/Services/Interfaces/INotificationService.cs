@@ -13,3 +13,4 @@ namespace NotificationService.Services.Interfaces
         Task MarkAsReadAsync(int notificationId);
         Task MarkAllAsReadAsync(int userId);
     }
+}
