@@ -10,7 +10,11 @@ using System.Net.Http;
 using System.Text;
 using System.Text.Json;
 using Microsoft.AspNetCore.SignalR;
+using Microsoft.EntityFrameworkCore;
+using ShipmentService.Data;
 using ShipmentService.Hubs;
+using System.Dynamic;
+using System.Reflection;
 
 namespace ShipmentService.Controllers;
 
@@ -26,6 +30,7 @@ public class ShipmentsController : ControllerBase
     private readonly IConfiguration _configuration;
     private readonly INotificationClient _notificationClient;
     private readonly IHubContext<DashboardHub> _hubContext;
+    private readonly ShipmentDbContext _context;
     
     public ShipmentsController(
         IShipmentService shipmentService, 
@@ -34,7 +39,8 @@ public class ShipmentsController : ControllerBase
         ILogger<ShipmentsController> logger,
         IConfiguration configuration,
         INotificationClient notificationClient,
-        IHubContext<DashboardHub> hubContext)
+        IHubContext<DashboardHub> hubContext,
+        ShipmentDbContext context)
     {
         _shipmentService = shipmentService;
         _driverRepository = driverRepository;
@@ -43,6 +49,28 @@ public class ShipmentsController : ControllerBase
         _configuration = configuration;
         _notificationClient = notificationClient;
         _hubContext = hubContext;
+        _context = context;
+    }
+
+    private string GetCurrentUserName()
+    {
+        return User.FindFirst(ClaimTypes.Name)?.Value
+            ?? User.FindFirst("name")?.Value
+            ?? User.FindFirst("preferred_username")?.Value
+            ?? User.FindFirst(ClaimTypes.NameIdentifier)?.Value
+            ?? User.FindFirst("sub")?.Value
+            ?? "Unknown user";
+    }
+
+    private object FlattenWithActor(object target, string actor)
+    {
+        IDictionary<string, object?> expando = new ExpandoObject();
+        foreach (var prop in target.GetType().GetProperties(BindingFlags.Public | BindingFlags.Instance))
+        {
+            expando[prop.Name] = prop.GetValue(target);
+        }
+        expando["updatedBy"] = actor;
+        return expando;
     }
     
     [HttpGet]
@@ -90,7 +118,8 @@ public class ShipmentsController : ControllerBase
             var shipment = await _shipmentService.CreateAsync(request);
             _logger.LogInformation("Shipment created successfully: Id={ShipmentId}, TrackingNumber={TrackingNumber}", 
                 shipment.Id, shipment.TrackingNumber);
-            await _hubContext.Clients.All.SendAsync("ReceiveNewShipment", shipment);
+            var currentUser = GetCurrentUserName();
+            await _hubContext.Clients.All.SendAsync("ReceiveNewShipment", FlattenWithActor(shipment, currentUser));
             return CreatedAtAction(nameof(GetById), new { id = shipment.Id }, shipment);
         }
         catch (InvalidOperationException ex)
@@ -133,8 +162,34 @@ public class ShipmentsController : ControllerBase
         var shipment = await _shipmentService.StartDeliveryAsync(id);
         if (shipment == null)
             return NotFound();
+
+        var userIdClaim = User.FindFirst(ClaimTypes.NameIdentifier)?.Value
+                          ?? User.FindFirst("sub")?.Value;
+
+        if (int.TryParse(userIdClaim, out var userId))
+        {
+            var driver = await _driverRepository.GetByUserIdAsync(userId);
+            if (driver != null)
+            {
+                var vehicle = await _context.Vehicles
+                    .Where(v => v.DriverId == driver.Id && v.IsAvailable)
+                    .OrderByDescending(v => v.UpdatedAt ?? v.CreatedAt)
+                    .FirstOrDefaultAsync();
+
+                if (vehicle != null)
+                {
+                    shipment.DriverId ??= driver.Id;
+                    shipment.VehicleId = vehicle.Id;
+                    vehicle.IsAvailable = false;
+                    vehicle.UpdatedAt = DateTime.UtcNow;
+                    shipment.UpdatedAt = DateTime.UtcNow;
+                    await _context.SaveChangesAsync();
+                }
+            }
+        }
         
-        await _hubContext.Clients.All.SendAsync("ReceiveShipmentUpdate", shipment);
+        var currentUser = GetCurrentUserName();
+        await _hubContext.Clients.All.SendAsync("ReceiveShipmentUpdate", FlattenWithActor(shipment, currentUser));
         return Ok(shipment);
     }
     
@@ -146,7 +201,8 @@ public class ShipmentsController : ControllerBase
         if (shipment == null)
             return NotFound();
         
-        await _hubContext.Clients.All.SendAsync("ReceiveShipmentUpdate", shipment);
+        var currentUser = GetCurrentUserName();
+        await _hubContext.Clients.All.SendAsync("ReceiveShipmentUpdate", FlattenWithActor(shipment, currentUser));
         return Ok(shipment);
     }
     
@@ -156,7 +212,7 @@ public class ShipmentsController : ControllerBase
     {
         try
         {
-         
+       
             var shipmentModel = await _shipmentService.UpdateStatusAsync(id, request.Status);
             
             if (shipmentModel == null)
@@ -172,10 +228,10 @@ public class ShipmentsController : ControllerBase
                 _ => "Shipped"
             };
 
-          
+        
             await UpdateSupplierPurchaseOrderStatus(shipmentModel, request, purchaseOrderStatus);
             
-        
+      
             var statusMessage = request.Status switch
             {
                 "Pending" => "waiting for processing",
@@ -199,13 +255,15 @@ public class ShipmentsController : ControllerBase
                 _logger.LogWarning(ex, "Failed to send shipment status notification for shipment {ShipmentId}", shipmentModel.Id);
             }
 
-            await _hubContext.Clients.All.SendAsync("ReceiveShipmentUpdate", shipmentModel);
+            var currentUser = GetCurrentUserName();
+            await _hubContext.Clients.All.SendAsync("ReceiveShipmentUpdate", FlattenWithActor(shipmentModel, currentUser));
             await _hubContext.Clients.All.SendAsync("ReceiveOrderUpdate", new {
                 orderId = shipmentModel.OrderId,
                 purchaseOrderId = shipmentModel.PurchaseOrderId,
                 status = request.Status,
                 purchaseOrderStatus = purchaseOrderStatus,
-                shipmentId = shipmentModel.Id
+                shipmentId = shipmentModel.Id,
+                actor = currentUser
             });
 
             return Ok(shipmentModel);
@@ -355,7 +413,7 @@ public async Task<IActionResult> NotifySupplier(int id, [FromBody] NotifySupplie
         if (shipment == null)
             return NotFound();
         
-
+     
         var supplierApiUrl = _configuration["Services:SupplierService"] ?? "http://localhost:5000";
         var endpoint = $"{supplierApiUrl}/api/purchaseorders/{shipment.OrderId}/confirm-shipment";
         
@@ -420,7 +478,7 @@ public class NotifySupplierDto
         if (shipment == null)
             return NotFound();
         
-
+ 
         return Ok(shipment);
     }
 

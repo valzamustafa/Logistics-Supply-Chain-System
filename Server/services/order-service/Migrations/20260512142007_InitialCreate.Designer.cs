@@ -12,7 +12,7 @@ using OrderService.Data;
 namespace orderservice.Migrations
 {
     [DbContext(typeof(OrderDbContext))]
-    [Migration("20260410115555_InitialCreate")]
+    [Migration("20260512142007_InitialCreate")]
     partial class InitialCreate
     {
         /// <inheritdoc />
@@ -100,9 +100,21 @@ namespace orderservice.Migrations
 
                     SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
 
+                    b.Property<string>("BankAccount")
+                        .HasColumnType("nvarchar(max)");
+
                     b.Property<string>("BillingAddress")
                         .HasMaxLength(500)
                         .HasColumnType("nvarchar(500)");
+
+                    b.Property<string>("BillingEmail")
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<string>("BillingName")
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<string>("BillingPhone")
+                        .HasColumnType("nvarchar(max)");
 
                     b.Property<DateTime>("CreatedAt")
                         .HasColumnType("datetime2");
@@ -123,6 +135,13 @@ namespace orderservice.Migrations
                         .IsRequired()
                         .HasMaxLength(50)
                         .HasColumnType("nvarchar(50)");
+
+                    b.Property<string>("ProcessingStatus")
+                        .HasMaxLength(50)
+                        .HasColumnType("nvarchar(50)");
+
+                    b.Property<int?>("ShipmentId")
+                        .HasColumnType("int");
 
                     b.Property<DateTime?>("ShippedAt")
                         .HasColumnType("datetime2");
@@ -152,6 +171,9 @@ namespace orderservice.Migrations
                         .HasColumnType("int");
 
                     b.Property<int>("UserId")
+                        .HasColumnType("int");
+
+                    b.Property<int?>("WarehouseId")
                         .HasColumnType("int");
 
                     b.HasKey("Id");

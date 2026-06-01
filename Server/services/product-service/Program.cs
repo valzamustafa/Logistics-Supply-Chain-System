@@ -113,7 +113,7 @@ using (var scope = app.Services.CreateScope())
 {
     var dbContext = scope.ServiceProvider.GetRequiredService<ProductDbContext>();
     
-   
+  
     await dbContext.Database.EnsureCreatedAsync();
 
     if (!dbContext.Categories.Any())

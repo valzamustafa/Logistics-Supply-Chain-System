@@ -12,7 +12,7 @@ using SupplierService.Data;
 namespace supplierservice.Migrations
 {
     [DbContext(typeof(SupplierDbContext))]
-    [Migration("20260429202843_InitialCreate")]
+    [Migration("20260517182106_InitialCreate")]
     partial class InitialCreate
     {
         /// <inheritdoc />

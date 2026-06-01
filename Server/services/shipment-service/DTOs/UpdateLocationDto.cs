@@ -1,3 +1,4 @@
+// UpdateLocationDto.cs
 public class UpdateLocationDto
 {
     public double Lat { get; set; }

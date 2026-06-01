@@ -8,7 +8,7 @@ namespace WarehouseService.DTOs
         public int ProductId { get; set; }
         public string ProductName { get; set; } = string.Empty;
         public MovementType Type { get; set; }
-        public string TypeName { get; set; } = string.Empty;  
+        public string TypeName { get; set; } = string.Empty; 
         public int Quantity { get; set; }
         public int PreviousQuantity { get; set; }
         public int NewQuantity { get; set; }

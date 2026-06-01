@@ -1,4 +1,3 @@
-
 using System.ComponentModel.DataAnnotations;
 using System.ComponentModel.DataAnnotations.Schema;
 
@@ -25,9 +24,9 @@ namespace WarehouseService.Models
         [MaxLength(500)]
         public string? Reference { get; set; } 
         
-        public int? SourceWarehouseId { get; set; } 
+        public int? SourceWarehouseId { get; set; }
         
-        public int? DestinationWarehouseId { get; set; } 
+        public int? DestinationWarehouseId { get; set; }
         
         [MaxLength(1000)]
         public string? Notes { get; set; }

@@ -1,4 +1,3 @@
-
 using Microsoft.AspNetCore.Mvc;
 using OrderService.DTOs;
 using OrderService.Services.Interfaces;
@@ -85,7 +84,7 @@ namespace OrderService.Controllers
             {
                 var order = await _orderService.CreateOrderAsync(request);
                 
-             
+              
                 await _notificationClient.SendNotificationAsync(
                     request.UserId,
                     "OrderCreated",
@@ -94,7 +93,7 @@ namespace OrderService.Controllers
                     $"/orders/{order.Id}"
                 );
                 
-            
+              
                 if (order.TotalAmount > 10000)
                 {
                     await _notificationClient.SendNotificationToRoleAsync(
@@ -163,7 +162,7 @@ namespace OrderService.Controllers
             {
                 var order = await _orderService.UpdateOrderStatusAsync(id, request.Status);
                 
-      
+             
                 string message = request.Status switch
                 {
                     "Processing" => "Your order is being processed.",
@@ -211,7 +210,7 @@ namespace OrderService.Controllers
             return Ok(new { message = "Order cancelled successfully" });
         }
 
-   
+        
 
         [HttpPost("{id}/select-warehouse")]
         public async Task<IActionResult> SelectWarehouse(int id, [FromBody] SelectWarehouseRequest? request)
@@ -468,6 +467,7 @@ namespace OrderService.Controllers
             }
         }
     }
+
 
     public class UpdateOrderStatusDto
     {

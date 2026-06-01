@@ -6,7 +6,7 @@ namespace WarehouseService.Services.Interfaces
 {
     public interface IWarehouseService
     {
-       
+   
         Task<IEnumerable<WarehouseDto>> GetAllWarehousesAsync();
         Task<WarehouseDto?> GetWarehouseByIdAsync(int id);
         Task<WarehouseDto> CreateWarehouseAsync(CreateWarehouseDto dto);
@@ -14,20 +14,20 @@ namespace WarehouseService.Services.Interfaces
         Task<bool> DeleteWarehouseAsync(int id);
         Task<bool> ToggleWarehouseStatusAsync(int id, bool isActive);
         
-
+    
         Task<IEnumerable<WarehouseZoneDto>> GetZonesByWarehouseAsync(int warehouseId);
         Task<WarehouseZoneDto> CreateZoneAsync(CreateWarehouseZoneDto dto);
         Task<WarehouseZoneDto> UpdateZoneAsync(int id, UpdateWarehouseZoneDto dto);
         Task<bool> DeleteZoneAsync(int id);
         
-
+   
         Task<IEnumerable<WarehouseStaffDto>> GetStaffByWarehouseAsync(int warehouseId);
         Task<WarehouseStaffDto> AssignStaffAsync(int warehouseId, AssignStaffDto dto);
         Task<WarehouseStaffDto> UpdateStaffAsync(int id, AssignStaffDto dto);
         Task<IEnumerable<WarehouseStaffDto>> GetStaffByUserAsync(int userId);
         Task<bool> RemoveStaffAsync(int id);
 
-
+      
         Task<IEnumerable<WarehouseStockDto>> GetAllStockAsync();
         Task<WarehouseStockDto?> GetStockByIdAsync(int id);
         Task<IEnumerable<WarehouseStockDto>> GetStockByWarehouseAsync(int warehouseId);
@@ -40,7 +40,7 @@ namespace WarehouseService.Services.Interfaces
         Task<IEnumerable<LowStockAlertDto>> GetLowStockAlertsAsync(int? warehouseId = null);
         Task<bool> IsProductAvailableAsync(int warehouseId, int productId, int requestedQuantity);
         
-     
+      
         Task<WarehouseStatsDto> GetWarehouseStatsAsync(int warehouseId);
     }
 }

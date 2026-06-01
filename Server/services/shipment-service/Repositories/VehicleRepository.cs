@@ -16,17 +16,23 @@ public class VehicleRepository : IVehicleRepository
     
     public async Task<IEnumerable<Vehicle>> GetAllAsync()
     {
-        return await _context.Vehicles.ToListAsync();
+        return await _context.Vehicles
+            .Include(v => v.Driver)
+            .ToListAsync();
     }
     
     public async Task<Vehicle?> GetByIdAsync(int id)
     {
-        return await _context.Vehicles.FindAsync(id);
+        return await _context.Vehicles
+            .Include(v => v.Driver)
+            .FirstOrDefaultAsync(v => v.Id == id);
     }
     
     public async Task<IEnumerable<Vehicle>> GetAvailableAsync()
     {
-        return await _context.Vehicles.Where(v => v.IsAvailable).ToListAsync();
+        return await _context.Vehicles
+            .Where(v => v.IsAvailable && v.DriverId == null)
+            .ToListAsync();
     }
     
     public async Task<Vehicle> CreateAsync(Vehicle vehicle)

@@ -1,4 +1,3 @@
-
 using System.Text.Json;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Logging;
@@ -42,7 +41,7 @@ namespace WarehouseService.Business
             _logger.LogInformation($"Product Service base URLs configured: {string.Join(", ", _productServiceBaseUrls)}");
         }
 
-
+       
         public async Task<IEnumerable<WarehouseDto>> GetAllWarehousesAsync()
         {
             var warehouses = await _repository.GetAllWarehousesAsync();
@@ -144,7 +143,7 @@ namespace WarehouseService.Business
             };
         }
 
-
+    
         public async Task<IEnumerable<WarehouseZoneDto>> GetZonesByWarehouseAsync(int warehouseId)
         {
             var zones = await _repository.GetZonesByWarehouseAsync(warehouseId);
@@ -207,7 +206,7 @@ namespace WarehouseService.Business
             return true;
         }
 
-
+ 
         public async Task<IEnumerable<WarehouseStaffDto>> GetStaffByWarehouseAsync(int warehouseId)
         {
             var staff = await _repository.GetStaffByWarehouseAsync(warehouseId);
@@ -434,7 +433,7 @@ namespace WarehouseService.Business
                 var productName = stock.ProductName ?? $"Product {productId}";
                 await _notificationService.NotifyStockUpdatedAsync(warehouseId, warehouse.Name, productName, previousQuantity, updated.Quantity, dto.Type.ToString());
 
-      
+           
                 if (updated.Quantity <= updated.MinimumStockLevel && updated.Quantity > 0)
                 {
                     var deficit = updated.MinimumStockLevel - updated.Quantity;
@@ -446,7 +445,7 @@ namespace WarehouseService.Business
                     await _notificationService.NotifyOutOfStockAlertAsync(warehouseId, warehouse.Name, productName);
                 }
 
-     
+           
                 if (updated.Quantity >= updated.MaximumStockLevel)
                 {
                     await _notificationService.NotifyOverstockAlertAsync(warehouseId, warehouse.Name, productName, updated.Quantity, updated.MaximumStockLevel);
@@ -603,7 +602,7 @@ namespace WarehouseService.Business
             return stock != null && stock.Quantity >= requestedQuantity;
         }
 
-    
+     
         private async Task<ProductInfo?> GetProductFromProductService(int productId)
         {
             foreach (var baseUrl in _productServiceBaseUrls.Distinct())

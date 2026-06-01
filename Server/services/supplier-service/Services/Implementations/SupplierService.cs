@@ -1,3 +1,4 @@
+
 using Microsoft.EntityFrameworkCore;
 using SupplierService.Data;
 using SupplierService.DTOs;
@@ -197,7 +198,7 @@ namespace SupplierService.Services.Implementations
 
             _context.SupplierOrders.Add(order);
             await _context.SaveChangesAsync();
-            
+    
             if (supplier.Email != null)
             {
                 var userId = await GetUserIdByEmailAsync(supplier.Email);
@@ -241,7 +242,7 @@ namespace SupplierService.Services.Implementations
             await _context.SaveChangesAsync();
 
             var supplier = await _repository.GetByIdAsync(order.SupplierId);
-            
+
             if (supplier?.Email != null)
             {
                 var userId = await GetUserIdByEmailAsync(supplier.Email);
@@ -352,13 +353,13 @@ namespace SupplierService.Services.Implementations
                 }
             }
             
-        
+          
             await SendNotificationToRoleAsync("WarehouseStaff", "PurchaseOrder",
                 "New Purchase Order Created",
                 $"Purchase order #{purchaseOrder.PONumber} has been created for warehouse #{dto.WarehouseId}",
                 $"/warehouse/purchase-orders/{purchaseOrder.Id}");
-            
-        
+          
+
             await SendNotificationToRoleAsync("Manager", "PurchaseOrder",
                 "New Purchase Order Created",
                 $"Purchase order #{purchaseOrder.PONumber} has been created for supplier {supplier.Name}",
@@ -418,7 +419,7 @@ namespace SupplierService.Services.Implementations
 
             var created = await _repository.CreateSupplierProductAsync(supplierProduct);
             
-            
+
             
             if (supplier.Email != null)
             {
@@ -633,7 +634,7 @@ namespace SupplierService.Services.Implementations
             invitation.Status = "Accepted";
             await _context.SaveChangesAsync();
             
-
+           
             await SendNotificationToRoleAsync("Admin", "SupplierRegistration",
                 "New Supplier Registered",
                 $"A new supplier has registered: {supplier.Name} ({supplier.Email})",
@@ -665,7 +666,7 @@ namespace SupplierService.Services.Implementations
             _context.EmergencyPurchases.Add(emergency);
             await _context.SaveChangesAsync();
             
-    
+      
             await SendNotificationToRoleAsync("Manager", "EmergencyPurchase",
                 "Emergency Purchase Created",
                 $"Emergency purchase created for {dto.Quantity}x {dto.ProductName}. Total: ${emergency.TotalAmount:F2}",
@@ -711,7 +712,7 @@ namespace SupplierService.Services.Implementations
                 _context.SupplierWarehouseAssignments.Add(assignment);
                 await _context.SaveChangesAsync();
                 
-    
+        
                 if (supplier.Email != null)
                 {
                     var userId = await GetUserIdByEmailAsync(supplier.Email);
@@ -758,7 +759,7 @@ namespace SupplierService.Services.Implementations
             
             await _context.SaveChangesAsync();
             
-      
+          
             var supplier = await _repository.GetByIdAsync(purchaseOrder.SupplierId);
             if (supplier?.Email != null)
             {
@@ -791,7 +792,7 @@ namespace SupplierService.Services.Implementations
             purchaseOrder.ActualDeliveryDate = dto.ActualDeliveryDate ?? DateTime.UtcNow;
             await _context.SaveChangesAsync();
             
-    
+     
             var supplier = await _repository.GetByIdAsync(purchaseOrder.SupplierId);
             if (supplier?.Email != null)
             {
@@ -846,7 +847,7 @@ namespace SupplierService.Services.Implementations
                 }
             }
             
-
+    
             if (dto.Status == "Shipped")
             {
                 await SendNotificationToRoleAsync("WarehouseStaff", "Shipment",
@@ -887,7 +888,7 @@ namespace SupplierService.Services.Implementations
             }
 
             await _context.SaveChangesAsync();
-
+            
             var supplier = await _repository.GetByIdAsync(purchaseOrder.SupplierId);
             if (supplier?.Email != null)
             {
@@ -972,7 +973,7 @@ namespace SupplierService.Services.Implementations
             return System.Text.Encoding.UTF8.GetBytes(pdfContent);
         }
 
-     
+       
         
         public async Task SendNotificationAsync(int userId, string type, string title, string message, string? actionUrl = null)
         {

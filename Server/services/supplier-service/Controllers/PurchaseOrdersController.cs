@@ -34,7 +34,7 @@ namespace SupplierService.Controllers
             return CreatedAtAction(nameof(GetById), new { id = purchaseOrder.Id }, purchaseOrder);
         }
 
-     
+  
         [HttpPost("{id}/confirm-shipment")]
         public async Task<IActionResult> ConfirmShipment(int id, [FromBody] ShipmentConfirmationDto dto)
         {
@@ -67,7 +67,7 @@ namespace SupplierService.Controllers
             return purchaseOrder == null ? NotFound() : Ok(purchaseOrder);
         }
 
-       
+      
         [HttpPut("{id}/update-status")]
         public async Task<IActionResult> UpdateStatus(int id, [FromBody] UpdatePurchaseOrderStatusDto dto)
         {

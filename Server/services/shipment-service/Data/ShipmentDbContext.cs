@@ -18,7 +18,7 @@ public class ShipmentDbContext : DbContext
     {
         base.OnModelCreating(modelBuilder);
         
-       
+  
         modelBuilder.Entity<Shipment>()
             .HasOne(s => s.Driver)
             .WithMany(d => d.Shipments)
@@ -30,6 +30,12 @@ public class ShipmentDbContext : DbContext
             .WithMany(v => v.Shipments)
             .HasForeignKey(s => s.VehicleId)
             .OnDelete(DeleteBehavior.SetNull);
+
+        modelBuilder.Entity<Vehicle>()
+            .HasOne(v => v.Driver)
+            .WithMany(d => d.Vehicles)
+            .HasForeignKey(v => v.DriverId)
+            .OnDelete(DeleteBehavior.SetNull);
             
         modelBuilder.Entity<ShipmentItem>()
             .HasOne(si => si.Shipment)
@@ -37,7 +43,7 @@ public class ShipmentDbContext : DbContext
             .HasForeignKey(si => si.ShipmentId)
             .OnDelete(DeleteBehavior.Cascade);
             
-       
+  
         modelBuilder.Entity<Shipment>()
             .HasIndex(s => s.TrackingNumber)
             .IsUnique();
@@ -60,5 +66,8 @@ public class ShipmentDbContext : DbContext
         modelBuilder.Entity<Vehicle>()
             .HasIndex(v => v.PlateNumber)
             .IsUnique();
+
+        modelBuilder.Entity<Vehicle>()
+            .HasIndex(v => v.DriverId);
     }
 }

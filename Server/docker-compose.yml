@@ -98,6 +98,8 @@ services:
     depends_on:
       mssql:
         condition: service_healthy
+    env_file:
+      - .env.local
     environment:
       - ASPNETCORE_ENVIRONMENT=Development
       - ASPNETCORE_URLS=http://+:80
@@ -108,8 +110,8 @@ services:
       - Services__InventoryService=http://inventory-service:80
       - Services__WarehouseService=http://warehouse-service:80
       - Services__ShipmentService=http://shipment-service:80
-      - Stripe__SecretKey=YOUR_STRIPE_SECRET_KEY
-      - Stripe__PublishableKey=pk_test_51SZvQfKCIdvvVhXAhi8H9VOBq1v5GG73BHBqBeKcx8DAM2NQgAzzWZzSCdrXeHkz7N9Q6nBOAW8q0bcaFsWOhfXV00ARu4owUK
+      - Stripe__SecretKey=${STRIPE_SECRET_KEY}
+      - Stripe__PublishableKey=${STRIPE_PUBLISHABLE_KEY}
     ports:
       - "5002:80"
     networks:
@@ -268,7 +270,6 @@ services:
   api-gateway:
     build: ./api-gateway
     container_name: api-gateway
-   
     depends_on:
       - auth-service
       - product-service
