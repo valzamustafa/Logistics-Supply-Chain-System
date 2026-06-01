@@ -3,6 +3,7 @@ using InventoryService.Models;
 using InventoryService.Repositories.Interfaces;
 using InventoryService.Services.Interfaces;
 using System.Net.Http.Json;
+using BuildingBlocks;
 
 namespace InventoryService.Business
 {
@@ -11,15 +12,18 @@ namespace InventoryService.Business
         private readonly IInventoryRepository _inventoryRepository;
         private readonly IHttpClientFactory _httpClientFactory;
         private readonly IConfiguration _configuration;
+        private readonly INotificationClient _notificationClient;
 
         public InventoryService(
             IInventoryRepository inventoryRepository,
             IHttpClientFactory httpClientFactory,
-            IConfiguration configuration)
+            IConfiguration configuration,
+            INotificationClient notificationClient)
         {
             _inventoryRepository = inventoryRepository;
             _httpClientFactory = httpClientFactory;
             _configuration = configuration;
+            _notificationClient = notificationClient;
         }
 
         public async Task<InventoryDto?> GetInventoryAsync(int productId, int warehouseId)
@@ -52,7 +56,7 @@ namespace InventoryService.Business
 
         public async Task<StockMovementDto> UpdateStockAsync(UpdateStockDto request)
         {
-          
+           
             if (request.Type == "OUT")
             {
                 var currentInventory = await _inventoryRepository.GetByProductAndWarehouseAsync(
@@ -71,7 +75,7 @@ namespace InventoryService.Business
                 }
             }
 
-          
+      
             if (request.Type == "RELEASE")
             {
                 var currentInventory = await _inventoryRepository.GetByProductAndWarehouseAsync(
@@ -98,6 +102,12 @@ namespace InventoryService.Business
 
             var result = await _inventoryRepository.UpdateStockAsync(movement, request.WarehouseId);
             
+           
+            await SendNotificationToRoleAsync("Admin,Manager,WarehouseStaff", "StockMovement",
+                $"Stock {request.Type} for Product {request.ProductId}",
+                $"Stock movement recorded: {request.Type} - Quantity: {request.Quantity}, Warehouse: {request.WarehouseId}, Reference: {request.ReferenceType} #{request.ReferenceId}",
+                $"/inventory/movements");
+            
             return new StockMovementDto
             {
                 Id = result.Id,
@@ -111,7 +121,7 @@ namespace InventoryService.Business
             };
         }
 
-       
+      
         public async Task<IEnumerable<LowStockAlertDto>> GetLowStockAlertsAsync()
         {
             var allInventory = await _inventoryRepository.GetAllAsync();
@@ -121,7 +131,7 @@ namespace InventoryService.Business
             {
                 if (inventory.ReorderLevel.HasValue && inventory.Quantity <= inventory.ReorderLevel.Value)
                 {
-                    alerts.Add(new LowStockAlertDto
+                    var alert = new LowStockAlertDto
                     {
                         Id = inventory.Id,
                         InventoryId = inventory.Id,
@@ -130,7 +140,14 @@ namespace InventoryService.Business
                         ThresholdLevel = inventory.ReorderLevel.Value,
                         IsResolved = false,
                         CreatedAt = DateTime.UtcNow
-                    });
+                    };
+                    alerts.Add(alert);
+
+                  
+                    await SendNotificationToRoleAsync("Admin,Manager,WarehouseStaff", "LowStock",
+                        $"Low Stock Alert - Product {inventory.ProductId}",
+                        $"Stock level for product {inventory.ProductId} has fallen below reorder level. Current: {inventory.Quantity}, Threshold: {inventory.ReorderLevel.Value}",
+                        $"/inventory/low-stock-alerts");
                 }
             }
 
@@ -149,7 +166,7 @@ namespace InventoryService.Business
             return availableQuantity >= quantity;
         }
 
-        
+       
         public async Task<bool> ReserveStockAsync(int productId, int warehouseId, int quantity, string referenceType, int referenceId)
         {
             var inventory = await _inventoryRepository.GetByProductAndWarehouseAsync(productId, warehouseId);
@@ -178,7 +195,6 @@ namespace InventoryService.Business
             return true;
         }
 
-        
         public async Task<bool> ReleaseStockAsync(int productId, int warehouseId, int quantity, string referenceType, int referenceId)
         {
             var inventory = await _inventoryRepository.GetByProductAndWarehouseAsync(productId, warehouseId);
@@ -203,7 +219,7 @@ namespace InventoryService.Business
             return true;
         }
 
-       
+   
         public async Task<bool> DeductStockAsync(int productId, int warehouseId, int quantity, string referenceType, int referenceId, string? notes)
         {
             var inventory = await _inventoryRepository.GetByProductAndWarehouseAsync(productId, warehouseId);
@@ -232,7 +248,7 @@ namespace InventoryService.Business
             return true;
         }
 
-      
+
         public async Task<bool> RestoreStockAsync(int productId, int warehouseId, int quantity, string referenceType, int referenceId, string? notes)
         {
             var movement = new StockMovement
@@ -265,7 +281,7 @@ namespace InventoryService.Business
                 ReorderLevel = inventory.ReorderLevel
             };
 
-           
+         
             try
             {
                 var productClient = _httpClientFactory.CreateClient();
@@ -285,7 +301,7 @@ namespace InventoryService.Business
                 dto.ProductName = $"Product {inventory.ProductId}";
             }
 
-           
+     
             try
             {
                 var warehouseClient = _httpClientFactory.CreateClient();
@@ -306,6 +322,24 @@ namespace InventoryService.Business
             }
 
             return dto;
+        }
+
+    
+        
+        private async Task SendNotificationToRoleAsync(string roles, string type, string title, string message, string? actionUrl = null)
+        {
+            try
+            {
+                var roleList = roles.Split(',').Select(r => r.Trim()).ToList();
+                foreach (var role in roleList)
+                {
+                    await _notificationClient.SendNotificationToRoleAsync(role, type, title, message, actionUrl);
+                }
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"Failed to send notification to roles {roles}: {ex.Message}");
+            }
         }
     }
 }

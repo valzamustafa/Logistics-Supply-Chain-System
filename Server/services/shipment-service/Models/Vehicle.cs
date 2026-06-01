@@ -16,11 +16,22 @@ public class Vehicle
     public int Capacity { get; set; }
     
     public bool IsAvailable { get; set; } = true;
+
+    public int? DriverId { get; set; }
+
+    public string VehicleType { get; set; } = "truck";
+
+    public int? Year { get; set; }
+
+    public string? Color { get; set; }
+
+    public string? ImageUrl { get; set; }
     
     public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
     public DateTime? UpdatedAt { get; set; }
     public int? CreatedBy { get; set; }
     public int? UpdatedBy { get; set; }
     
+    public virtual Driver? Driver { get; set; }
     public virtual ICollection<Shipment> Shipments { get; set; } = new List<Shipment>();
 }

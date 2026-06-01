@@ -47,7 +47,7 @@ builder.Services.AddSwaggerGen(c =>
     });
 });
 
-// CORS
+
 builder.Services.AddCors(options =>
 {
     options.AddPolicy("AllowFrontend", policy =>
@@ -73,7 +73,7 @@ builder.Services.AddCors(options =>
     });
 });
 
-// Database Connection
+
 var authConnectionString = builder.Configuration.GetConnectionString("AuthDB")
     ?? builder.Configuration.GetConnectionString("DefaultConnection")
     ?? "Server=(localdb)\\mssqllocaldb;Database=AuthServiceDB;Trusted_Connection=True;TrustServerCertificate=True";
@@ -82,12 +82,12 @@ builder.Services.AddDbContext<AuthDbContext>(options =>
     options.UseSqlServer(authConnectionString)
            .ConfigureWarnings(warnings => warnings.Ignore(RelationalEventId.PendingModelChangesWarning)));
 
-// Repositories
+
 builder.Services.AddScoped<IUserRepository, UserRepository>();
 builder.Services.AddScoped<IRoleRepository, RoleRepository>();
 builder.Services.AddScoped<IUserRoleRepository, UserRoleRepository>();
 
-// Services
+
 builder.Services.AddScoped<IAuthService, AuthService.Services.Implementations.AuthService>();
 
 
@@ -96,21 +96,7 @@ builder.Services.AddHttpClient<INotificationClient, NotificationClient>(client =
     client.Timeout = TimeSpan.FromSeconds(10);
 });
 
-builder.Services.AddHttpClient("SupplierService", client =>
-{
-    var supplierServiceUrl = builder.Configuration["Services:SupplierService"] ?? "http://localhost:5000";
-    client.BaseAddress = new Uri(supplierServiceUrl);
-    client.DefaultRequestHeaders.Add("Accept", "application/json");
-});
 
-builder.Services.AddHttpClient("NotificationService", client =>
-{
-    var notificationServiceUrl = builder.Configuration["Services:NotificationService"] ?? "http://localhost:5003";
-    client.BaseAddress = new Uri(notificationServiceUrl);
-    client.DefaultRequestHeaders.Add("Accept", "application/json");
-});
-
-// JWT Authentication
 var jwtSettings = builder.Configuration.GetSection("Jwt");
 var secretKey = Encoding.UTF8.GetBytes(jwtSettings["Key"] ?? "YourSuperSecretKeyForAuthService123!");
 
@@ -133,6 +119,7 @@ builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
             RoleClaimType = ClaimTypes.Role
         };
         
+ 
         options.Events = new JwtBearerEvents
         {
             OnAuthenticationFailed = context =>
@@ -163,6 +150,7 @@ builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
         };
     });
 
+
 builder.Services.AddAuthorization(options =>
 {
     options.FallbackPolicy = new AuthorizationPolicyBuilder()
@@ -170,11 +158,27 @@ builder.Services.AddAuthorization(options =>
         .Build();
 });
 
+
+builder.Services.AddHttpClient("SupplierService", client =>
+{
+    var supplierServiceUrl = builder.Configuration["Services:SupplierService"] ?? "http://localhost:5000";
+    client.BaseAddress = new Uri(supplierServiceUrl);
+    client.DefaultRequestHeaders.Add("Accept", "application/json");
+});
+
+builder.Services.AddHttpClient("NotificationService", client =>
+{
+    var notificationServiceUrl = builder.Configuration["Services:NotificationService"] ?? "http://localhost:5003";
+    client.BaseAddress = new Uri(notificationServiceUrl);
+    client.DefaultRequestHeaders.Add("Accept", "application/json");
+});
+
+
 builder.Services.AddScoped<AuthDbSeeder>();
 
 var app = builder.Build();
 
-// Middleware
+
 app.UseCors("AllowFrontend");
 
 if (app.Environment.IsDevelopment())
@@ -187,15 +191,19 @@ app.UseAuthentication();
 app.UseAuthorization();
 app.MapControllers();
 
-
 using (var scope = app.Services.CreateScope())
 {
     var services = scope.ServiceProvider;
     try
     {
         var dbContext = services.GetRequiredService<AuthDbContext>();
+        
+
         await dbContext.Database.EnsureCreatedAsync();
+        
+
         await AuthDbSeeder.SeedDataAsync(dbContext);
+        
         Console.WriteLine("Database initialized successfully");
     }
     catch (Exception ex)

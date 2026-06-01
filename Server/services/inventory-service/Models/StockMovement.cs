@@ -15,10 +15,10 @@ namespace InventoryService.Models
         public int Quantity { get; set; }
         
         [Required, MaxLength(50)]
-        public string Type { get; set; } = string.Empty;
+        public string Type { get; set; } = string.Empty; 
         
         [MaxLength(50)]
-        public string? ReferenceType { get; set; }
+        public string? ReferenceType { get; set; } 
         
         public int? ReferenceId { get; set; }
         

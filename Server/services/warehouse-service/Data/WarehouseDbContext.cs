@@ -18,7 +18,7 @@ namespace WarehouseService.Data
         {
             base.OnModelCreating(modelBuilder);
 
-        
+
             modelBuilder.Entity<Warehouse>(entity =>
             {
                 entity.HasIndex(w => w.Name).IsUnique();
@@ -27,7 +27,6 @@ namespace WarehouseService.Data
                 entity.Property(w => w.Phone).HasMaxLength(20);
             });
 
-           
             modelBuilder.Entity<WarehouseZone>(entity =>
             {
                 entity.HasKey(z => z.Id);
@@ -40,7 +39,7 @@ namespace WarehouseService.Data
                     .OnDelete(DeleteBehavior.Cascade);
             });
 
-          
+     
             modelBuilder.Entity<WarehouseStaff>(entity =>
             {
                 entity.HasKey(s => s.Id);
@@ -52,7 +51,7 @@ namespace WarehouseService.Data
                     .OnDelete(DeleteBehavior.Cascade);
             });
 
-         
+    
             modelBuilder.Entity<WarehouseStock>(entity =>
             {
                 entity.HasKey(ws => ws.Id);
@@ -79,7 +78,7 @@ namespace WarehouseService.Data
                     .OnDelete(DeleteBehavior.Cascade);
             });
 
-    
+   
             modelBuilder.Entity<StockMovement>(entity =>
             {
                 entity.HasKey(sm => sm.Id);
@@ -106,7 +105,7 @@ namespace WarehouseService.Data
                     .OnDelete(DeleteBehavior.Cascade);
             });
 
-          
+       
             foreach (var entityType in modelBuilder.Model.GetEntityTypes())
             {
                 if (typeof(BaseEntity).IsAssignableFrom(entityType.ClrType))

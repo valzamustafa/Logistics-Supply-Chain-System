@@ -23,4 +23,5 @@ public class Driver
     public int? UpdatedBy { get; set; }
     
     public virtual ICollection<Shipment> Shipments { get; set; } = new List<Shipment>();
+    public virtual ICollection<Vehicle> Vehicles { get; set; } = new List<Vehicle>();
 }

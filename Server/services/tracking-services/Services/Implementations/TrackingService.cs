@@ -50,7 +50,7 @@ namespace TrackingService.Business
                 "Manager",
                 "TrackingCreated",
                 "Shipment Tracking Started",
-                $"Tracking initiated for Shipment {dto.ShipmentId}. Current status: {dto.Status}.",
+                $"Tracking initiated for Shipment {dto.ShipmentId}. Current status: {tracking.CurrentStatus}.",
                 $"/tracking/shipment/{dto.ShipmentId}"
             );
 

@@ -140,7 +140,7 @@ public class ShipmentServices : IShipmentService
         var created = await _shipmentRepository.CreateAsync(shipment);
         _logger.LogInformation("Shipment saved to repository: Id={ShipmentId}", created.Id);
 
-     
+      
         try
         {
             _logger.LogInformation("Sending warehouse notification for shipment {ShipmentId}", created.Id);

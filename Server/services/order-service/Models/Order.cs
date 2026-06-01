@@ -29,10 +29,10 @@ namespace OrderService.Models
         [Required, MaxLength(50)]
         public string Status { get; set; } = "Pending";
         
-
+    
         public int? WarehouseId { get; set; }
         
-     
+      
         [MaxLength(50)]
         public string? ProcessingStatus { get; set; } 
         

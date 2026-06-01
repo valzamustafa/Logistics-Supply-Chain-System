@@ -1,4 +1,3 @@
-
 using Microsoft.EntityFrameworkCore;
 using WarehouseService.Data;
 using WarehouseService.Models;
@@ -15,7 +14,7 @@ namespace WarehouseService.Repositories.Implementations
             _context = context;
         }
 
-     
+      
         public async Task<Warehouse?> GetWarehouseByIdAsync(int id)
         {
             return await _context.Warehouses
@@ -56,7 +55,8 @@ namespace WarehouseService.Repositories.Implementations
             }
         }
 
-              public async Task<WarehouseStock?> GetStockByIdAsync(int id)
+      
+        public async Task<WarehouseStock?> GetStockByIdAsync(int id)
         {
             return await _context.WarehouseStocks
                 .Include(ws => ws.Warehouse)
@@ -148,7 +148,7 @@ namespace WarehouseService.Repositories.Implementations
             return await query.ToListAsync();
         }
 
-   
+      
         public async Task<WarehouseZone?> GetZoneByIdAsync(int id)
         {
             return await _context.WarehouseZones.FindAsync(id);

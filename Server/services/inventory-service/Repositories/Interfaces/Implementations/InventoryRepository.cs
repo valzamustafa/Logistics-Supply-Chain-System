@@ -59,7 +59,7 @@ namespace InventoryService.Repositories.Implementations
                     _context.Inventories.Add(inventory);
                 }
 
-              
+                // Update quantity based on movement type
                 if (movement.Type == "IN")
                     inventory.Quantity += movement.Quantity;
                 else if (movement.Type == "OUT")

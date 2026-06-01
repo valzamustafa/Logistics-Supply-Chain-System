@@ -179,6 +179,19 @@ using (var scope = app.Services.CreateScope())
                     {
                         needsRecreate = true;
                     }
+
+                    var hasVehicleDriverId = await dbContext.Database
+                        .SqlQueryRaw<int>("SELECT CASE WHEN EXISTS(SELECT * FROM INFORMATION_SCHEMA.COLUMNS WHERE TABLE_NAME = 'Vehicles' AND COLUMN_NAME = 'DriverId') THEN 1 ELSE 0 END AS [Value]")
+                        .SingleAsync();
+
+                    var hasVehicleImageUrl = await dbContext.Database
+                        .SqlQueryRaw<int>("SELECT CASE WHEN EXISTS(SELECT * FROM INFORMATION_SCHEMA.COLUMNS WHERE TABLE_NAME = 'Vehicles' AND COLUMN_NAME = 'ImageUrl') THEN 1 ELSE 0 END AS [Value]")
+                        .SingleAsync();
+
+                    if (hasVehicleDriverId == 0 || hasVehicleImageUrl == 0)
+                    {
+                        needsRecreate = true;
+                    }
                 }
                 catch (Exception ex)
                 {

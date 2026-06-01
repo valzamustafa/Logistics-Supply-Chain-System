@@ -44,7 +44,7 @@ namespace SupplierService.Services.Interfaces
         Task<byte[]> GenerateInvoicePdfAsync(int purchaseOrderId);
         Task<PaymentResponseDto?> GetPaymentByIdAsync(int id);
         
-
+     
         Task SendNotificationAsync(int userId, string type, string title, string message, string? actionUrl = null);
         Task SendNotificationToRoleAsync(string role, string type, string title, string message, string? actionUrl = null);
     }

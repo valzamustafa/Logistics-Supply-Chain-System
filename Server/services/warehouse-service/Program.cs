@@ -1,4 +1,3 @@
-
 using Microsoft.EntityFrameworkCore;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.Authorization;
@@ -63,6 +62,7 @@ builder.Services.AddScoped<IWarehouseRepository, WarehouseRepository>();
 
 
 builder.Services.AddScoped<IWarehouseService, WarehouseService.Business.WarehouseService>();
+
 
 builder.Services.AddHttpClient<INotificationClient, NotificationClient>(client =>
 {
@@ -171,13 +171,14 @@ app.UseAuthentication();
 app.UseAuthorization();
 app.MapControllers();
 
+
 using (var scope = app.Services.CreateScope())
 {
     var dbContext = scope.ServiceProvider.GetRequiredService<WarehouseDbContext>();
     var logger = scope.ServiceProvider.GetRequiredService<ILogger<Program>>();
     try
     {
-        
+       
         await dbContext.Database.EnsureCreatedAsync();
         logger.LogInformation("Database schema ensured successfully");
     }

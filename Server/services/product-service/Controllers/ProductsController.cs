@@ -1,5 +1,4 @@
-
- using System;
+using System;
 using System.IO;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.Http;
@@ -88,7 +87,7 @@ namespace ProductService.Controllers
             {
                 var created = await _productService.CreateProductAsync(product);
                 
-               
+                // Send notification to all staff
                 await _notificationClient.SendNotificationToRoleAsync(
                     "Admin",
                     "ProductCreated",
@@ -135,7 +134,8 @@ namespace ProductService.Controllers
             {
                 var updated = await _productService.UpdateProductAsync(product);
                 
-                
+             
+             
                 await _notificationClient.SendNotificationToRoleAsync(
                     "Admin",
                     "ProductUpdated",
@@ -171,7 +171,8 @@ namespace ProductService.Controllers
             if (!deleted)
                 return NotFound();
             
-         
+          
+          
             await _notificationClient.SendNotificationToRoleAsync(
                 "Admin",
                 "ProductDeleted",
@@ -259,7 +260,7 @@ namespace ProductService.Controllers
         [HttpPost("categories")]
         public async Task<IActionResult> CreateCategory([FromBody] Category category)
         {
-            
+
             return BadRequest(new { message = "Category creation is not implemented." });
         }
     }
