@@ -1,9 +1,12 @@
 using Microsoft.AspNetCore.Mvc;
 using OrderService.DTOs;
 using OrderService.Services.Interfaces;
+using OrderService.Hubs;
 using BuildingBlocks;
 using System.Net.Http.Headers;
 using System.Text.Json;
+using Microsoft.AspNetCore.SignalR;
+using System.Security.Claims;
 
 namespace OrderService.Controllers
 {
@@ -16,19 +19,22 @@ namespace OrderService.Controllers
         private readonly IConfiguration _configuration;
         private readonly INotificationClient _notificationClient;
         private readonly ILogger<OrdersController> _logger;
+        private readonly IHubContext<DashboardHub> _hubContext;
 
         public OrdersController(
             IOrderService orderService, 
             IHttpClientFactory httpClientFactory, 
             IConfiguration configuration,
             INotificationClient notificationClient,
-            ILogger<OrdersController> logger)
+            ILogger<OrdersController> logger,
+            IHubContext<DashboardHub> hubContext)
         {
             _orderService = orderService;
             _httpClientFactory = httpClientFactory;
             _configuration = configuration;
             _notificationClient = notificationClient;
             _logger = logger;
+            _hubContext = hubContext;
         }
 
         [HttpGet]
@@ -84,7 +90,7 @@ namespace OrderService.Controllers
             {
                 var order = await _orderService.CreateOrderAsync(request);
                 
-              
+             
                 await _notificationClient.SendNotificationAsync(
                     request.UserId,
                     "OrderCreated",
@@ -162,7 +168,7 @@ namespace OrderService.Controllers
             {
                 var order = await _orderService.UpdateOrderStatusAsync(id, request.Status);
                 
-             
+               
                 string message = request.Status switch
                 {
                     "Processing" => "Your order is being processed.",
@@ -179,12 +185,72 @@ namespace OrderService.Controllers
                     message,
                     $"/orders/{order.Id}"
                 );
+
+                
+                var currentUser = GetCurrentUserName();
+                await BroadcastOrderUpdateToShipmentService(order.Id, order.Id, request.Status, currentUser);
+
+               
+                await _hubContext.Clients.All.SendAsync("ReceiveOrderUpdate", new
+                {
+                    orderId = order.Id,
+                    purchaseOrderId = order.Id,
+                    status = request.Status,
+                    purchaseOrderStatus = request.Status,
+                    actor = currentUser
+                });
                 
                 return Ok(order);
             }
             catch (InvalidOperationException)
             {
                 return NotFound(new { message = $"Order with ID {id} not found" });
+            }
+        }
+
+        private string GetCurrentUserName()
+        {
+            var user = User.FindFirst(ClaimTypes.NameIdentifier)?.Value ?? "System";
+            var email = User.FindFirst(ClaimTypes.Email)?.Value;
+            return !string.IsNullOrEmpty(email) ? email : user;
+        }
+
+        private async Task BroadcastOrderUpdateToShipmentService(int orderId, int purchaseOrderId, string status, string actor)
+        {
+            try
+            {
+                var shipmentServiceUrl = _configuration["Services:ShipmentService"] ?? "http://localhost:5004";
+                var client = _httpClientFactory.CreateClient();
+                
+                
+                client.DefaultRequestHeaders.Add("X-Internal-Request", "true");
+
+                var updateData = new
+                {
+                    orderId,
+                    purchaseOrderId,
+                    status,
+                    actor
+                };
+
+                var content = new StringContent(
+                    System.Text.Json.JsonSerializer.Serialize(updateData),
+                    System.Text.Encoding.UTF8,
+                    "application/json");
+
+                var response = await client.PostAsync(
+                    $"{shipmentServiceUrl}/api/shipments/broadcast-order-update",
+                    content);
+
+                if (!response.IsSuccessStatusCode)
+                {
+                    _logger.LogWarning("Failed to broadcast order update to shipment service: {StatusCode}", response.StatusCode);
+                }
+            }
+            catch (Exception ex)
+            {
+                _logger.LogWarning(ex, "Error broadcasting order update to shipment service");
+              
             }
         }
 
@@ -205,12 +271,25 @@ namespace OrderService.Controllers
                     $"Your order #{order.OrderNumber} has been cancelled.",
                     $"/orders/{order.Id}"
                 );
+
+               
+                var currentUser = GetCurrentUserName();
+                await BroadcastOrderUpdateToShipmentService(order.Id, order.Id, "Cancelled", currentUser);
+                
+                await _hubContext.Clients.All.SendAsync("ReceiveOrderUpdate", new
+                {
+                    orderId = order.Id,
+                    purchaseOrderId = order.Id,
+                    status = "Cancelled",
+                    purchaseOrderStatus = "Cancelled",
+                    actor = currentUser
+                });
             }
             
             return Ok(new { message = "Order cancelled successfully" });
         }
 
-        
+
 
         [HttpPost("{id}/select-warehouse")]
         public async Task<IActionResult> SelectWarehouse(int id, [FromBody] SelectWarehouseRequest? request)
@@ -292,6 +371,19 @@ namespace OrderService.Controllers
                     $"Your order #{order.OrderNumber} has started processing.",
                     $"/orders/{order.Id}"
                 );
+
+             
+                var currentUser = GetCurrentUserName();
+                await BroadcastOrderUpdateToShipmentService(order.Id, order.Id, "Processing", currentUser);
+                
+                await _hubContext.Clients.All.SendAsync("ReceiveOrderUpdate", new
+                {
+                    orderId = order.Id,
+                    purchaseOrderId = order.Id,
+                    status = "Processing",
+                    purchaseOrderStatus = "Processing",
+                    actor = currentUser
+                });
                 
                 return Ok(order);
             }
@@ -307,6 +399,20 @@ namespace OrderService.Controllers
             try
             {
                 var order = await _orderService.CompletePickingAsync(id);
+                
+                
+                var currentUser = GetCurrentUserName();
+                await BroadcastOrderUpdateToShipmentService(order.Id, order.Id, order.Status, currentUser);
+                
+                await _hubContext.Clients.All.SendAsync("ReceiveOrderUpdate", new
+                {
+                    orderId = order.Id,
+                    purchaseOrderId = order.Id,
+                    status = order.Status,
+                    purchaseOrderStatus = order.Status,
+                    actor = currentUser
+                });
+                
                 return Ok(order);
             }
             catch (Exception ex)
@@ -321,6 +427,20 @@ namespace OrderService.Controllers
             try
             {
                 var order = await _orderService.CompletePackingAsync(id);
+                
+               
+                var currentUser = GetCurrentUserName();
+                await BroadcastOrderUpdateToShipmentService(order.Id, order.Id, order.Status, currentUser);
+                
+                await _hubContext.Clients.All.SendAsync("ReceiveOrderUpdate", new
+                {
+                    orderId = order.Id,
+                    purchaseOrderId = order.Id,
+                    status = order.Status,
+                    purchaseOrderStatus = order.Status,
+                    actor = currentUser
+                });
+                
                 return Ok(order);
             }
             catch (Exception ex)

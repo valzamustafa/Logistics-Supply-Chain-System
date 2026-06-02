@@ -26,6 +26,7 @@ builder.Services.AddDbContext<NotificationDbContext>(options =>
 
 builder.Services.AddScoped<INotificationRepository, NotificationRepository>();
 builder.Services.AddScoped<INotificationService, NotificationService.Business.NotificationService>();
+builder.Services.AddScoped<NotificationService.Services.Interfaces.IChatService, NotificationService.Services.Implementations.ChatService>();
 
 
 builder.Services.AddCors(options =>
@@ -81,7 +82,7 @@ builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
                 var accessToken = context.Request.Query["access_token"].FirstOrDefault();
                 var authHeader = context.Request.Headers["Authorization"].ToString();
                 var path = context.HttpContext.Request.Path;
-                if (path.StartsWithSegments("/notificationsHub"))
+                if (path.StartsWithSegments("/notificationsHub") || path.StartsWithSegments("/chatHub"))
                 {
                     if (!string.IsNullOrEmpty(accessToken))
                     {
@@ -119,6 +120,7 @@ app.UseAuthentication();
 app.UseAuthorization();
 app.MapControllers();
 app.MapHub<NotificationHub>("/notificationsHub");
+app.MapHub<NotificationService.Hubs.ChatHub>("/chatHub");
 
 using (var scope = app.Services.CreateScope())
 {

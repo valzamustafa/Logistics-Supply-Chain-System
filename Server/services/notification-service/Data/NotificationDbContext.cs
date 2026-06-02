@@ -9,5 +9,6 @@ namespace NotificationService.Data
 
         public DbSet<Notification> Notifications { get; set; }
         public DbSet<NotificationTemplate> NotificationTemplates { get; set; }
+        public DbSet<NotificationService.Models.ChatMessage> ChatMessages { get; set; }
     }
 }

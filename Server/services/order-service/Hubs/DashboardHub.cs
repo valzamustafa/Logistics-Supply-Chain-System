@@ -1,0 +1,41 @@
+using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.SignalR;
+
+namespace OrderService.Hubs
+{
+    [Authorize]
+    public class DashboardHub : Hub
+    {
+        public async Task SendShipmentUpdate(object shipment)
+        {
+            await Clients.All.SendAsync("ReceiveShipmentUpdate", shipment);
+        }
+
+        public async Task SendOrderUpdate(object update)
+        {
+            await Clients.All.SendAsync("ReceiveOrderUpdate", update);
+        }
+
+        public async Task SendNewShipment(object shipment)
+        {
+            await Clients.All.SendAsync("ReceiveNewShipment", shipment);
+        }
+
+        public async Task SendStatsUpdate(object stats)
+        {
+            await Clients.All.SendAsync("ReceiveStatsUpdate", stats);
+        }
+
+        public override async Task OnConnectedAsync()
+        {
+            await Clients.All.SendAsync("UserConnected", Context.ConnectionId);
+            await base.OnConnectedAsync();
+        }
+
+        public override async Task OnDisconnectedAsync(Exception exception)
+        {
+            await Clients.All.SendAsync("UserDisconnected", Context.ConnectionId);
+            await base.OnDisconnectedAsync(exception);
+        }
+    }
+}
