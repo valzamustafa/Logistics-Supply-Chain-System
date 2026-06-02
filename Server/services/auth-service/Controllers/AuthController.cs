@@ -40,7 +40,7 @@ namespace AuthService.Controllers
             if (response == null)
                 return BadRequest(new { message = "User with this email already exists" });
 
-        
+           
             var fullName = $"{response.FirstName} {response.LastName}";
             await _notificationClient.SendNotificationToRoleAsync(
                 "Admin",
@@ -99,6 +99,22 @@ namespace AuthService.Controllers
             return Ok(users);
         }
 
+        
+        [Authorize]
+        [HttpGet("users/chat")]
+        public async Task<IActionResult> GetChatUsers()
+        {
+            var users = await _authService.GetAllUsersAsync();
+            var minimal = users.Select(u => new {
+                id = u.Id,
+                firstName = u.FirstName,
+                lastName = u.LastName,
+                email = u.Email,
+                roles = u.Roles
+            });
+            return Ok(minimal);
+        }
+
         [Authorize(Roles = "Admin,Manager")]
         [HttpGet("{id}")]
         public async Task<IActionResult> GetUser(int id)
@@ -117,7 +133,7 @@ namespace AuthService.Controllers
             if (user == null)
                 return NotFound();
             
-
+          
             var fullName = $"{user.FirstName} {user.LastName}";
             await _notificationClient.SendNotificationToRoleAsync(
                 "Admin",
@@ -142,7 +158,7 @@ namespace AuthService.Controllers
             if (!deleted)
                 return NotFound();
             
-           
+            
             var fullName = $"{user.FirstName} {user.LastName}";
             await _notificationClient.SendNotificationToRoleAsync(
                 "Admin",
@@ -169,6 +185,7 @@ namespace AuthService.Controllers
             if (!result)
                 return BadRequest(new { message = "Failed to assign role" });
             
+           
             var userFullName = $"{user.FirstName} {user.LastName}";
             await _notificationClient.SendNotificationToRoleAsync(
                 "Admin",
@@ -195,7 +212,7 @@ namespace AuthService.Controllers
             if (!result)
                 return BadRequest(new { message = "Failed to remove role" });
             
-
+           
             var userFullName = $"{user.FirstName} {user.LastName}";
             await _notificationClient.SendNotificationToRoleAsync(
                 "Admin",
@@ -302,6 +319,7 @@ namespace AuthService.Controllers
         }
 
         
+        
         [AllowAnonymous]
         [HttpGet("users/by-email/{email}")]
         public async Task<IActionResult> GetUserByEmail(string email)
@@ -326,7 +344,7 @@ namespace AuthService.Controllers
             });
         }
 
-      
+       
         [AllowAnonymous]
         [HttpGet("roles/{roleName}/users")]
         public async Task<IActionResult> GetUsersByRole(string roleName)
@@ -339,8 +357,7 @@ namespace AuthService.Controllers
             return Ok(userIds);
         }
 
-    
-        [AllowAnonymous]
+       
         [HttpPost("roles/users/by-roles")]
         public async Task<IActionResult> GetUsersByRoles([FromBody] List<string> roleNames)
         {
@@ -379,7 +396,7 @@ namespace AuthService.Controllers
             });
         }
 
-
+    
         [AllowAnonymous]
         [HttpGet("users/exists/{email}")]
         public async Task<IActionResult> UserExists(string email)

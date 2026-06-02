@@ -188,6 +188,29 @@
       ,"Priority": 1
     },
     {
+      "DownstreamPathTemplate": "/chatHub",
+      "DownstreamScheme": "http",
+      "DownstreamHostAndPorts": [{ "Host": "notification-service", "Port": 80 }],
+      "UpstreamPathTemplate": "/chatHub",
+      "UpstreamHttpMethod": [ "GET", "OPTIONS" ],
+      "Priority": 2
+    },
+    {
+      "DownstreamPathTemplate": "/chatHub/{everything}",
+      "DownstreamScheme": "http",
+      "DownstreamHostAndPorts": [{ "Host": "notification-service", "Port": 80 }],
+      "UpstreamPathTemplate": "/chatHub/{everything}",
+      "UpstreamHttpMethod": [ "GET", "POST", "OPTIONS" ],
+      "Priority": 1
+    },
+    {
+      "DownstreamPathTemplate": "/api/chat/{everything}",
+      "DownstreamScheme": "http",
+      "DownstreamHostAndPorts": [{ "Host": "notification-service", "Port": 80 }],
+      "UpstreamPathTemplate": "/api/chat/{everything}",
+      "UpstreamHttpMethod": [ "GET", "POST", "OPTIONS" ]
+    },
+    {
       "DownstreamPathTemplate": "/dashboardHub",
       "DownstreamScheme": "http",
       "DownstreamHostAndPorts": [{ "Host": "report-service", "Port": 80 }],

@@ -212,7 +212,7 @@ public class ShipmentsController : ControllerBase
     {
         try
         {
-       
+           
             var shipmentModel = await _shipmentService.UpdateStatusAsync(id, request.Status);
             
             if (shipmentModel == null)
@@ -228,10 +228,10 @@ public class ShipmentsController : ControllerBase
                 _ => "Shipped"
             };
 
-        
+            
             await UpdateSupplierPurchaseOrderStatus(shipmentModel, request, purchaseOrderStatus);
             
-      
+           
             var statusMessage = request.Status switch
             {
                 "Pending" => "waiting for processing",
@@ -413,7 +413,7 @@ public async Task<IActionResult> NotifySupplier(int id, [FromBody] NotifySupplie
         if (shipment == null)
             return NotFound();
         
-     
+        // Call supplier API to update order status
         var supplierApiUrl = _configuration["Services:SupplierService"] ?? "http://localhost:5000";
         var endpoint = $"{supplierApiUrl}/api/purchaseorders/{shipment.OrderId}/confirm-shipment";
         
@@ -478,8 +478,40 @@ public class NotifySupplierDto
         if (shipment == null)
             return NotFound();
         
- 
+       
         return Ok(shipment);
+    }
+
+    [HttpPost("broadcast-order-update")]
+    [AllowAnonymous]
+    public async Task<IActionResult> BroadcastOrderUpdate([FromBody] BroadcastOrderUpdateDto request)
+    {
+       
+        var isInternal = HttpContext.Request.Headers.TryGetValue("X-Internal-Request", out var internalHeader) 
+            && internalHeader == "true";
+        
+        if (!isInternal)
+            return Unauthorized(new { message = "This endpoint is for internal service communication only" });
+
+        try
+        {
+           
+            await _hubContext.Clients.All.SendAsync("ReceiveOrderUpdate", new
+            {
+                orderId = request.OrderId,
+                purchaseOrderId = request.PurchaseOrderId,
+                status = request.Status,
+                purchaseOrderStatus = request.Status,
+                actor = request.Actor ?? "System"
+            });
+
+            return Ok(new { success = true, message = "Order update broadcasted" });
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error broadcasting order update for order {OrderId}", request.OrderId);
+            return StatusCode(500, new { success = false, message = ex.Message });
+        }
     }
 
     private bool HasShipmentPermission()
@@ -500,4 +532,12 @@ public class NotifySupplierDto
 
         return roleClaims.Any(c => allowedRoles.Any(role => string.Equals(c.Value, role, StringComparison.OrdinalIgnoreCase)));
     }
+}
+
+public class BroadcastOrderUpdateDto
+{
+    public int OrderId { get; set; }
+    public int PurchaseOrderId { get; set; }
+    public string Status { get; set; } = string.Empty;
+    public string? Actor { get; set; }
 }

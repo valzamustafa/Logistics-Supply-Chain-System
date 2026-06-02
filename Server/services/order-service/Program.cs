@@ -9,6 +9,7 @@ using OrderService.Repositories.Implementations;
 using OrderService.Services.Interfaces;
 using OrderService.Business;
 using OrderService.Filters;
+using OrderService.Hubs;
 using BuildingBlocks;
 
 var builder = WebApplication.CreateBuilder(args);
@@ -55,6 +56,9 @@ builder.Services.AddHttpClient<INotificationClient, NotificationClient>(client =
 {
     client.Timeout = TimeSpan.FromSeconds(10);
 });
+
+
+builder.Services.AddSignalR();
 
 
 var jwtKey = builder.Configuration["Jwt:Key"];
@@ -114,6 +118,7 @@ app.UseCors("AllowFrontend");
 app.UseAuthentication();
 app.UseAuthorization();
 app.MapControllers();
+app.MapHub<DashboardHub>("/dashboardHub");
 
 try
 {

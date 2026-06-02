@@ -48,7 +48,18 @@ namespace NotificationService.Business
 
         public async Task<NotificationDto> SendNotificationAsync(SendNotificationDto dto)
         {
-            return await CreateNotificationAsync(dto.UserId, dto.Type, dto.Title, dto.Message, dto.ActionUrl);
+            var notification = await CreateNotificationAsync(dto.UserId, dto.Type, dto.Title, dto.Message, dto.ActionUrl);
+           
+            try
+            {
+                await _hubContext.Clients.Group($"user-{dto.UserId}").SendAsync("ReceiveNotification", notification);
+                await _hubContext.Clients.Group($"user-{dto.UserId}").SendAsync("EntityUpdated", new { Type = dto.Type, Notification = notification });
+            }
+            catch
+            {
+             
+            }
+            return notification;
         }
 
         public async Task<IEnumerable<NotificationDto>> SendNotificationToRoleAsync(SendNotificationToRoleDto dto)
@@ -90,7 +101,15 @@ namespace NotificationService.Business
             {
                 var notification = await CreateNotificationAsync(userId, type, title, message, actionUrl);
                 results.Add(notification);
-                await _hubContext.Clients.Group($"user-{userId}").SendAsync("ReceiveNotification", notification);
+                try
+                {
+                    await _hubContext.Clients.Group($"user-{userId}").SendAsync("ReceiveNotification", notification);
+                    await _hubContext.Clients.Group($"user-{userId}").SendAsync("EntityUpdated", new { Type = type, Notification = notification });
+                }
+                catch
+                {
+                  
+                }
             }
             return results;
         }
