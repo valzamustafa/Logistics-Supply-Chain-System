@@ -10,9 +10,10 @@ export const useNotifications = (userId?: number) => {
   const [isLoading, setIsLoading] = useState(false);
   const [open, setOpen] = useState(false);
 
+
   const loadNotifications = async () => {
     if (!userId) return;
-    
+
     setIsLoading(true);
     try {
       const [allNotifications, unread] = await Promise.all([
@@ -29,6 +30,7 @@ export const useNotifications = (userId?: number) => {
     }
   };
 
+
   const toggleOpen = () => {
     setOpen(prev => !prev);
   };
@@ -41,6 +43,7 @@ export const useNotifications = (userId?: number) => {
     loadNotifications();
   };
 
+
   useEffect(() => {
     if (!userId) return;
 
@@ -49,6 +52,7 @@ export const useNotifications = (userId?: number) => {
     const initializeSignalR = async () => {
       try {
         await signalRService.connect(userId);
+        try { await signalRService.connectToChat(userId); } catch {}
         if (mounted) {
           setIsConnected(true);
           setError(null);
@@ -64,7 +68,9 @@ export const useNotifications = (userId?: number) => {
 
     loadNotifications();
 
+
     initializeSignalR();
+
 
     const unsubscribe = signalRService.onNotificationReceived((notification: NotificationDto) => {
       if (mounted) {
@@ -74,6 +80,7 @@ export const useNotifications = (userId?: number) => {
         }
       }
     });
+
 
     return () => {
       mounted = false;
@@ -86,11 +93,11 @@ export const useNotifications = (userId?: number) => {
     try {
       await notificationService.markAsRead(notificationId);
       setNotifications(prev =>
-        prev.map(n =>
-          n.id === notificationId
-            ? { ...n, isRead: true, readAt: new Date().toISOString() }
-            : n
-        )
+          prev.map(n =>
+              n.id === notificationId
+                  ? { ...n, isRead: true, readAt: new Date().toISOString() }
+                  : n
+          )
       );
       setUnreadCount(prev => Math.max(0, prev - 1));
     } catch (err) {
@@ -107,7 +114,7 @@ export const useNotifications = (userId?: number) => {
     try {
       await notificationService.markAllAsRead(userId);
       setNotifications(prev =>
-        prev.map(n => ({ ...n, isRead: true, readAt: new Date().toISOString() }))
+          prev.map(n => ({ ...n, isRead: true, readAt: new Date().toISOString() }))
       );
       setUnreadCount(0);
     } catch (err) {
@@ -141,5 +148,3 @@ export const useNotifications = (userId?: number) => {
     refresh
   };
 };
-
-

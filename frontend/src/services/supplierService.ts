@@ -161,13 +161,13 @@ export const supplierService = {
   getProductsBySupplier: (supplierId: number) => api.get<SupplierProductDto[]>(`/api/suppliers/${supplierId}/products`),
   getAllSupplierProducts: () => api.get<SupplierProductDto[]>('/api/suppliers/all-products'),
   addSupplierProduct: (supplierId: number, data: CreateSupplierProductDto) => api.post<SupplierProductDto>(`/api/suppliers/${supplierId}/products`, data),
-  
+
   confirmShipment: (orderId: number, data: { actualDeliveryDate?: string | null; notes?: string }) =>
-    api.post<PurchaseOrderDto>(`/api/purchaseorders/${orderId}/confirm-shipment`, data),
-  
+      api.post<PurchaseOrderDto>(`/api/purchaseorders/${orderId}/confirm-shipment`, data),
+
   updatePurchaseOrderStatus: (orderId: number, data: { status: string; notes?: string }) =>
-    api.put<PurchaseOrderDto>(`/api/purchaseorders/${orderId}/status`, data),
-  
+      api.put<PurchaseOrderDto>(`/api/purchaseorders/${orderId}/update-status`, data),
+
   getInvoicePdf: async (orderId: number) => {
     const token = localStorage.getItem('token');
     const response = await fetch(`${API_BASE_URL}/api/suppliers/orders/${orderId}/invoice-pdf`, {
@@ -176,16 +176,16 @@ export const supplierService = {
     if (!response.ok) throw new Error('Failed to download invoice');
     return response.blob();
   },
-  
-createPayment: (orderId: number, data: CreatePaymentDto) =>
-    api.post<PaymentResponseDto>(`/api/suppliers/orders/${orderId}/payments`, data),
-  
+
+  createPayment: (orderId: number, data: CreatePaymentDto) =>
+      api.post<PaymentResponseDto>(`/api/suppliers/orders/${orderId}/payments`, data),
+
   createPurchaseOrder: (data: CreatePurchaseOrderDto) =>
-    api.post<PurchaseOrderDto>('/api/purchaseorders', data),
-  
+      api.post<PurchaseOrderDto>('/api/purchaseorders', data),
+
   createEmergencyPurchase: (data: CreateEmergencyPurchaseDto) =>
-    api.post('/api/suppliers/emergency-purchases', data),
-  
+      api.post('/api/suppliers/emergency-purchases', data),
+
   getAllPurchaseOrders: () => api.get<PurchaseOrderDto[]>('/api/purchaseorders'),
 };
 

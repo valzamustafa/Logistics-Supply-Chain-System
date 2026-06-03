@@ -1,4 +1,6 @@
+
 import { useState, useEffect } from 'react';
+import { signalRService } from '../services/signalRService';
 import { useAuth } from '../hooks/useAuth';
 import { orderService, Order, CreateOrderDto, CreateOrderItemDto } from '../services/orderService';
 import { productService, Product } from '../services/productService';
@@ -18,6 +20,22 @@ export function OrdersPage() {
 
   useEffect(() => {
     loadData();
+
+    const unsubscribe = signalRService.onEntityUpdated((payload) => {
+      try {
+        const type = payload?.Type ?? payload?.type ?? payload?.Notification?.type;
+        const actionUrl = payload?.Notification?.actionUrl ?? '';
+        if (typeof type === 'string' && type.toLowerCase().includes('order')) {
+          loadData();
+        } else if (typeof actionUrl === 'string' && actionUrl.toLowerCase().includes('/orders')) {
+          loadData();
+        }
+      } catch (err) {
+        console.error('Error handling entity update:', err);
+      }
+    });
+
+    return () => unsubscribe();
   }, []);
 
   const loadData = async () => {
@@ -69,8 +87,8 @@ export function OrdersPage() {
 
   const filteredOrders = orders.filter((order) => {
     const matchesSearch =
-      order.orderNumber.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      (order.shippingAddress?.toLowerCase().includes(searchTerm.toLowerCase()) || false);
+        order.orderNumber.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        (order.shippingAddress?.toLowerCase().includes(searchTerm.toLowerCase()) || false);
 
     const matchesStatus = statusFilter === 'all' || order.status.toLowerCase() === statusFilter.toLowerCase();
 
@@ -88,65 +106,65 @@ export function OrdersPage() {
 
   if (loading) {
     return (
-      <div className="flex h-screen items-center justify-center">
-        <div className="text-center">
-          <div className="w-16 h-16 border-4 border-cyan-500 border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
-          <p className="text-slate-500">Loading orders...</p>
+        <div className="flex h-screen items-center justify-center">
+          <div className="text-center">
+            <div className="w-16 h-16 border-4 border-cyan-500 border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
+            <p className="text-slate-500">Loading orders...</p>
+          </div>
         </div>
-      </div>
     );
   }
 
   return (
-    <div className="flex flex-col gap-8 p-6">
-      <div className="flex justify-between items-center">
-        <div>
-          <h1 className="text-3xl font-bold text-slate-900 mb-2">Orders</h1>
-          <p className="text-slate-500">Manage and track all orders</p>
+      <div className="flex flex-col gap-8 p-6">
+        <div className="flex justify-between items-center">
+          <div>
+            <h1 className="text-3xl font-bold text-slate-900 mb-2">Orders</h1>
+            <p className="text-slate-500">Manage and track all orders</p>
+          </div>
+          <button
+              onClick={() => setShowCreateModal(true)}
+              className="flex items-center gap-2 px-4 py-2 bg-cyan-600 hover:bg-cyan-700 text-slate-900 rounded-lg transition"
+          >
+            <Plus className="w-4 h-4" />
+            Create Order
+          </button>
         </div>
-        <button
-          onClick={() => setShowCreateModal(true)}
-          className="flex items-center gap-2 px-4 py-2 bg-cyan-600 hover:bg-cyan-700 text-slate-900 rounded-lg transition"
-        >
-          <Plus className="w-4 h-4" />
-          Create Order
-        </button>
-      </div>
 
-      {error && (
-        <div className="flex items-center gap-2 p-4 rounded-lg bg-red-500/10 border border-red-500/50 text-red-400">
-          <AlertCircle className="w-4 h-4" />
-          {error}
+        {error && (
+            <div className="flex items-center gap-2 p-4 rounded-lg bg-red-500/10 border border-red-500/50 text-red-400">
+              <AlertCircle className="w-4 h-4" />
+              {error}
+            </div>
+        )}
+
+        <div className="flex gap-4 mb-4">
+          <div className="flex-1 relative">
+            <input
+                type="text"
+                placeholder="Search orders..."
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+                className="w-full px-4 py-2 bg-slate-200 border border-slate-600 rounded-lg text-slate-900 placeholder-slate-400 focus:outline-none focus:border-cyan-500"
+            />
+            <Search className="absolute right-3 top-2.5 w-5 h-5 text-slate-500" />
+          </div>
+          <select
+              value={statusFilter}
+              onChange={(e) => setStatusFilter(e.target.value as any)}
+              className="px-4 py-2 bg-slate-200 border border-slate-600 rounded-lg text-slate-900 focus:outline-none focus:border-cyan-500"
+          >
+            <option value="all">All Status</option>
+            <option value="pending">Pending</option>
+            <option value="processing">Processing</option>
+            <option value="shipped">Shipped</option>
+            <option value="delivered">Delivered</option>
+          </select>
         </div>
-      )}
 
-      <div className="flex gap-4 mb-4">
-        <div className="flex-1 relative">
-          <input
-            type="text"
-            placeholder="Search orders..."
-            value={searchTerm}
-            onChange={(e) => setSearchTerm(e.target.value)}
-            className="w-full px-4 py-2 bg-slate-200 border border-slate-600 rounded-lg text-slate-900 placeholder-slate-400 focus:outline-none focus:border-cyan-500"
-          />
-          <Search className="absolute right-3 top-2.5 w-5 h-5 text-slate-500" />
-        </div>
-        <select
-          value={statusFilter}
-          onChange={(e) => setStatusFilter(e.target.value as any)}
-          className="px-4 py-2 bg-slate-200 border border-slate-600 rounded-lg text-slate-900 focus:outline-none focus:border-cyan-500"
-        >
-          <option value="all">All Status</option>
-          <option value="pending">Pending</option>
-          <option value="processing">Processing</option>
-          <option value="shipped">Shipped</option>
-          <option value="delivered">Delivered</option>
-        </select>
-      </div>
-
-      <div className="overflow-x-auto rounded-lg border border-slate-200">
-        <table className="w-full">
-          <thead className="bg-slate-100/90">
+        <div className="overflow-x-auto rounded-lg border border-slate-200">
+          <table className="w-full">
+            <thead className="bg-slate-100/90">
             <tr className="border-b border-slate-200">
               <th className="text-left py-4 px-6 text-slate-500 font-medium">Order #</th>
               <th className="text-left py-4 px-6 text-slate-500 font-medium">Date</th>
@@ -155,129 +173,129 @@ export function OrdersPage() {
               <th className="text-left py-4 px-6 text-slate-500 font-medium">Status</th>
               <th className="text-left py-4 px-6 text-slate-500 font-medium">Actions</th>
             </tr>
-          </thead>
-          <tbody>
+            </thead>
+            <tbody>
             {filteredOrders.length > 0 ? (
-              filteredOrders.map((order) => (
-                <tr key={order.id} className="border-b border-slate-200/50 hover:bg-slate-100/80">
-                  <td className="py-4 px-6 text-slate-900 font-medium">{order.orderNumber}</td>
-                  <td className="py-4 px-6 text-slate-500">{new Date(order.orderDate).toLocaleDateString()}</td>
-                  <td className="py-4 px-6 text-slate-900 font-medium">${order.totalAmount.toLocaleString()}</td>
-                  <td className="py-4 px-6 text-slate-500">{order.items?.length || 0}</td>
-                  <td className="py-4 px-6">
+                filteredOrders.map((order) => (
+                    <tr key={order.id} className="border-b border-slate-200/50 hover:bg-slate-100/80">
+                      <td className="py-4 px-6 text-slate-900 font-medium">{order.orderNumber}</td>
+                      <td className="py-4 px-6 text-slate-500">{new Date(order.orderDate).toLocaleDateString()}</td>
+                      <td className="py-4 px-6 text-slate-900 font-medium">${order.totalAmount.toLocaleString()}</td>
+                      <td className="py-4 px-6 text-slate-500">{order.items?.length || 0}</td>
+                      <td className="py-4 px-6">
                     <span className={`px-3 py-1 rounded-full text-xs font-medium ${getStatusColor(order.status)}`}>
                       {order.status}
                     </span>
-                  </td>
-                  <td className="py-4 px-6 flex gap-2">
-                    <button className="text-cyan-400 hover:text-cyan-300">View</button>
+                      </td>
+                      <td className="py-4 px-6 flex gap-2">
+                        <button className="text-cyan-400 hover:text-cyan-300">View</button>
+                      </td>
+                    </tr>
+                ))
+            ) : (
+                <tr>
+                  <td colSpan={6} className="py-8 px-6 text-center text-slate-500">
+                    No orders found
                   </td>
                 </tr>
-              ))
-            ) : (
-              <tr>
-                <td colSpan={6} className="py-8 px-6 text-center text-slate-500">
-                  No orders found
-                </td>
-              </tr>
             )}
-          </tbody>
-        </table>
-      </div>
-
-      {/* Create Order Modal */}
-      {showCreateModal && (
-        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
-          <div className="bg-white rounded-lg p-6 w-full max-w-2xl max-h-[90vh] overflow-y-auto">
-            <h2 className="text-2xl font-bold text-slate-900 mb-4">Create New Order</h2>
-
-            <div className="space-y-4 mb-6">
-              <div>
-                <label className="block text-sm font-medium text-slate-500 mb-2">Shipping Address</label>
-                <input
-                  type="text"
-                  value={shippingAddress}
-                  onChange={(e) => setShippingAddress(e.target.value)}
-                  placeholder="Enter shipping address"
-                  className="w-full px-3 py-2 bg-slate-200 border border-slate-600 rounded-lg text-slate-900 placeholder-slate-400 focus:outline-none focus:border-cyan-500"
-                />
-              </div>
-
-              <div>
-                <h3 className="text-lg font-semibold text-slate-900 mb-2">Select Products</h3>
-                <div className="space-y-2 max-h-64 overflow-y-auto">
-                  {products.filter(p => p.isActive).map((product) => {
-                    const selected = selectedProducts.find(sp => sp.productId === product.id);
-                    return (
-                      <div key={product.id} className="flex items-center gap-4 p-3 bg-slate-100/80 rounded-lg">
-                        <input
-                          type="checkbox"
-                          checked={!!selected}
-                          onChange={(e) => {
-                            if (e.target.checked) {
-                              setSelectedProducts([...selectedProducts, { productId: product.id, quantity: 1, unitPrice: product.price }]);
-                            } else {
-                              setSelectedProducts(selectedProducts.filter(sp => sp.productId !== product.id));
-                            }
-                          }}
-                          className="w-4 h-4"
-                        />
-                        <div className="flex-1">
-                          <p className="text-slate-900 font-medium">{product.name}</p>
-                          <p className="text-sm text-slate-500">${product.price}</p>
-                        </div>
-                        {selected && (
-                          <input
-                            type="number"
-                            min="1"
-                            max="999"
-                            value={selected.quantity}
-                            onChange={(e) => {
-                              setSelectedProducts(
-                                selectedProducts.map(sp =>
-                                  sp.productId === product.id ? { ...sp, quantity: parseInt(e.target.value) || 1 } : sp
-                                )
-                              );
-                            }}
-                            className="w-20 px-2 py-1 bg-slate-600 border border-slate-500 rounded text-slate-900 text-center"
-                          />
-                        )}
-                      </div>
-                    );
-                  })}
-                </div>
-              </div>
-
-              {selectedProducts.length > 0 && (
-                <div className="p-3 bg-cyan-500/10 border border-cyan-500/30 rounded-lg">
-                  <p className="text-cyan-400 font-medium">Total: ${selectedProducts.reduce((sum, sp) => sum + (sp.unitPrice * sp.quantity), 0).toLocaleString()}</p>
-                </div>
-              )}
-            </div>
-
-            <div className="flex gap-3 justify-end">
-              <button
-                onClick={() => {
-                  setShowCreateModal(false);
-                  setSelectedProducts([]);
-                  setShippingAddress('');
-                }}
-                className="px-4 py-2 bg-slate-200 hover:bg-slate-100 text-slate-900 rounded-lg transition"
-              >
-                Cancel
-              </button>
-              <button
-                onClick={handleCreateOrder}
-                disabled={selectedProducts.length === 0}
-                className="px-4 py-2 bg-cyan-600 hover:bg-cyan-700 text-slate-900 rounded-lg transition disabled:opacity-50 disabled:cursor-not-allowed"
-              >
-                Create Order
-              </button>
-            </div>
-          </div>
+            </tbody>
+          </table>
         </div>
-      )}
-    </div>
+
+        {/* Create Order Modal */}
+        {showCreateModal && (
+            <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
+              <div className="bg-white rounded-lg p-6 w-full max-w-2xl max-h-[90vh] overflow-y-auto">
+                <h2 className="text-2xl font-bold text-slate-900 mb-4">Create New Order</h2>
+
+                <div className="space-y-4 mb-6">
+                  <div>
+                    <label className="block text-sm font-medium text-slate-500 mb-2">Shipping Address</label>
+                    <input
+                        type="text"
+                        value={shippingAddress}
+                        onChange={(e) => setShippingAddress(e.target.value)}
+                        placeholder="Enter shipping address"
+                        className="w-full px-3 py-2 bg-slate-200 border border-slate-600 rounded-lg text-slate-900 placeholder-slate-400 focus:outline-none focus:border-cyan-500"
+                    />
+                  </div>
+
+                  <div>
+                    <h3 className="text-lg font-semibold text-slate-900 mb-2">Select Products</h3>
+                    <div className="space-y-2 max-h-64 overflow-y-auto">
+                      {products.filter(p => p.isActive).map((product) => {
+                        const selected = selectedProducts.find(sp => sp.productId === product.id);
+                        return (
+                            <div key={product.id} className="flex items-center gap-4 p-3 bg-slate-100/80 rounded-lg">
+                              <input
+                                  type="checkbox"
+                                  checked={!!selected}
+                                  onChange={(e) => {
+                                    if (e.target.checked) {
+                                      setSelectedProducts([...selectedProducts, { productId: product.id, quantity: 1, unitPrice: product.price }]);
+                                    } else {
+                                      setSelectedProducts(selectedProducts.filter(sp => sp.productId !== product.id));
+                                    }
+                                  }}
+                                  className="w-4 h-4"
+                              />
+                              <div className="flex-1">
+                                <p className="text-slate-900 font-medium">{product.name}</p>
+                                <p className="text-sm text-slate-500">${product.price}</p>
+                              </div>
+                              {selected && (
+                                  <input
+                                      type="number"
+                                      min="1"
+                                      max="999"
+                                      value={selected.quantity}
+                                      onChange={(e) => {
+                                        setSelectedProducts(
+                                            selectedProducts.map(sp =>
+                                                sp.productId === product.id ? { ...sp, quantity: parseInt(e.target.value) || 1 } : sp
+                                            )
+                                        );
+                                      }}
+                                      className="w-20 px-2 py-1 bg-slate-600 border border-slate-500 rounded text-slate-900 text-center"
+                                  />
+                              )}
+                            </div>
+                        );
+                      })}
+                    </div>
+                  </div>
+
+                  {selectedProducts.length > 0 && (
+                      <div className="p-3 bg-cyan-500/10 border border-cyan-500/30 rounded-lg">
+                        <p className="text-cyan-400 font-medium">Total: ${selectedProducts.reduce((sum, sp) => sum + (sp.unitPrice * sp.quantity), 0).toLocaleString()}</p>
+                      </div>
+                  )}
+                </div>
+
+                <div className="flex gap-3 justify-end">
+                  <button
+                      onClick={() => {
+                        setShowCreateModal(false);
+                        setSelectedProducts([]);
+                        setShippingAddress('');
+                      }}
+                      className="px-4 py-2 bg-slate-200 hover:bg-slate-100 text-slate-900 rounded-lg transition"
+                  >
+                    Cancel
+                  </button>
+                  <button
+                      onClick={handleCreateOrder}
+                      disabled={selectedProducts.length === 0}
+                      className="px-4 py-2 bg-cyan-600 hover:bg-cyan-700 text-slate-900 rounded-lg transition disabled:opacity-50 disabled:cursor-not-allowed"
+                  >
+                    Create Order
+                  </button>
+                </div>
+              </div>
+            </div>
+        )}
+      </div>
   );
 }
 
