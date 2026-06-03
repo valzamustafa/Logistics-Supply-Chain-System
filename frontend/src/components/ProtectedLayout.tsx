@@ -1,8 +1,9 @@
-import { ReactNode } from 'react';
+import { ReactNode, useState } from 'react';
 import { Navigate, useLocation } from 'react-router-dom';
 import { useAuth } from '../hooks/useAuth';
 import { Header } from './Header';
 import { Sidebar } from './Sidebar';
+import { ChatModal } from './ChatModal';
 
 interface ProtectedLayoutProps {
   children: ReactNode;
@@ -45,12 +46,12 @@ export function ProtectedLayout({ children, allowedRoles }: ProtectedLayoutProps
 
   if (isLoading) {
     return (
-      <div className="flex h-screen items-center justify-center bg-slate-50">
-        <div className="text-center">
-          <div className="w-16 h-16 border-4 border-rose-500 border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
-          <p className="text-slate-600">Loading...</p>
+        <div className="flex h-screen items-center justify-center bg-slate-50">
+          <div className="text-center">
+            <div className="w-16 h-16 border-4 border-rose-500 border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
+            <p className="text-slate-600">Loading...</p>
+          </div>
         </div>
-      </div>
     );
   }
 
@@ -63,14 +64,20 @@ export function ProtectedLayout({ children, allowedRoles }: ProtectedLayoutProps
     return <Navigate to={redirectPath} replace />;
   }
 
+  const [isChatOpen, setIsChatOpen] = useState(false);
+
+  const openChat = () => setIsChatOpen(true);
+  const closeChat = () => setIsChatOpen(false);
+
   return (
-    <div className="flex h-screen flex-col bg-slate-50">
-      <Header />
-      <div className="flex flex-1 overflow-hidden">
-        <Sidebar />
-        <main className="flex-1 overflow-auto p-6">{children}</main>
+      <div className="flex h-screen flex-col bg-slate-50">
+        <Header onOpenChat={openChat} />
+        <div className="flex flex-1 overflow-hidden">
+          <Sidebar onOpenChat={openChat} />
+          <main className="flex-1 overflow-auto p-6">{children}</main>
+        </div>
+        <ChatModal open={isChatOpen} onClose={closeChat} />
       </div>
-    </div>
   );
 }
 

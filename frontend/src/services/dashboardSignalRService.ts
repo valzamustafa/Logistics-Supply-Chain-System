@@ -23,22 +23,22 @@ export class DashboardSignalRService {
       try {
         await this.connection.stop();
       } catch {
- 
+
       }
       this.connection = null;
     }
 
-    const hubUrl = import.meta.env.VITE_DASHBOARD_HUB_URL || 'http://localhost:5008/dashboardHub';
+    const hubUrl = import.meta.env.VITE_DASHBOARD_HUB_URL || import.meta.env.VITE_SHIPMENT_HUB_URL || 'http://localhost:5004/dashboardHub';
     const token = getLocalStorageItem('token') || '';
 
     const connection = new signalR.HubConnectionBuilder()
-      .withUrl(hubUrl, {
-        accessTokenFactory: () => token,
-        transport: signalR.HttpTransportType.WebSockets | signalR.HttpTransportType.LongPolling,
-      })
-      .withAutomaticReconnect([0, 2000, 5000, 10000, 30000])
-      .configureLogging(signalR.LogLevel.Warning)
-      .build();
+        .withUrl(hubUrl, {
+          accessTokenFactory: () => token,
+          transport: signalR.HttpTransportType.WebSockets | signalR.HttpTransportType.LongPolling,
+        })
+        .withAutomaticReconnect([0, 2000, 5000, 10000, 30000])
+        .configureLogging(signalR.LogLevel.Warning)
+        .build();
 
     connection.onclose(() => {
       if (this.connection === connection) {
@@ -70,7 +70,7 @@ export class DashboardSignalRService {
       try {
         await this.connection.stop();
       } catch {
-       
+
       }
       this.connection = null;
     }
