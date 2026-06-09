@@ -20,14 +20,18 @@ import { ShipmentsPage } from './pages/ShipmentsPage';
 import { ReportsPage } from './pages/ReportsPage';
 import { UsersPage } from './pages/admin/UsersPage';
 import { RolesPage } from './pages/admin/RolesPage';
+import SettingsPage from './pages/SettingsPage';
 import { WarehouseManagement } from './pages/manager/WarehouseManagement';
 import { SuppliersPage } from './pages/SuppliersPage';
 import { TrackShipment } from './pages/TrackShipment';
 import { AuthProvider, useAuth } from './hooks/useAuth';
 import { CartProvider } from './hooks/useCart';
 import { VehiclesPage } from './pages/VehiclesPage';
+import { useLanguage } from './hooks/useLanguage';
+
 function AppContent() {
   const { user, isLoading } = useAuth();
+  useLanguage(); 
   
 
   const rolePriority = ['Admin', 'Manager', 'Supplier', 'Driver', 'WarehouseStaff', 'Warehouse', 'User'];
@@ -44,6 +48,7 @@ function AppContent() {
       </div>
     );
   }
+
 
   const getDashboardPath = () => {
     switch (userRole) {
@@ -73,12 +78,12 @@ function AppContent() {
       <Route path="/warehouse" element={<ProtectedLayout allowedRoles={['WarehouseStaff', 'Warehouse']}><WarehouseDashboard /></ProtectedLayout>} />
       <Route path="/dashboard" element={<ProtectedLayout allowedRoles={['User']}><UserDashboard /></ProtectedLayout>} />
       
-   
+    
       <Route path="/create-order" element={<ProtectedLayout allowedRoles={['User']}><CreateOrderPage /></ProtectedLayout>} />
       <Route path="/my-orders" element={<ProtectedLayout allowedRoles={['User']}><MyOrdersPage /></ProtectedLayout>} />
       <Route path="/track-shipment/:id?" element={<ProtectedLayout allowedRoles={['User']}><TrackShipment /></ProtectedLayout>} />
       
-  
+    
       <Route path="/tracking" element={<ProtectedLayout allowedRoles={['Admin', 'Manager', 'User', 'Driver', 'WarehouseStaff', 'Warehouse']}><TrackingPage /></ProtectedLayout>} />
       <Route path="/orders" element={<ProtectedLayout allowedRoles={['Admin', 'Manager']}><OrdersPage /></ProtectedLayout>} />
       <Route path="/products" element={<ProtectedLayout allowedRoles={['Admin', 'Manager', 'User', 'WarehouseStaff', 'Warehouse', 'Supplier']}><ProductsPage /></ProtectedLayout>} />
@@ -95,6 +100,7 @@ function AppContent() {
       {/* Admin Only Routes */}
       <Route path="/admin/users" element={<ProtectedLayout allowedRoles={['Admin']}><UsersPage /></ProtectedLayout>} />
       <Route path="/admin/roles" element={<ProtectedLayout allowedRoles={['Admin']}><RolesPage /></ProtectedLayout>} />
+      <Route path="/settings" element={<ProtectedLayout allowedRoles={['Admin']}><SettingsPage /></ProtectedLayout>} />
       
       {/* Manager Only Routes */}
       <Route path="/warehouses" element={<ProtectedLayout allowedRoles={['Admin', 'Manager']}><WarehouseManagement /></ProtectedLayout>} />
@@ -102,6 +108,7 @@ function AppContent() {
       {/* Default Route - redirect to appropriate dashboard based on role */}
       <Route path="/" element={<Navigate to={getDashboardPath()} replace />} />
       
+     
       <Route path="*" element={<Navigate to={getDashboardPath()} replace />} />
     </Routes>
   );

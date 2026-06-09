@@ -10,10 +10,10 @@ export const useNotifications = (userId?: number) => {
   const [isLoading, setIsLoading] = useState(false);
   const [open, setOpen] = useState(false);
 
-
+  
   const loadNotifications = async () => {
     if (!userId) return;
-
+    
     setIsLoading(true);
     try {
       const [allNotifications, unread] = await Promise.all([
@@ -71,7 +71,7 @@ export const useNotifications = (userId?: number) => {
 
     initializeSignalR();
 
-
+ 
     const unsubscribe = signalRService.onNotificationReceived((notification: NotificationDto) => {
       if (mounted) {
         setNotifications(prev => [notification, ...prev]);
@@ -93,11 +93,11 @@ export const useNotifications = (userId?: number) => {
     try {
       await notificationService.markAsRead(notificationId);
       setNotifications(prev =>
-          prev.map(n =>
-              n.id === notificationId
-                  ? { ...n, isRead: true, readAt: new Date().toISOString() }
-                  : n
-          )
+        prev.map(n =>
+          n.id === notificationId
+            ? { ...n, isRead: true, readAt: new Date().toISOString() }
+            : n
+        )
       );
       setUnreadCount(prev => Math.max(0, prev - 1));
     } catch (err) {
@@ -114,7 +114,7 @@ export const useNotifications = (userId?: number) => {
     try {
       await notificationService.markAllAsRead(userId);
       setNotifications(prev =>
-          prev.map(n => ({ ...n, isRead: true, readAt: new Date().toISOString() }))
+        prev.map(n => ({ ...n, isRead: true, readAt: new Date().toISOString() }))
       );
       setUnreadCount(0);
     } catch (err) {

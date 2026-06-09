@@ -151,9 +151,9 @@ export function CartProvider({ children }: { children: ReactNode }) {
       };
 
       const response = await orderService.create(orderData);
-    
+
       const newOrder = response;
-      
+
       clearCart();
       
       if (user?.id) {

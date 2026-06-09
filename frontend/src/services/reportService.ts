@@ -17,6 +17,7 @@ export interface GenerateReportDto {
   userId?: number;
   productId?: number;
   orderId?: number;
+  data?: unknown;
 }
 
 export const reportService = {
@@ -25,6 +26,7 @@ export const reportService = {
   getByType: (type: string) => api.get<Report[]>(`/api/reports/type/${type}`),
   generate: (data: GenerateReportDto) => api.post<Report>('/api/reports/generate', data),
   delete: (id: number) => api.delete<void>(`/api/reports/${id}`),
+  downloadPdf: (id: number) => api.download(`/api/reports/${id}/pdf`),
   getSummary: () => api.get<{
     totalReports: number;
     reportsThisWeek: number;
