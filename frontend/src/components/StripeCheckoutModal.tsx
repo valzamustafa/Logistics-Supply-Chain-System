@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { useTranslation } from 'react-i18next';
 import { CardElement, useElements, useStripe } from '@stripe/react-stripe-js';
 
 interface StripeCheckoutModalProps {
@@ -23,6 +24,7 @@ export const StripeCheckoutModal: React.FC<StripeCheckoutModalProps> = ({
   const [cardholderName, setCardholderName] = useState('');
   const [processing, setProcessing] = useState(false);
   const [cardError, setCardError] = useState<string | null>(null);
+  const { t } = useTranslation();
 
   const handleConfirmPayment = async () => {
     if (!stripe || !elements) {
@@ -70,8 +72,8 @@ export const StripeCheckoutModal: React.FC<StripeCheckoutModalProps> = ({
       <div className="w-full max-w-xl rounded-3xl border border-slate-200 bg-slate-50 p-6 shadow-2xl overflow-y-auto max-h-[90vh]">
         <div className="flex items-center justify-between mb-5">
           <div>
-            <h2 className="text-2xl font-bold text-slate-900">Stripe Payment</h2>
-            <p className="text-slate-500 mt-1">Pay €{totalAmount.toFixed(2)} securely with test card details.</p>
+            <h2 className="text-2xl font-bold text-slate-900">{t('payments.title', 'Stripe Payment')}</h2>
+            <p className="text-slate-500 mt-1">{t('payments.payAmount', { amount: `€${totalAmount.toFixed(2)}` })}</p>
           </div>
           <button onClick={onCancel} className="text-slate-500 hover:text-slate-900">✕</button>
         </div>
@@ -117,16 +119,16 @@ export const StripeCheckoutModal: React.FC<StripeCheckoutModalProps> = ({
           <button
             onClick={onCancel}
             disabled={processing || isLoading}
-            className="rounded-2xl border border-slate-200 bg-white px-4 py-3 text-slate-500 hover:bg-slate-200"
+            className="btn-ghost"
           >
-            Cancel
+            {t('common.cancel')}
           </button>
           <button
             onClick={handleConfirmPayment}
             disabled={!stripe || processing || isLoading}
-            className="rounded-2xl bg-cyan-500 px-4 py-3 font-semibold text-slate-900 hover:bg-cyan-400 disabled:cursor-not-allowed disabled:opacity-60"
+            className="btn-primary"
           >
-            {processing || isLoading ? 'Processing...' : `Pay €${totalAmount.toFixed(2)}`}
+            {processing || isLoading ? t('common.processing', 'Processing...') : t('payments.payAction', `Pay €${totalAmount.toFixed(2)}`)}
           </button>
         </div>
       </div>

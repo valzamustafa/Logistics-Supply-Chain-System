@@ -139,7 +139,7 @@ export function SuppliersProductsPage() {
           <h1 className="text-3xl font-bold text-slate-900">My Products</h1>
           <p className="text-slate-500 mt-1">Manage your products and view stock levels across warehouses</p>
         </div>
-        <button onClick={() => setShowProductModal(true)} className="px-4 py-2 bg-cyan-600 hover:bg-cyan-700 text-slate-900 rounded-lg flex items-center gap-2 transition">
+        <button onClick={() => setShowProductModal(true)} className="btn-primary flex items-center gap-2">
           <Plus className="w-4 h-4" /> Add Product
         </button>
       </div>
@@ -186,7 +186,7 @@ export function SuppliersProductsPage() {
             </div>
 
             <div className="flex gap-2">
-              <button onClick={() => viewStockDetails(product)} className="flex-1 px-3 py-2 bg-slate-200 hover:bg-slate-100 rounded-lg text-slate-900 text-sm transition flex items-center justify-center gap-1">
+              <button onClick={() => viewStockDetails(product)} className="flex-1 btn-ghost text-sm flex items-center justify-center gap-1">
                 <Eye className="w-4 h-4" /> View Stock
               </button>
             </div>
@@ -194,7 +194,7 @@ export function SuppliersProductsPage() {
         ))}
       </div>
 
-   
+
       {showProductModal && (
         <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
           <div className="bg-white rounded-xl border border-slate-200 w-96 p-6 space-y-4 max-h-[90vh] overflow-y-auto">
@@ -207,6 +207,7 @@ export function SuppliersProductsPage() {
               <input type="number" placeholder="Cost" step="0.01" value={formData.cost} onChange={(e) => setFormData({...formData, cost: e.target.value})} className="bg-slate-200 border border-slate-600 rounded px-3 py-2 text-slate-900" />
             </div>
             
+   
             <div>
               <label className="block text-sm text-slate-500 mb-2">Product Image</label>
               <div className="space-y-2">
@@ -251,12 +252,13 @@ export function SuppliersProductsPage() {
                 setShowProductModal(false);
                 setImageFile(null);
                 setImagePreview(null);
-              }} className="flex-1 px-4 py-2 bg-slate-200 hover:bg-slate-100 text-slate-900 rounded-lg">Cancel</button>
-              <button onClick={handleAddProduct} className="flex-1 px-4 py-2 bg-cyan-600 hover:bg-cyan-700 text-slate-900 rounded-lg">Create</button>
+              }} className="flex-1 btn-ghost">Cancel</button>
+              <button onClick={handleAddProduct} className="flex-1 btn-primary">Create</button>
             </div>
           </div>
         </div>
       )}
+
 
       {showStockModal && selectedProduct && (
         <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">

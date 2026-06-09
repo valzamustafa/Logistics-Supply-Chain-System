@@ -1,5 +1,6 @@
 // frontend/src/components/vehicles/VehicleManagementModal.tsx
 import { useState, useEffect } from 'react';
+import { useTranslation } from 'react-i18next';
 import { X, Upload, Truck, Package, Car, Bike } from 'lucide-react';
 import { vehicleService, DriverVehicle } from '../../services/driverService';
 import { useToast } from '../../hooks/useToast';
@@ -13,6 +14,7 @@ interface VehicleManagementModalProps {
 
 export function VehicleManagementModal({ vehicle, onClose, onSuccess, isDriverMode = false }: VehicleManagementModalProps) {
   const { showToast } = useToast();
+  const { t } = useTranslation();
   const [loading, setLoading] = useState(false);
   const [imageFile, setImageFile] = useState<File | null>(null);
   const [imagePreview, setImagePreview] = useState<string | null>(null);
@@ -76,7 +78,7 @@ export function VehicleManagementModal({ vehicle, onClose, onSuccess, isDriverMo
           await vehicleService.createMyVehicle(submitData);
         }
       } else {
-        // Admin/Manager mode
+
         if (vehicle) {
           await vehicleService.update(vehicle.id, submitData);
         } else {
@@ -143,9 +145,9 @@ export function VehicleManagementModal({ vehicle, onClose, onSuccess, isDriverMo
                   {getVehicleTypeIcon()}
                 </div>
               )}
-              <label className="flex-1 px-4 py-2 bg-slate-100 hover:bg-slate-200 rounded-lg text-slate-700 text-sm cursor-pointer text-center transition">
-                <Upload className="w-4 h-4 inline mr-2" />
-                Upload Image
+                  <label className="flex-1 px-4 py-2 bg-slate-100 hover:bg-slate-200 rounded-lg text-slate-700 text-sm cursor-pointer text-center transition">
+                    <Upload className="w-4 h-4 inline mr-2" />
+                    {t('vehicles.uploadImage', 'Upload Image')}
                 <input
                   type="file"
                   accept="image/*"
@@ -253,16 +255,16 @@ export function VehicleManagementModal({ vehicle, onClose, onSuccess, isDriverMo
               onChange={(e) => setFormData({ ...formData, isAvailable: e.target.checked })}
               className="w-4 h-4 rounded border-slate-300 text-cyan-500 focus:ring-cyan-500"
             />
-            <span className="text-slate-700">Available for assignments</span>
+            <span className="text-slate-700">{t('vehicles.availableForAssignments', 'Available for assignments')}</span>
           </label>
         </div>
 
         <div className="p-4 border-t border-slate-200 flex gap-3 sticky bottom-0 bg-white">
-          <button onClick={onClose} className="flex-1 px-4 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-lg transition">
-            Cancel
+          <button onClick={onClose} className="flex-1 btn-ghost">
+            {t('common.cancel')}
           </button>
-          <button onClick={handleSubmit} disabled={loading} className="flex-1 px-4 py-2 bg-cyan-600 hover:bg-cyan-700 text-white rounded-lg transition disabled:opacity-50">
-            {loading ? 'Saving...' : (vehicle ? 'Update' : (isDriverMode ? 'Register' : 'Create'))}
+          <button onClick={handleSubmit} disabled={loading} className="flex-1 btn-primary">
+            {loading ? t('common.saving', 'Saving...') : (vehicle ? t('vehicles.update', 'Update') : (isDriverMode ? t('vehicles.register', 'Register') : t('vehicles.create', 'Create')))}
           </button>
         </div>
       </div>

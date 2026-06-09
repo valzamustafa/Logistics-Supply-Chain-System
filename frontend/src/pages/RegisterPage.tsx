@@ -1,10 +1,12 @@
 import { useState } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
+import { useTranslation } from 'react-i18next';
 import { register } from '../services/authService';
 import { useAuth } from '../hooks/useAuth';
 import { UserPlus, Package } from 'lucide-react';
 
 export function RegisterPage() {
+  const { t } = useTranslation();
   const [firstName, setFirstName] = useState('');
   const [lastName, setLastName] = useState('');
   const [email, setEmail] = useState('');
@@ -20,12 +22,12 @@ export function RegisterPage() {
     setError('');
 
     if (password !== confirmPassword) {
-      setError('Passwords do not match.');
+      setError(t('auth.passwordsDoNotMatch', 'Passwords do not match.'));
       return;
     }
 
     if (password.length < 8) {
-      setError('Password must be at least 8 characters.');
+      setError(t('auth.passwordTooShort', 'Password must be at least 8 characters.'));
       return;
     }
 
@@ -49,45 +51,45 @@ export function RegisterPage() {
       else if (role === 'WarehouseStaff' || role === 'Warehouse') navigate('/warehouse');
       else navigate('/dashboard');
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Registration failed. Please try again.');
+      setError(err instanceof Error ? err.message : t('auth.registrationFailed', 'Registration failed. Please try again.'));
     } finally {
       setLoading(false);
     }
   };
 
   return (
-    <div className="flex min-h-screen bg-slate-50">
+    <div className="flex min-h-screen bg-[#f5f7fb]">
       <div className="flex flex-1 flex-col items-center justify-center px-6 py-12">
         <div className="w-full max-w-md space-y-8">
           <div className="text-center">
-            <div className="mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-3xl bg-cyan-500/10 text-cyan-600 shadow-sm">
+            <div className="mx-auto mb-4 flex h-14 w-14 items-center justify-center rounded-lg bg-teal-50 text-teal-700 shadow-sm">
               <UserPlus className="h-9 w-9" />
             </div>
-            <h1 className="text-3xl font-bold text-slate-900">Create Account</h1>
-            <p className="mt-2 text-slate-500">Join Logjistika and manage logistics with one platform.</p>
+            <h1 className="text-3xl font-bold text-slate-950">{t('auth.createAccount', 'Create Account')}</h1>
+            <p className="mt-2 text-slate-500">{t('auth.registerSubtitle', 'Join Logjistika and manage logistics with one platform.')}</p>
           </div>
 
           <form onSubmit={handleSubmit} className="space-y-6">
-            <div className="space-y-4 rounded-3xl border border-slate-200 bg-white p-8 shadow-sm">
+            <div className="space-y-4 rounded-lg border border-slate-200 bg-white p-8 shadow-md">
               <div className="grid grid-cols-2 gap-4">
                 <div>
-                  <label className="block text-sm font-medium text-slate-600 mb-2">First Name</label>
+                  <label className="block text-sm font-medium text-slate-600 mb-2">{t('auth.firstName', 'First Name')}</label>
                   <input
                     type="text"
                     value={firstName}
                     onChange={(e) => setFirstName(e.target.value)}
-                    className="w-full rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 text-slate-900 outline-none transition focus:border-cyan-400 focus:ring-2 focus:ring-cyan-500/20"
+                    className="w-full rounded-lg border border-slate-200 bg-white px-4 py-3 text-slate-900 outline-none transition"
                     placeholder="John"
                     required
                   />
                 </div>
                 <div>
-                  <label className="block text-sm font-medium text-slate-600 mb-2">Last Name</label>
+                  <label className="block text-sm font-medium text-slate-600 mb-2">{t('auth.lastName', 'Last Name')}</label>
                   <input
                     type="text"
                     value={lastName}
                     onChange={(e) => setLastName(e.target.value)}
-                    className="w-full rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 text-slate-900 outline-none transition focus:border-cyan-400 focus:ring-2 focus:ring-cyan-500/20"
+                    className="w-full rounded-lg border border-slate-200 bg-white px-4 py-3 text-slate-900 outline-none transition"
                     placeholder="Doe"
                     required
                   />
@@ -95,43 +97,43 @@ export function RegisterPage() {
               </div>
 
               <div>
-                <label className="block text-sm font-medium text-slate-600 mb-2">Email Address</label>
+                <label className="block text-sm font-medium text-slate-600 mb-2">{t('auth.email', 'Email Address')}</label>
                 <input
                   type="email"
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
-                  className="w-full rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 text-slate-900 outline-none transition focus:border-cyan-400 focus:ring-2 focus:ring-cyan-500/20"
+                  className="w-full rounded-lg border border-slate-200 bg-white px-4 py-3 text-slate-900 outline-none transition"
                   placeholder="john@example.com"
                   required
                 />
               </div>
 
               <div>
-                <label className="block text-sm font-medium text-slate-600 mb-2">Password</label>
+                <label className="block text-sm font-medium text-slate-600 mb-2">{t('auth.password', 'Password')}</label>
                 <input
                   type="password"
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
-                  className="w-full rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 text-slate-900 outline-none transition focus:border-cyan-400 focus:ring-2 focus:ring-cyan-500/20"
+                  className="w-full rounded-lg border border-slate-200 bg-white px-4 py-3 text-slate-900 outline-none transition"
                   placeholder="••••••••"
                   required
                 />
               </div>
 
               <div>
-                <label className="block text-sm font-medium text-slate-600 mb-2">Confirm Password</label>
+                <label className="block text-sm font-medium text-slate-600 mb-2">{t('auth.confirmPassword', 'Confirm Password')}</label>
                 <input
                   type="password"
                   value={confirmPassword}
                   onChange={(e) => setConfirmPassword(e.target.value)}
-                  className="w-full rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 text-slate-900 outline-none transition focus:border-cyan-400 focus:ring-2 focus:ring-cyan-500/20"
+                  className="w-full rounded-lg border border-slate-200 bg-white px-4 py-3 text-slate-900 outline-none transition"
                   placeholder="••••••••"
                   required
                 />
               </div>
 
               {error && (
-                <div className="rounded-2xl bg-red-50 p-3 text-sm text-red-600 border border-red-100">
+                <div className="rounded-lg bg-red-50 p-3 text-sm text-red-700 border border-red-100">
                   {error}
                 </div>
               )}
@@ -139,17 +141,17 @@ export function RegisterPage() {
               <button
                 type="submit"
                 disabled={loading}
-                className="w-full rounded-2xl bg-gradient-to-r from-cyan-600 to-blue-600 px-4 py-3 font-semibold text-white transition hover:from-cyan-500 hover:to-blue-500 disabled:opacity-50"
+                className="btn-primary w-full px-4 py-3 disabled:opacity-50"
               >
-                {loading ? 'Creating account...' : 'Create Account'}
+                {loading ? t('auth.creatingAccount', 'Creating account...') : t('auth.createAccount', 'Create Account')}
               </button>
             </div>
 
             <div className="text-center">
               <p className="text-slate-500">
-                Already have an account?{' '}
-                <Link to="/login" className="font-semibold text-cyan-600 hover:text-cyan-500">
-                  Sign in
+                {t('auth.alreadyHaveAccount', 'Already have an account?')}{' '}
+                <Link to="/login" className="font-semibold text-teal-700 hover:text-teal-800">
+                  {t('auth.signIn', 'Sign in')}
                 </Link>
               </p>
             </div>
@@ -157,13 +159,14 @@ export function RegisterPage() {
         </div>
       </div>
 
-      <div className="hidden flex-1 bg-gradient-to-br from-cyan-100 to-blue-100 lg:flex items-center justify-center">
-        <div className="text-center p-8">
-          <div className="mb-4 inline-flex h-20 w-20 items-center justify-center rounded-3xl bg-white shadow-sm">
-            <Package className="h-10 w-10 text-cyan-600" />
+      <div className="hidden flex-1 items-center justify-center border-l border-slate-200 bg-slate-950 lg:flex">
+        <div className="max-w-md p-10 text-left">
+          <div className="mb-6 inline-flex h-14 w-14 items-center justify-center rounded-lg bg-teal-500/15 text-teal-200 ring-1 ring-teal-400/20">
+            <Package className="h-8 w-8" />
           </div>
-          <h2 className="text-3xl font-bold text-slate-900 mb-4">Smart Logistics</h2>
-          <p className="text-slate-500 max-w-sm mx-auto">Real-time tracking and management for your supply chain.</p>
+          <p className="mb-3 text-sm font-semibold uppercase tracking-[0.18em] text-teal-200">{t('auth.smartLogistics', 'Smart Logistics')}</p>
+          <h2 className="mb-4 text-4xl font-bold text-white">{t('auth.registerHeroTitle', 'One platform for every delivery workflow.')}</h2>
+          <p className="text-base leading-7 text-slate-300">{t('auth.registerHeroDescription', 'Create orders, coordinate stock and keep every stakeholder aligned from dispatch to delivery.')}</p>
         </div>
       </div>
     </div>

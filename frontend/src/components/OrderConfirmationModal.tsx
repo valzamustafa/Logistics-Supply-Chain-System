@@ -1,5 +1,6 @@
 
 import React, { useState } from 'react';
+import { useTranslation } from 'react-i18next';
 import { Order } from '../services/orderService';
 
 interface OrderConfirmationModalProps {
@@ -20,6 +21,7 @@ export const OrderConfirmationModal: React.FC<OrderConfirmationModalProps> = ({
   const [bankOwnerName, setBankOwnerName] = useState('');
   const [bankAccountNumber, setBankAccountNumber] = useState('');
   const [agreedToTerms, setAgreedToTerms] = useState(false);
+  const { t } = useTranslation();
 
   const handleConfirm = () => {
     if (bankOwnerName && bankAccountNumber && agreedToTerms) {
@@ -30,10 +32,10 @@ export const OrderConfirmationModal: React.FC<OrderConfirmationModalProps> = ({
   return (
     <div className="fixed inset-0 bg-black/80 backdrop-blur-sm flex items-center justify-center z-50">
       <div className="bg-white rounded-lg p-6 max-w-md w-full max-h-[90vh] overflow-y-auto border border-slate-200">
-        <h2 className="text-2xl font-bold text-slate-900 mb-4">Order Confirmation</h2>
+        <h2 className="text-2xl font-bold text-slate-900 mb-4">{t('orders.confirmationTitle', 'Order Confirmation')}</h2>
         
         <div className="mb-6 p-4 bg-slate-50 rounded-lg border border-slate-200">
-          <h3 className="font-semibold text-slate-900 text-lg mb-2">Order Summary</h3>
+          <h3 className="font-semibold text-slate-900 text-lg mb-2">{t('orders.summary', 'Order Summary')}</h3>
           <p className="text-slate-500"><strong className="text-slate-900">Order Number:</strong> {order.orderNumber}</p>
           <p className="text-slate-500"><strong className="text-slate-900">Order Date:</strong> {new Date(order.orderDate).toLocaleDateString()}</p>
           <p className="text-slate-500"><strong className="text-slate-900">Total Amount:</strong> €{totalAmount.toFixed(2)}</p>
@@ -41,7 +43,7 @@ export const OrderConfirmationModal: React.FC<OrderConfirmationModalProps> = ({
         </div>
 
         <div className="mb-6 p-4 bg-slate-50 rounded-lg border border-slate-200">
-          <h3 className="font-semibold text-slate-900 text-lg mb-2">Payment Information</h3>
+          <h3 className="font-semibold text-slate-900 text-lg mb-2">{t('orders.paymentInfo', 'Payment Information')}</h3>
           <p className="text-slate-500 text-sm mb-3">
             Please make the payment to the following bank account:
           </p>
@@ -55,7 +57,7 @@ export const OrderConfirmationModal: React.FC<OrderConfirmationModalProps> = ({
         </div>
 
         <div className="mb-6">
-          <h3 className="font-semibold text-slate-900 text-lg mb-2">Your Bank Details</h3>
+          <h3 className="font-semibold text-slate-900 text-lg mb-2">{t('orders.yourBankDetails', 'Your Bank Details')}</h3>
           <div className="space-y-3">
             <div>
               <label className="block text-slate-500 text-sm mb-1">
@@ -95,9 +97,7 @@ export const OrderConfirmationModal: React.FC<OrderConfirmationModalProps> = ({
               className="mt-1"
             />
             <span className="text-sm text-slate-500">
-              I confirm that I have read and agree to the payment terms. The order will be 
-              processed after payment confirmation. I understand that I can download the 
-              invoice after order confirmation.
+              {t('orders.paymentAgreement', 'I confirm that I have read and agree to the payment terms. The order will be processed after payment confirmation. I understand that I can download the invoice after order confirmation.')}
             </span>
           </label>
         </div>
@@ -106,16 +106,16 @@ export const OrderConfirmationModal: React.FC<OrderConfirmationModalProps> = ({
           <button
             onClick={onCancel}
             disabled={isLoading}
-            className="flex-1 px-4 py-2 border border-slate-600 rounded-md text-slate-500 hover:bg-slate-200 transition disabled:opacity-50"
+            className="flex-1 btn-ghost"
           >
-            Cancel
+            {t('common.cancel')}
           </button>
           <button
             onClick={handleConfirm}
             disabled={!bankOwnerName || !bankAccountNumber || !agreedToTerms || isLoading}
-            className="flex-1 px-4 py-2 bg-cyan-500 text-white rounded-md hover:bg-cyan-600 transition disabled:opacity-50 disabled:cursor-not-allowed"
+            className="flex-1 btn-primary"
           >
-            {isLoading ? 'Processing...' : 'Confirm Order'}
+            {isLoading ? t('common.processing', 'Processing...') : t('orders.confirmOrder', 'Confirm Order')}
           </button>
         </div>
       </div>

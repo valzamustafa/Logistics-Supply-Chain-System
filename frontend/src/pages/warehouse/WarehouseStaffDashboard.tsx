@@ -1,5 +1,6 @@
 
 import { useState, useEffect } from 'react';
+import { useTranslation } from 'react-i18next';
 import { useAuth } from '../../hooks/useAuth';
 import { inventoryService, InventoryItem, UpdateStockRequest } from '../../services/inventoryService';
 import { warehouseService, Warehouse } from '../../services/warehouseService';
@@ -7,11 +8,14 @@ import { productService, Product } from '../../services/productService';
 import { warehouseStockService, LowStockAlert, WarehouseStock } from '../../services/warehouseStockService';
 import { vehicleService, Vehicle, Driver } from '../../services/driverService';
 import { Package, AlertTriangle, TrendingUp, Edit2, Eye, ShoppingCart, RefreshCw, Search, Filter, X, CheckCircle, Clock, Truck, Plus, MapPin, Navigation, User } from 'lucide-react';
+import { AdvancedSearchBar } from '../../components/AdvancedSearchBar';
+import { advancedSearch } from '../../utils/advancedSearch';
 import { useToast } from '../../hooks/useToast';
 import { notificationService } from '../../services/notificationService';
 import { VehicleManagementModal } from '../../components/vehicles/VehicleManagementModal';
 import { AssignVehicleToDriverModal } from '../../components/vehicles/AssignVehicleToDriverModal';
 import { VehicleLiveTracker } from '../../components/vehicles/VehicleLiveTracker';
+import { ExportButtons } from '../../components/ExportButtons';
 
 type DashboardTab = 'inventory' | 'vehicles';
 
@@ -36,9 +40,12 @@ export function WarehouseStaffDashboard() {
   const [products, setProducts] = useState<Product[]>([]);
   const [selectedWarehouse, setSelectedWarehouse] = useState<number | null>(null);
   const [loading, setLoading] = useState(true);
-  const [searchTerm, setSearchTerm] = useState('');
+  const [searchQuery, setSearchQuery] = useState('');
+  const [sortBy, setSortBy] = useState<'productSku' | 'quantity' | 'warehouseId'>('quantity');
+  const [sortDir, setSortDir] = useState<'asc' | 'desc'>('asc');
   const [lowStockAlerts, setLowStockAlerts] = useState<LowStockAlert[]>([]);
   const [showLowStockOnly, setShowLowStockOnly] = useState(false);
+  
 
   const [vehicles, setVehicles] = useState<Vehicle[]>([]);
   const [drivers, setDrivers] = useState<Driver[]>([]);
@@ -62,6 +69,7 @@ export function WarehouseStaffDashboard() {
   });
   
   const [userRole, setUserRole] = useState<string>('');
+  
 
   const [showUpdateModal, setShowUpdateModal] = useState(false);
   const [selectedItem, setSelectedItem] = useState<WarehouseStock | null>(null);
@@ -76,6 +84,8 @@ export function WarehouseStaffDashboard() {
   const [reorderQuantity, setReorderQuantity] = useState(0);
   const [reorderNotes, setReorderNotes] = useState('');
   
+
+  const { t } = useTranslation();
 
   const [stats, setStats] = useState({
     totalProducts: 0,
@@ -108,7 +118,7 @@ export function WarehouseStaffDashboard() {
     }
   };
 
-
+ 
   useEffect(() => {
     const storedUser = localStorage.getItem('user');
     if (storedUser) {
@@ -259,13 +269,20 @@ export function WarehouseStaffDashboard() {
     return { text: 'In Stock', color: 'bg-green-500/20 text-green-400', icon: CheckCircle };
   };
 
-  const filteredInventory = inventory.filter(item => {
-    const matchesSearch = 
-      getProductName(item.productId).toLowerCase().includes(searchTerm.toLowerCase()) ||
-      item.productSku?.toLowerCase().includes(searchTerm.toLowerCase());
-    const matchesLowStock = !showLowStockOnly || item.isLowStock;
-    return matchesSearch && matchesLowStock;
-  });
+  const filteredInventory = advancedSearch(inventory, {
+    query: searchQuery,
+    searchFields: [
+      (item) => getProductName(item.productId),
+      'productSku',
+      (item) => getWarehouseName(item.warehouseId),
+    ],
+    filterPredicates: {
+      lowstock: (item) => item.isLowStock,
+      warehouse: (item, value) => getWarehouseName(item.warehouseId).toLowerCase().includes(value.toLowerCase()),
+    },
+    sortBy,
+    sortDir,
+  }).filter(item => !showLowStockOnly || item.isLowStock);
 
   const statusColors: Record<string, string> = {
     'available': 'bg-green-500/20 text-green-400',
@@ -286,7 +303,7 @@ export function WarehouseStaffDashboard() {
       <div className="flex items-center justify-center h-screen bg-slate-50">
         <div className="text-center">
           <div className="w-16 h-16 border-4 border-cyan-500 border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
-          <p className="text-slate-500">Loading warehouse dashboard...</p>
+          <p className="text-slate-500">{t('warehouseDashboard.loading')}</p>
         </div>
       </div>
     );
@@ -303,7 +320,7 @@ export function WarehouseStaffDashboard() {
           }`}
         >
           <Package className="w-4 h-4 inline mr-2" />
-          Inventory
+          {t('common.inventory')}
         </button>
         {userPermissions.canViewVehicles && (
           <button
@@ -313,41 +330,58 @@ export function WarehouseStaffDashboard() {
             }`}
           >
             <Truck className="w-4 h-4 inline mr-2" />
-            Vehicles
+            {t('common.vehicles')}
           </button>
         )}
       </div>
 
+     
       {activeTab === 'inventory' && (
         <>
           <div className="flex flex-col gap-4 xl:flex-row xl:items-center xl:justify-between">
             <div>
-              <h1 className="text-3xl font-bold text-slate-900">Warehouse Staff Dashboard</h1>
+              <h1 className="text-3xl font-bold text-slate-900">{t('warehouseStaffDashboard.title')}</h1>
               <p className="text-slate-500 mt-1">
-                {userRole === 'WarehouseStaff' ? 'Manage inventory and stock levels' : 
-                 userRole === 'Driver' ? 'Track and manage deliveries' : 
-                 'Warehouse operations dashboard'}
+                {userRole === 'WarehouseStaff'
+                  ? t('warehouseStaffDashboard.manageInventory')
+                  : userRole === 'Driver'
+                  ? t('warehouseStaffDashboard.trackAndManageDeliveries')
+                  : t('warehouseStaffDashboard.warehouseOperationsDashboard')}
               </p>
             </div>
             <div className="flex gap-3">
-              <div className="relative">
-                <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-slate-500" />
-                <input
-                  type="text"
-                  placeholder="Search products..."
-                  value={searchTerm}
-                  onChange={(e) => setSearchTerm(e.target.value)}
-                  className="pl-10 pr-4 py-2 bg-white border border-slate-200 rounded-xl text-slate-900 text-sm focus:outline-none focus:border-cyan-500 w-64"
-                />
-              </div>
-              <button
-                onClick={() => setShowLowStockOnly(!showLowStockOnly)}
-                className={`px-3 py-2 rounded-xl text-sm transition flex items-center gap-2 ${
-                  showLowStockOnly ? 'bg-cyan-500 text-white' : 'bg-white text-slate-500 hover:text-slate-900'
-                }`}
+              <ExportButtons data={{ inventory, warehouses, products }} />
+            <div className="w-full md:w-96">
+              <AdvancedSearchBar
+                query={searchQuery}
+                onQueryChange={setSearchQuery}
+                sortBy={sortBy}
+                sortDir={sortDir}
+                sortOptions={[
+                  { value: 'quantity', label: t('common.quantity') },
+                  { value: 'productSku', label: t('common.sku') },
+                  { value: 'warehouseId', label: t('common.warehouse') },
+                ]}
+                onSortByChange={(value) => setSortBy(value as typeof sortBy)}
+                onSortDirChange={(value) => setSortDir(value as typeof sortDir)}
+                showClear
+                onClear={() => {
+                  setSearchQuery('');
+                  setShowLowStockOnly(false);
+                  setSortBy('quantity');
+                  setSortDir('asc');
+                }}
+                placeholder={t('common.searchProductsPlaceholder')}
+              />
+            </div>
+            <button
+              onClick={() => setShowLowStockOnly(!showLowStockOnly)}
+              className={`px-3 py-2 rounded-xl text-sm transition flex items-center gap-2 ${
+                showLowStockOnly ? 'bg-cyan-500 text-white' : 'bg-white text-slate-500 hover:text-slate-900'
+              }`}
               >
                 <AlertTriangle className="w-4 h-4" />
-                Low Stock Only
+                {t('warehouseStaffDashboard.lowStockOnly')}
               </button>
               <button
                 onClick={loadData}
@@ -363,7 +397,7 @@ export function WarehouseStaffDashboard() {
             <div className="rounded-2xl border border-slate-200 bg-slate-100/90 p-5">
               <div className="flex items-center justify-between">
                 <div>
-                  <p className="text-sm text-slate-500">Total Products</p>
+                  <p className="text-sm text-slate-500">{t('common.totalProducts')}</p>
                   <p className="text-2xl font-bold text-slate-900">{stats.totalProducts}</p>
                 </div>
                 <div className="w-10 h-10 rounded-xl bg-cyan-500/20 flex items-center justify-center">
@@ -375,7 +409,7 @@ export function WarehouseStaffDashboard() {
             <div className="rounded-2xl border border-slate-200 bg-slate-100/90 p-5">
               <div className="flex items-center justify-between">
                 <div>
-                  <p className="text-sm text-slate-500">Total Stock</p>
+                  <p className="text-sm text-slate-500">{t('common.totalStock')}</p>
                   <p className="text-2xl font-bold text-slate-900">{stats.totalStock}</p>
                 </div>
                 <div className="w-10 h-10 rounded-xl bg-green-500/20 flex items-center justify-center">
@@ -387,7 +421,7 @@ export function WarehouseStaffDashboard() {
             <div className="rounded-2xl border border-slate-200 bg-slate-100/90 p-5">
               <div className="flex items-center justify-between">
                 <div>
-                  <p className="text-sm text-slate-500">Low Stock Items</p>
+                  <p className="text-sm text-slate-500">{t('common.lowStockItems')}</p>
                   <p className="text-2xl font-bold text-yellow-400">{stats.lowStockCount}</p>
                 </div>
                 <div className="w-10 h-10 rounded-xl bg-yellow-500/20 flex items-center justify-center">
@@ -399,7 +433,7 @@ export function WarehouseStaffDashboard() {
             <div className="rounded-2xl border border-slate-200 bg-slate-100/90 p-5">
               <div className="flex items-center justify-between">
                 <div>
-                  <p className="text-sm text-slate-500">Total Value</p>
+                  <p className="text-sm text-slate-500">{t('common.totalValue')}</p>
                   <p className="text-2xl font-bold text-slate-900">${stats.totalValue.toLocaleString()}</p>
                 </div>
                 <div className="w-10 h-10 rounded-xl bg-purple-500/20 flex items-center justify-center">
@@ -409,15 +443,15 @@ export function WarehouseStaffDashboard() {
             </div>
           </div>
 
-      
+        
           <div className="flex items-center gap-4">
-            <label className="text-slate-500 text-sm">Filter by Warehouse:</label>
+            <label className="text-slate-500 text-sm">{t('warehouseStaffDashboard.filterByWarehouse')}</label>
             <select
               value={selectedWarehouse || ''}
               onChange={(e) => setSelectedWarehouse(e.target.value ? parseInt(e.target.value) : null)}
               className="px-4 py-2 bg-white border border-slate-200 rounded-xl text-slate-900 text-sm focus:outline-none focus:border-cyan-500"
             >
-              <option value="">All Warehouses</option>
+              <option value="">{t('warehouseStaffDashboard.allWarehouses')}</option>
               {warehouses.map((warehouse) => (
                 <option key={warehouse.id} value={warehouse.id}>
                   {warehouse.name}
@@ -432,20 +466,20 @@ export function WarehouseStaffDashboard() {
               <table className="w-full text-sm">
                 <thead>
                   <tr className="border-b border-slate-200 bg-white">
-                    <th className="text-left py-4 px-6 text-slate-500 font-medium">Product</th>
-                    <th className="text-left py-4 px-6 text-slate-500 font-medium">SKU</th>
-                    <th className="text-left py-4 px-6 text-slate-500 font-medium">Warehouse</th>
-                    <th className="text-right py-4 px-6 text-slate-500 font-medium">Quantity</th>
-                    <th className="text-right py-4 px-6 text-slate-500 font-medium">Price</th>
-                    <th className="text-center py-4 px-6 text-slate-500 font-medium">Status</th>
-                    <th className="text-center py-4 px-6 text-slate-500 font-medium">Actions</th>
+                    <th className="text-left py-4 px-6 text-slate-500 font-medium">{t('warehouseStaffDashboard.product')}</th>
+                    <th className="text-left py-4 px-6 text-slate-500 font-medium">{t('warehouseStaffDashboard.sku')}</th>
+                    <th className="text-left py-4 px-6 text-slate-500 font-medium">{t('warehouseStaffDashboard.warehouse')}</th>
+                    <th className="text-right py-4 px-6 text-slate-500 font-medium">{t('warehouseStaffDashboard.quantity')}</th>
+                    <th className="text-right py-4 px-6 text-slate-500 font-medium">{t('warehouseStaffDashboard.price')}</th>
+                    <th className="text-center py-4 px-6 text-slate-500 font-medium">{t('warehouseStaffDashboard.status')}</th>
+                    <th className="text-center py-4 px-6 text-slate-500 font-medium">{t('warehouseStaffDashboard.actions')}</th>
                   </tr>
                 </thead>
                 <tbody>
                   {filteredInventory.length === 0 ? (
                     <tr>
                       <td colSpan={7} className="text-center py-12 text-slate-500">
-                        No inventory items found
+                        {t('warehouseStaffDashboard.noInventoryFound')}
                       </td>
                     </tr>
                   ) : (
@@ -590,7 +624,7 @@ export function WarehouseStaffDashboard() {
         </>
       )}
 
-   
+  
       {activeTab === 'vehicles' && (
         <div className="rounded-2xl border border-slate-200 bg-slate-100/90 p-6 backdrop-blur">
           <div className="flex justify-between items-center mb-6">
@@ -739,7 +773,7 @@ export function WarehouseStaffDashboard() {
         </div>
       )}
 
- 
+
       {showUpdateModal && selectedItem && (
         <div className="fixed inset-0 bg-black/70 flex items-center justify-center z-50 p-4">
           <div className="bg-white rounded-2xl p-6 w-full max-w-md border border-slate-200">

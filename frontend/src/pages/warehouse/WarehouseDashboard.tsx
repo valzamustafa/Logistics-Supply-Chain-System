@@ -1,5 +1,6 @@
 ﻿
 import { useEffect, useMemo, useState } from 'react';
+import { useTranslation } from 'react-i18next';
 import { Package, AlertTriangle, Building2, PieChart, TrendingUp, TrendingDown, Box, Truck, Clock, CheckCircle, XCircle, Plus, Edit, Trash2, Users, MapPin, Phone, AlertCircle, Edit2 } from 'lucide-react';
 import { loadStripe } from '@stripe/stripe-js';
 import { Elements } from '@stripe/react-stripe-js';
@@ -16,6 +17,7 @@ import { orderService, Order } from '../../services/orderService';
 import { shipmentService } from '../../services/shipmentService';
 import { driverService, Driver } from '../../services/driverService';
 import { supplierService, Supplier, SupplierProductDto, PurchaseOrderDto } from '../../services/supplierService';
+import { userService, User } from '../../services/userService';
 import { WarehouseInventory } from './Inventory';
 import { Navigation, RefreshCw, Eye } from 'lucide-react';
 import { vehicleService, Vehicle } from '../../services/driverService';
@@ -25,6 +27,7 @@ const stripePromise = loadStripe(import.meta.env.VITE_STRIPE_PUBLISHABLE_KEY ?? 
 type WarehouseDashboardView = 'warehouses' | 'inventory';
 
 export function WarehouseDashboard() {
+  const { t } = useTranslation();
   const [activeView, setActiveView] = useState<WarehouseDashboardView>('warehouses');
   const [warehouses, setWarehouses] = useState<Warehouse[]>([]);
   const [products, setProducts] = useState<Product[]>([]);
@@ -41,12 +44,16 @@ export function WarehouseDashboard() {
   const [warehouseForm, setWarehouseForm] = useState({ name: '', location: '', phone: '' });
   const [zoneForm, setZoneForm] = useState({ warehouseId: 0, zoneName: '', description: '', capacity: 0 });
   const [staffForm, setStaffForm] = useState({ userId: 0, position: '', hireDate: '' });
+  const [users, setUsers] = useState<User[]>([]);
+  const [usersLoading, setUsersLoading] = useState(false);
   const [warehouseStocks, setWarehouseStocks] = useState<Record<number, WarehouseStock[]>>({});
   const [confirmDialog, setConfirmDialog] = useState<{ title: string; message: string; onConfirm: () => Promise<void> } | null>(null);
   const [stocksLoading, setStocksLoading] = useState(false);
   
+
   const [suppliers, setSuppliers] = useState<Supplier[]>([]);
   const [supplierProducts, setSupplierProducts] = useState<SupplierProductDto[]>([]);
+  const [orderedProductIds, setOrderedProductIds] = useState<Set<number>>(new Set());
   const [selectedSupplierId, setSelectedSupplierId] = useState<number>(0);
   const [selectedSupplierProductId, setSelectedSupplierProductId] = useState<number | null>(null);
   const [showSupplierOrderModal, setShowSupplierOrderModal] = useState(false);
@@ -59,6 +66,8 @@ export function WarehouseDashboard() {
   const [showStripeModal, setShowStripeModal] = useState(false);
   const [stripeClientSecret, setStripeClientSecret] = useState<string | null>(null);
   const [stripeError, setStripeError] = useState<string | null>(null);
+  const [pendingPurchaseOrderPayload, setPendingPurchaseOrderPayload] = useState<any | null>(null);
+  const [pendingOrderTotal, setPendingOrderTotal] = useState<number>(0);
   const [isEmergencyOrder, setIsEmergencyOrder] = useState(false);
   const [emergencyReason, setEmergencyReason] = useState('');
   const [orderError, setOrderError] = useState<string | null>(null);
@@ -70,6 +79,7 @@ export function WarehouseDashboard() {
   const [shipmentDate, setShipmentDate] = useState('');
   const [shipmentError, setShipmentError] = useState<string | null>(null);
   const [shipmentSuccess, setShipmentSuccess] = useState<string | null>(null);
+
 
   const [showEditStockModal, setShowEditStockModal] = useState(false);
   const [selectedStockItem, setSelectedStockItem] = useState<WarehouseStock | null>(null);
@@ -93,6 +103,7 @@ export function WarehouseDashboard() {
 
   const { showToast } = useToast();
   const { user } = useAuth();
+  const isManager = user?.roles?.includes('Manager') || user?.roles?.includes('Admin');
 
   const fetchWarehouses = async () => {
     try {
@@ -109,9 +120,22 @@ export function WarehouseDashboard() {
       await fetchWarehouseStocks(data);
     } catch (err) {
       console.error('Failed to fetch warehouses:', err);
-      setError('Failed to load warehouses');
+      setError(t('warehouseDashboard.failedToLoadWarehouses'));
     } finally {
       setLoading(false);
+    }
+  };
+
+  const loadUsers = async () => {
+    try {
+      setUsersLoading(true);
+      const all = await userService.getAll();
+      setUsers(all);
+    } catch (err) {
+      console.error('Failed to load users:', err);
+      setUsers([]);
+    } finally {
+      setUsersLoading(false);
     }
   };
 
@@ -169,7 +193,7 @@ export function WarehouseDashboard() {
   const handleCreateOrderShipment = async () => {
     if (!selectedOrder) return;
     if (!selectedDriverId) {
-      setShipmentError('Please select an available driver');
+      setShipmentError(t('warehouseDashboard.selectDriver'));
       return;
     }
 
@@ -188,15 +212,15 @@ export function WarehouseDashboard() {
         })) || []
       });
 
-      setShipmentSuccess('Shipment arranged successfully');
-      showToast('success', 'Shipment arranged successfully');
+      setShipmentSuccess(t('warehouseDashboard.shipmentArranged'));
+      showToast('success', t('warehouseDashboard.shipmentArranged'));
       if (user?.id) await notificationService.sendNotification({ userId: user.id, type: 'Shipment', title: 'Shipment Arranged', message: `Shipment arranged for order ${selectedOrder?.id}`, actionUrl: '/warehouse' }).catch(() => {});
       await fetchWarehouses();
       closeOrderShipmentModal();
     } catch (err: any) {
       console.error('Failed to create shipment:', err);
-      setShipmentError(err.message || 'Failed to create shipment');
-      showToast('error', 'Failed to create shipment');
+      setShipmentError(err.message || t('warehouseDashboard.failedToCreateShipment'));
+      showToast('error', t('warehouseDashboard.failedToCreateShipment'));
     } finally {
       setLoading(false);
     }
@@ -205,6 +229,7 @@ export function WarehouseDashboard() {
   useEffect(() => {
     fetchWarehouses();
     fetchProducts();
+    loadUsers();
   }, []);
 
   useEffect(() => {
@@ -226,7 +251,27 @@ export function WarehouseDashboard() {
     };
 
     loadSupplierProducts();
+    // Load past purchase orders for this supplier to determine which products are reorders
+    const loadOrderedProducts = async () => {
+      if (!selectedSupplierId) {
+        setOrderedProductIds(new Set());
+        return;
+      }
+      try {
+        const allPos = await supplierService.getAllPurchaseOrders();
+        const supplierPos = allPos.filter(po => po.supplierId === selectedSupplierId);
+        const ids = new Set<number>();
+        supplierPos.forEach(po => po.items.forEach(item => ids.add(item.productId)));
+        setOrderedProductIds(ids);
+      } catch (err) {
+        console.error('Failed to load purchase orders for supplier:', err);
+        setOrderedProductIds(new Set());
+      }
+    };
+
+    loadOrderedProducts();
   }, [selectedSupplierId]);
+
 
   const openEditStockModal = (stock: WarehouseStock) => {
     setSelectedStockItem(stock);
@@ -240,7 +285,7 @@ export function WarehouseDashboard() {
 
     const quantity = parseInt(editStockQuantity, 10);
     if (isNaN(quantity) || quantity < 0) {
-      setEditStockError('Enter a valid quantity');
+      setEditStockError(t('validation.invalidQuantity'));
       return;
     }
 
@@ -256,11 +301,11 @@ export function WarehouseDashboard() {
       setSelectedStockItem(null);
       setEditStockQuantity('');
       setEditStockError(null);
-      showToast('success', 'Stock updated successfully!');
+      showToast('success', t('warehouseDashboard.stockUpdatedSuccessfully'));
       if (user?.id) await notificationService.sendNotification({ userId: user.id, type: 'Stock', title: 'Stock Updated', message: `Stock adjusted for product ${selectedStockItem.productId} in warehouse ${selectedStockItem.warehouseId}`, actionUrl: '/warehouse' }).catch(() => {});
     } catch (err) {
       console.error('Failed to update stock:', err);
-      setEditStockError('Failed to update stock. Please try again.');
+      setEditStockError(t('warehouseDashboard.failedToUpdateStock'));
     }
   };
 
@@ -274,11 +319,11 @@ export function WarehouseDashboard() {
       await fetchWarehouses();
       setShowWarehouseModal(false);
       setWarehouseForm({ name: '', location: '', phone: '' });
-      showToast('success', 'Warehouse created successfully!');
+      showToast('success', t('warehouseDashboard.warehouseCreatedSuccessfully'));
       if (user?.id) await notificationService.sendNotification({ userId: user.id, type: 'Warehouse', title: 'Warehouse Created', message: `Warehouse ${warehouseForm.name} created`, actionUrl: '/warehouse' }).catch(() => {});
     } catch (err) {
       console.error('Failed to create warehouse:', err);
-      showToast('error', 'Failed to create warehouse');
+      showToast('error', t('warehouseDashboard.failedToCreateWarehouse'));
     }
   };
 
@@ -299,27 +344,27 @@ export function WarehouseDashboard() {
       setShowWarehouseModal(false);
       setEditingWarehouse(null);
       setWarehouseForm({ name: '', location: '', phone: '' });
-      showToast('success', 'Warehouse updated successfully!');
+      showToast('success', t('warehouseDashboard.warehouseUpdatedSuccessfully'));
       if (user?.id) await notificationService.sendNotification({ userId: user.id, type: 'Warehouse', title: 'Warehouse Updated', message: `Warehouse ${warehouseForm.name} updated`, actionUrl: '/warehouse' }).catch(() => {});
     } catch (err) {
       console.error('Failed to update warehouse:', err);
-      showToast('error', 'Failed to update warehouse');
+      showToast('error', t('warehouseDashboard.failedToUpdateWarehouse'));
     }
   };
 
   const handleDeleteWarehouse = (id: number) => {
     setConfirmDialog({
-      title: 'Delete Warehouse',
-      message: 'Are you sure you want to delete this warehouse?',
+      title: t('warehouseDashboard.deleteWarehouse'),
+      message: t('warehouseDashboard.deleteWarehouseConfirmation'),
       onConfirm: async () => {
         try {
           await warehouseService.delete(id);
           await fetchWarehouses();
-          showToast('success', 'Warehouse deleted successfully!');
+          showToast('success', t('warehouseDashboard.warehouseDeletedSuccessfully'));
           if (user?.id) await notificationService.sendNotification({ userId: user.id, type: 'Warehouse', title: 'Warehouse Deleted', message: `Warehouse deleted`, actionUrl: '/warehouse' }).catch(() => {});
         } catch (err: any) {
           console.error('Failed to delete warehouse:', err);
-          showToast('error', err?.response?.data?.message || 'Cannot delete warehouse with existing stock. Transfer or remove stock first.');
+          showToast('error', err?.response?.data?.message || t('warehouseDashboard.cannotDeleteWarehouseWithStock'));
         }
       }
     });
@@ -328,7 +373,7 @@ export function WarehouseDashboard() {
   const handleCreateZone = async () => {
     if (!selectedWarehouse) return;
     if (!zoneForm.zoneName.trim()) {
-      showToast('error', 'Zone name is required');
+      showToast('error', t('warehouseDashboard.zoneNameRequired'));
       return;
     }
     try {
@@ -339,27 +384,27 @@ export function WarehouseDashboard() {
       await fetchWarehouses();
       setShowZoneModal(false);
       setZoneForm({ warehouseId: 0, zoneName: '', description: '', capacity: 0 });
-      showToast('success', 'Zone created successfully!');
+      showToast('success', t('warehouseDashboard.zoneCreatedSuccessfully'));
       if (user?.id) await notificationService.sendNotification({ userId: user.id, type: 'Zone', title: 'Zone Created', message: `Zone ${zoneForm.zoneName} created`, actionUrl: '/warehouse' }).catch(() => {});
     } catch (err) {
       console.error('Failed to create zone:', err);
-      showToast('error', 'Failed to create zone');
+      showToast('error', t('warehouseDashboard.failedToCreateZone'));
     }
   };
 
   const handleDeleteZone = (zoneId: number) => {
     setConfirmDialog({
-      title: 'Delete Zone',
-      message: 'Are you sure you want to delete this zone?',
+      title: t('warehouseDashboard.deleteZone'),
+      message: t('warehouseDashboard.deleteZoneConfirmation'),
       onConfirm: async () => {
         try {
           await warehouseService.deleteZone(zoneId);
           await fetchWarehouses();
-          showToast('success', 'Zone deleted successfully!');
+          showToast('success', t('warehouseDashboard.zoneDeletedSuccessfully'));
           if (user?.id) await notificationService.sendNotification({ userId: user.id, type: 'Zone', title: 'Zone Deleted', message: `Zone deleted`, actionUrl: '/warehouse' }).catch(() => {});
         } catch (err) {
           console.error('Failed to delete zone:', err);
-          showToast('error', 'Failed to delete zone');
+          showToast('error', t('warehouseDashboard.failedToDeleteZone'));
         }
       }
     });
@@ -368,7 +413,7 @@ export function WarehouseDashboard() {
   const handleAssignStaff = async () => {
     if (!selectedWarehouse) return;
     if (!staffForm.userId || staffForm.userId <= 0) {
-      showToast('error', 'Valid User ID is required');
+      showToast('error', t('warehouseDashboard.validUserIdRequired'));
       return;
     }
     try {
@@ -380,27 +425,27 @@ export function WarehouseDashboard() {
       await fetchWarehouses();
       setShowStaffModal(false);
       setStaffForm({ userId: 0, position: '', hireDate: '' });
-      showToast('success', 'Staff assigned successfully!');
+      showToast('success', t('warehouseDashboard.staffAssignedSuccessfully'));
       if (user?.id) await notificationService.sendNotification({ userId: user.id, type: 'Staff', title: 'Staff Assigned', message: `Staff assigned to warehouse`, actionUrl: '/warehouse' }).catch(() => {});
     } catch (err) {
       console.error('Failed to assign staff:', err);
-      showToast('error', 'Failed to assign staff');
+      showToast('error', t('warehouseDashboard.failedToAssignStaff'));
     }
   };
 
   const handleRemoveStaff = (staffId: number) => {
     setConfirmDialog({
-      title: 'Remove Staff',
-      message: 'Are you sure you want to remove this staff member?',
+      title: t('warehouseDashboard.removeStaff'),
+      message: t('warehouseDashboard.removeStaffConfirmation'),
       onConfirm: async () => {
         try {
           await warehouseService.removeStaff(staffId);
           await fetchWarehouses();
-          showToast('success', 'Staff removed successfully!');
+          showToast('success', t('warehouseDashboard.staffRemovedSuccessfully'));
           if (user?.id) await notificationService.sendNotification({ userId: user.id, type: 'Staff', title: 'Staff Removed', message: `Staff removed from warehouse`, actionUrl: '/warehouse' }).catch(() => {});
         } catch (err) {
           console.error('Failed to remove staff:', err);
-          showToast('error', 'Failed to remove staff');
+          showToast('error', t('warehouseDashboard.failedToRemoveStaff'));
         }
       }
     });
@@ -452,17 +497,17 @@ export function WarehouseDashboard() {
 
   const handleSupplierOrder = async () => {
     if (!selectedSupplierQuickOrder) {
-      setOrderError('Select a supplier product before placing the order.');
+      setOrderError(t('warehouseDashboard.selectSupplierProductBeforeOrder'));
       return;
     }
 
     if (!selectedSupplierId) {
-      setOrderError('Select a supplier first.');
+      setOrderError(t('warehouseDashboard.selectSupplierFirst'));
       return;
     }
 
     if (!selectedWarehouse) {
-      setOrderError('Select a warehouse before placing an order.');
+      setOrderError(t('warehouseDashboard.selectWarehouseBeforeOrder'));
       return;
     }
 
@@ -471,18 +516,19 @@ export function WarehouseDashboard() {
     const productId = selectedSupplierProductId ?? selectedSupplierQuickOrder.productId;
 
     if (!quantity || quantity <= 0) {
-      setOrderError('Enter a valid quantity');
+      setOrderError(t('validation.invalidQuantity'));
       return;
     }
 
     if (Number.isNaN(price) || price < 0) {
-      setOrderError('Enter a valid unit price');
+      setOrderError(t('warehouseDashboard.invalidUnitPrice'));
       return;
     }
 
     try {
+      console.log('handleSupplierOrder invoked, paymentMethod=', paymentMethod, 'quantity=', quantity, 'price=', price);
       setLoading(true);
-      const purchaseOrder = await supplierService.createPurchaseOrder({
+      const payload = {
         supplierId: selectedSupplierId,
         warehouseId: selectedWarehouse.id,
         items: [
@@ -493,20 +539,34 @@ export function WarehouseDashboard() {
           },
         ],
         notes: `Reorder generated from warehouse dashboard for supplier ${selectedSupplierId}`,
-      });
+      };
 
-      setSelectedPurchaseOrder(purchaseOrder);
-      setOrderQuantity(quantity.toString());
-      setOrderUnitPrice(price.toFixed(2));
+      const total = quantity * price;
+      console.log('handleSupplierOrder total=', total, 'payload=', payload);
+      setPendingPurchaseOrderPayload(payload);
+      setPendingOrderTotal(total);
 
       if (paymentMethod === 'Stripe') {
-        await handleStartStripePayment(quantity * price, purchaseOrder);
-        return;
+        try {
+          const resp = await orderService.createPaymentIntent({ amount: total, currency: 'eur' });
+          console.log('handleSupplierOrder createPaymentIntent resp=', resp);
+          setStripeClientSecret(resp.clientSecret);
+          setShowStripeModal(true);
+          return;
+        } catch (err) {
+          console.error('Failed to create payment intent:', err);
+          setOrderError(t('warehouseDashboard.failedToInitPayment'));
+          setPendingPurchaseOrderPayload(null);
+          setPendingOrderTotal(0);
+          return;
+        }
       }
 
+      
+      const purchaseOrder = await supplierService.createPurchaseOrder(payload);
       await supplierService.createPayment(purchaseOrder.id, {
         purchaseOrderId: purchaseOrder.id,
-        amount: quantity * price,
+        amount: total,
         paymentMethod: 'BankTransfer',
         transactionId: `WH-${purchaseOrder.poNumber}`,
         notes: paymentNotes || 'Recorded payment from warehouse dashboard',
@@ -517,22 +577,26 @@ export function WarehouseDashboard() {
       setSelectedSupplierProductId(null);
       setPaymentMethod('BankTransfer');
       setPaymentNotes('');
+      setPendingPurchaseOrderPayload(null);
+      setPendingOrderTotal(0);
     } catch (err: any) {
       console.error('Failed to create supplier order:', err);
-      setOrderError(err?.message || 'Failed to create supplier order, please try again');
+      setOrderError(err?.message || t('warehouseDashboard.failedToCreateSupplierOrder'));
+      setPendingPurchaseOrderPayload(null);
+      setPendingOrderTotal(0);
     } finally {
       setLoading(false);
     }
   };
 
   const handleStartStripePayment = async (amount: number, purchaseOrder: PurchaseOrderDto) => {
+   
     try {
       setStripeError(null);
       setLoading(true);
       const response = await orderService.createPaymentIntent({ amount, currency: 'eur' });
       setStripeClientSecret(response.clientSecret);
       setShowStripeModal(true);
-      setSelectedPurchaseOrder(purchaseOrder);
     } catch (err: any) {
       console.error('Failed to create Stripe payment intent:', err);
       setOrderError(err.message || 'Unable to create Stripe payment intent.');
@@ -542,14 +606,17 @@ export function WarehouseDashboard() {
   };
 
   const handleStripePaymentSuccess = async (transactionId: string) => {
-    if (!selectedPurchaseOrder) return;
+    if (!pendingPurchaseOrderPayload) return;
 
     try {
       setStripeError(null);
       setLoading(true);
-      await supplierService.createPayment(selectedPurchaseOrder.id, {
-        purchaseOrderId: selectedPurchaseOrder.id,
-        amount: Number(orderTotal),
+    
+      const purchaseOrder = await supplierService.createPurchaseOrder(pendingPurchaseOrderPayload);
+
+      await supplierService.createPayment(purchaseOrder.id, {
+        purchaseOrderId: purchaseOrder.id,
+        amount: pendingOrderTotal,
         paymentMethod: 'Stripe',
         transactionId,
         notes: paymentNotes || 'Stripe payment completed from warehouse dashboard',
@@ -562,10 +629,14 @@ export function WarehouseDashboard() {
       setSelectedSupplierProductId(null);
       setPaymentMethod('BankTransfer');
       setPaymentNotes('');
+      setPendingPurchaseOrderPayload(null);
+      setPendingOrderTotal(0);
     } catch (err: any) {
       console.error('Stripe payment processing failed:', err);
       setStripeError(err.message || 'Failed to save Stripe payment after payment success.');
       setOrderError(err.message || 'Failed to save Stripe payment after payment success.');
+      setPendingPurchaseOrderPayload(null);
+      setPendingOrderTotal(0);
     } finally {
       setLoading(false);
     }
@@ -585,9 +656,9 @@ export function WarehouseDashboard() {
               onClick={() => setActiveView('warehouses')}
               className="px-4 py-2 bg-slate-200 hover:bg-slate-100 text-slate-900 rounded-lg transition"
             >
-              ← Back to Warehouses
+              {t('warehouseDashboard.backToWarehouses')}
             </button>
-            <h1 className="text-2xl font-bold text-slate-900">Inventory Management</h1>
+            <h1 className="text-2xl font-bold text-slate-900">{t('warehouseDashboard.inventoryManagement')}</h1>
           </div>
         </div>
         <WarehouseInventory />
@@ -610,8 +681,8 @@ export function WarehouseDashboard() {
     <div className="p-6 space-y-6 bg-slate-50 min-h-screen">
       <div className="flex justify-between items-center">
         <div>
-          <h1 className="text-3xl font-bold text-slate-900">Warehouse Management</h1>
-          <p className="text-slate-500 mt-1">Manage your warehouses, zones, staff, and product stock</p>
+          <h1 className="text-3xl font-bold text-slate-900">{t('warehouseDashboard.warehouseManagementTitle')}</h1>
+          <p className="text-slate-500 mt-1">{t('warehouseDashboard.warehouseManagementDescription')}</p>
         </div>
         <div className="flex gap-2">
           <button
@@ -619,19 +690,21 @@ export function WarehouseDashboard() {
             className="px-4 py-2 bg-purple-600 hover:bg-purple-700 text-slate-900 rounded-lg flex items-center gap-2 transition"
           >
             <TrendingDown className="w-4 h-4" />
-            View Inventory
+            {t('warehouseDashboard.viewInventory')}
           </button>
-          <button
-            onClick={() => {
-              setEditingWarehouse(null);
-              setWarehouseForm({ name: '', location: '', phone: '' });
-              setShowWarehouseModal(true);
-            }}
-            className="px-4 py-2 bg-cyan-600 hover:bg-cyan-700 text-slate-900 rounded-lg flex items-center gap-2 transition"
-          >
-            <Plus className="w-4 h-4" />
-            Add Warehouse
-          </button>
+          {isManager && (
+            <button
+              onClick={() => {
+                setEditingWarehouse(null);
+                setWarehouseForm({ name: '', location: '', phone: '' });
+                setShowWarehouseModal(true);
+              }}
+              className="px-4 py-2 bg-cyan-600 hover:bg-cyan-700 text-slate-900 rounded-lg flex items-center gap-2 transition"
+            >
+              <Plus className="w-4 h-4" />
+              {t('warehouseDashboard.addWarehouse')}
+            </button>
+          )}
         </div>
       </div>
 
@@ -649,7 +722,7 @@ export function WarehouseDashboard() {
           </div>
           <div className="mt-4">
             <h3 className="text-2xl font-bold text-slate-900">{totalWarehouses}</h3>
-            <p className="text-slate-500 text-sm">Warehouses</p>
+            <p className="text-slate-500 text-sm">{t('warehouseDashboard.warehousesLabel')}</p>
           </div>
         </div>
 
@@ -659,7 +732,7 @@ export function WarehouseDashboard() {
           </div>
           <div className="mt-4">
             <h3 className="text-2xl font-bold text-slate-900">{totalZones}</h3>
-            <p className="text-slate-500 text-sm">Zones</p>
+            <p className="text-slate-500 text-sm">{t('warehouseDashboard.zonesLabel')}</p>
           </div>
         </div>
 
@@ -669,7 +742,7 @@ export function WarehouseDashboard() {
           </div>
           <div className="mt-4">
             <h3 className="text-2xl font-bold text-slate-900">{totalStaff}</h3>
-            <p className="text-slate-500 text-sm">Staff Members</p>
+            <p className="text-slate-500 text-sm">{t('warehouseDashboard.staffMembersLabel')}</p>
           </div>
         </div>
 
@@ -679,7 +752,7 @@ export function WarehouseDashboard() {
           </div>
           <div className="mt-4">
             <h3 className="text-2xl font-bold text-slate-900">{totalProducts}</h3>
-            <p className="text-slate-500 text-sm">Unique Products</p>
+            <p className="text-slate-500 text-sm">{t('warehouseDashboard.uniqueProductsLabel')}</p>
           </div>
         </div>
 
@@ -689,7 +762,7 @@ export function WarehouseDashboard() {
           </div>
           <div className="mt-4">
             <h3 className="text-2xl font-bold text-slate-900">{totalStockQuantity.toLocaleString()}</h3>
-            <p className="text-slate-500 text-sm">Total Units</p>
+            <p className="text-slate-500 text-sm">{t('warehouseDashboard.totalUnitsLabel')}</p>
           </div>
         </div>
       </div>
@@ -697,12 +770,12 @@ export function WarehouseDashboard() {
       <div className="rounded-2xl border border-slate-200 bg-white p-6">
         <div className="flex flex-col gap-4 md:flex-row md:items-end md:justify-between">
           <div>
-            <h2 className="text-xl font-semibold text-slate-900">Supplier Reorder</h2>
-            <p className="text-slate-500 mt-1">Pick a supplier and order products directly from the warehouse dashboard.</p>
+            <h2 className="text-xl font-semibold text-slate-900">{t('warehouseDashboard.supplierReorderTitle')}</h2>
+            <p className="text-slate-500 mt-1">{t('warehouseDashboard.supplierReorderDescription')}</p>
           </div>
           <div className="grid gap-3 sm:grid-cols-2 w-full md:w-auto">
             <div className="flex flex-col">
-              <label className="text-slate-500 text-sm mb-1">Warehouse</label>
+              <label className="text-slate-500 text-sm mb-1">{t('warehouseDashboard.selectWarehouseLabel')}</label>
               <select
                 value={selectedWarehouse?.id ?? ''}
                 onChange={(e) => {
@@ -711,20 +784,20 @@ export function WarehouseDashboard() {
                 }}
                 className="bg-slate-200 border border-slate-600 rounded px-3 py-2 text-slate-900 outline-none"
               >
-                <option value="">Select warehouse</option>
+                <option value="">{t('warehouseDashboard.selectWarehousePrompt')}</option>
                 {warehouses.map((warehouse) => (
                   <option key={warehouse.id} value={warehouse.id}>{warehouse.name}</option>
                 ))}
               </select>
             </div>
             <div className="flex flex-col">
-              <label className="text-slate-500 text-sm mb-1">Supplier</label>
+              <label className="text-slate-500 text-sm mb-1">{t('warehouseDashboard.selectSupplierLabel')}</label>
               <select
                 value={selectedSupplierId}
                 onChange={(e) => setSelectedSupplierId(Number(e.target.value))}
                 className="bg-slate-200 border border-slate-600 rounded px-3 py-2 text-slate-900 outline-none"
               >
-                <option value={0}>Select supplier</option>
+                <option value={0}>{t('warehouseDashboard.selectSupplierPrompt')}</option>
                 {suppliers.map((supplier) => (
                   <option key={supplier.id} value={supplier.id}>{supplier.name}</option>
                 ))}
@@ -735,21 +808,21 @@ export function WarehouseDashboard() {
 
         {selectedSupplierId === 0 ? (
           <div className="mt-6 rounded-2xl border border-dashed border-slate-200 bg-slate-50 p-6 text-slate-500">
-            Select a supplier to show available products and reorder options.
+            {t('warehouseDashboard.supplierSelectionPrompt')}
           </div>
         ) : supplierProducts.length === 0 ? (
           <div className="mt-6 rounded-2xl border border-dashed border-slate-200 bg-slate-50 p-6 text-slate-500">
-            No products published for this supplier. Try another supplier or update the supplier catalog.
+            {t('warehouseDashboard.noSupplierProductsMessage')}
           </div>
         ) : (
           <div className="mt-6 overflow-x-auto">
             <table className="min-w-full text-left text-sm text-slate-500">
               <thead className="border-b border-slate-200 text-slate-500">
                 <tr>
-                  <th className="p-3">Product</th>
-                  <th className="p-3">SKU</th>
-                  <th className="p-3">Lead time</th>
-                  <th className="p-3">Action</th>
+                  <th className="p-3">{t('common.productLabel')}</th>
+                  <th className="p-3">{t('common.sku')}</th>
+                  <th className="p-3">{t('warehouseDashboard.leadTime')}</th>
+                  <th className="p-3">{t('warehouseDashboard.action')}</th>
                 </tr>
               </thead>
               <tbody>
@@ -761,12 +834,21 @@ export function WarehouseDashboard() {
                       <td className="p-3">{product?.sku ?? mapping.supplierSKU ?? '—'}</td>
                       <td className="p-3 text-slate-500">{mapping.leadTimeDays ? `${mapping.leadTimeDays} days` : 'N/A'}</td>
                       <td className="p-3">
-                        <button
-                          onClick={() => openSupplierCatalogOrderModal(mapping)}
-                          className="rounded-lg bg-cyan-600 px-3 py-2 text-sm font-medium text-slate-900 hover:bg-cyan-500 transition"
-                        >
-                          Reorder
-                        </button>
+                        {orderedProductIds.has(mapping.productId) ? (
+                          <button
+                            onClick={() => openSupplierCatalogOrderModal(mapping)}
+                            className="rounded-lg bg-cyan-600 px-3 py-2 text-sm font-medium text-slate-900 hover:bg-cyan-500 transition"
+                          >
+                            {t('warehouseDashboard.reorder', 'Reorder')}
+                          </button>
+                        ) : (
+                          <button
+                            onClick={() => openSupplierCatalogOrderModal(mapping)}
+                            className="rounded-lg bg-emerald-500 px-3 py-2 text-sm font-medium text-slate-900 hover:bg-emerald-400 transition"
+                          >
+                            {t('warehouseDashboard.order', 'Order')}
+                          </button>
+                        )}
                       </td>
                     </tr>
                   );
@@ -843,6 +925,7 @@ export function WarehouseDashboard() {
                 </div>
               </div>
 
+            
               <div className="p-5 border-b border-slate-200">
                 <div className="flex items-center justify-between mb-3">
                   <div className="flex items-center gap-2">
@@ -1039,8 +1122,8 @@ export function WarehouseDashboard() {
       <div className="rounded-2xl border border-slate-200 bg-white p-6">
         <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4 mb-6">
           <div>
-            <h2 className="text-xl font-semibold text-slate-900">Customer Orders</h2>
-            <p className="text-slate-500 mt-1">View orders assigned to your warehouses and arrange shipment.</p>
+            <h2 className="text-xl font-semibold text-slate-900">{t('warehouseDashboard.customerOrdersTitle')}</h2>
+            <p className="text-slate-500 mt-1">{t('warehouseDashboard.customerOrdersDescription')}</p>
           </div>
           <div className="flex items-center gap-3">
             <select
@@ -1051,7 +1134,7 @@ export function WarehouseDashboard() {
               }}
               className="bg-slate-200 border border-slate-600 rounded px-3 py-2 text-slate-900 outline-none"
             >
-              <option value="">All warehouses</option>
+              <option value="">{t('common.allWarehouses')}</option>
               {warehouses.map((warehouse) => (
                 <option key={warehouse.id} value={warehouse.id}>{warehouse.name}</option>
               ))}
@@ -1063,12 +1146,12 @@ export function WarehouseDashboard() {
           <table className="min-w-full text-left text-sm text-slate-500">
             <thead className="border-b border-slate-200 text-slate-500">
               <tr>
-                <th className="p-3">Order #</th>
-                <th className="p-3">Warehouse</th>
-                <th className="p-3">Amount</th>
-                <th className="p-3">Status</th>
-                <th className="p-3">Customer</th>
-                <th className="p-3">Action</th>
+                <th className="p-3">{t('warehouseDashboard.orderNumber')}</th>
+                <th className="p-3">{t('common.warehouse')}</th>
+                <th className="p-3">{t('warehouseDashboard.amount')}</th>
+                <th className="p-3">{t('common.status')}</th>
+                <th className="p-3">{t('warehouseDashboard.customer')}</th>
+                <th className="p-3">{t('warehouseDashboard.action')}</th>
               </tr>
             </thead>
             <tbody>
@@ -1085,13 +1168,13 @@ export function WarehouseDashboard() {
                       order.status?.toLowerCase().includes('delivered') ? 'bg-green-500/20 text-green-400' : 'bg-slate-500/20 text-slate-500'
                     }`}>{order.status}</span>
                   </td>
-                  <td className="p-3 text-slate-500">{order.billingName || 'Customer'}</td>
+                  <td className="p-3 text-slate-500">{order.billingName || t('warehouseDashboard.customer')}</td>
                   <td className="p-3">
                     <button
                       onClick={() => openOrderShipmentModal(order)}
                       className="rounded-lg bg-cyan-600 px-3 py-2 text-sm font-medium text-slate-900 hover:bg-cyan-500 transition"
                     >
-                      Arrange Shipment
+                      {t('warehouseDashboard.arrangeShipment')}
                     </button>
                   </td>
                 </tr>
@@ -1325,14 +1408,25 @@ export function WarehouseDashboard() {
             </div>
             <div className="p-6 space-y-4">
               <div>
-                <label className="block text-sm text-slate-500 mb-1">User ID *</label>
-                <input
-                  type="number"
-                  value={staffForm.userId || ''}
-                  onChange={(e) => setStaffForm({ ...staffForm, userId: parseInt(e.target.value) || 0 })}
-                  className="w-full px-4 py-2 bg-slate-200 border border-slate-600 rounded-lg text-slate-900 focus:outline-none focus:border-cyan-500"
-                  placeholder="Enter user ID"
-                />
+                <label className="block text-sm text-slate-500 mb-1">User *</label>
+                {usersLoading ? (
+                  <div className="flex items-center justify-center py-2">
+                    <div className="w-5 h-5 border-2 border-cyan-500 border-t-transparent rounded-full animate-spin" />
+                  </div>
+                ) : (
+                  <select
+                    value={staffForm.userId || 0}
+                    onChange={(e) => setStaffForm({ ...staffForm, userId: Number(e.target.value) || 0 })}
+                    className="w-full px-4 py-2 bg-slate-200 border border-slate-600 rounded-lg text-slate-900 focus:outline-none focus:border-cyan-500"
+                  >
+                    <option value={0}>Select user</option>
+                    {users.map((u) => (
+                      <option key={u.id} value={u.id}>
+                        {u.firstName || u.lastName ? `${u.firstName} ${u.lastName} (${u.email.split('@')[0]})` : u.email}
+                      </option>
+                    ))}
+                  </select>
+                )}
               </div>
               <div>
                 <label className="block text-sm text-slate-500 mb-1">Position</label>
@@ -1504,14 +1598,24 @@ export function WarehouseDashboard() {
         </div>
       )}
 
-      {showStripeModal && stripeClientSecret && selectedPurchaseOrder && (
-        <Elements stripe={stripePromise} options={{ clientSecret: stripeClientSecret }}>
+      {showStripeModal && stripeClientSecret && pendingPurchaseOrderPayload && (
+        <Elements stripe={stripePromise}>
           <StripeCheckoutModal
             clientSecret={stripeClientSecret}
-            totalAmount={orderTotal}
-            onCancel={() => setShowStripeModal(false)}
+            totalAmount={pendingOrderTotal}
+            onCancel={() => {
+              setShowStripeModal(false);
+              setStripeClientSecret(null);
+              setPendingPurchaseOrderPayload(null);
+              setPendingOrderTotal(0);
+            }}
             onSuccess={handleStripePaymentSuccess}
-            onError={handleStripeError}
+            onError={(msg) => {
+              setStripeError(msg);
+              setShowStripeModal(false);
+              setPendingPurchaseOrderPayload(null);
+              setPendingOrderTotal(0);
+            }}
             isLoading={loading}
           />
         </Elements>

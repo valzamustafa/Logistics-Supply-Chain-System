@@ -1,11 +1,14 @@
 
 import { useState, useEffect } from 'react';
+import { useTranslation } from 'react-i18next';
 import { useAuth } from '../../hooks/useAuth';
 import { orderService, Order } from '../../services/orderService';
 import { shipmentService, Shipment } from '../../services/shipmentService';
 import { InvoiceModal } from '../../components/InvoiceModal';
+import { Package, CheckCircle, Truck, TrendingUp, Clock } from 'lucide-react';
 
 export function UserDashboard() {
+  const { t } = useTranslation();
   const { user } = useAuth();
   const [orders, setOrders] = useState<Order[]>([]);
   const [shipments, setShipments] = useState<Shipment[]>([]);
@@ -81,8 +84,8 @@ export function UserDashboard() {
     return (
       <div className="flex items-center justify-center h-full">
         <div className="text-center">
-          <div className="w-16 h-16 border-4 border-cyan-500 border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
-          <p className="text-slate-500">Loading your dashboard...</p>
+          <Package className="w-16 h-16 text-cyan-500 mx-auto mb-4" />
+          <p className="text-slate-500">{t('common.loading')}</p>
         </div>
       </div>
     );
@@ -91,8 +94,8 @@ export function UserDashboard() {
   return (
     <div className="flex flex-col gap-8 p-6 bg-slate-50 min-h-screen">
       <div>
-        <h1 className="text-3xl font-bold text-slate-900 mb-2">Dashboard</h1>
-        <p className="text-slate-500">Welcome back, {user?.firstName || user?.email?.split('@')[0]}!</p>
+        <h1 className="text-3xl font-bold text-slate-900 mb-2">{t('userDashboard.title')}</h1>
+        <p className="text-slate-500">{t('userDashboard.greeting', { name: user?.firstName || user?.email?.split('@')[0] })}</p>
       </div>
 
       {/* Stats Cards */}
@@ -100,37 +103,45 @@ export function UserDashboard() {
         <div className="rounded-2xl border border-slate-200 bg-slate-100/90 p-6">
           <div className="flex items-center justify-between">
             <div>
-              <p className="text-sm text-slate-500">Orders Placed</p>
+              <p className="text-sm text-slate-500">{t('userDashboard.ordersPlaced')}</p>
               <p className="text-3xl font-bold text-slate-900 mt-2">{stats.totalOrders}</p>
             </div>
-            <div className="bg-gradient-to-br from-cyan-400 to-blue-500 rounded-xl p-3 text-2xl">📋</div>
+            <div className="bg-gradient-to-br from-cyan-400 to-blue-500 rounded-xl p-3 text-white">
+              <Package className="w-6 h-6" />
+            </div>
           </div>
         </div>
         <div className="rounded-2xl border border-slate-200 bg-slate-100/90 p-6">
           <div className="flex items-center justify-between">
             <div>
-              <p className="text-sm text-slate-500">Delivered</p>
+              <p className="text-sm text-slate-500">{t('userDashboard.delivered')}</p>
               <p className="text-3xl font-bold text-slate-900 mt-2">{stats.delivered}</p>
             </div>
-            <div className="bg-gradient-to-br from-green-400 to-emerald-500 rounded-xl p-3 text-2xl">✅</div>
+            <div className="bg-gradient-to-br from-green-400 to-emerald-500 rounded-xl p-3 text-white">
+              <CheckCircle className="w-6 h-6" />
+            </div>
           </div>
         </div>
         <div className="rounded-2xl border border-slate-200 bg-slate-100/90 p-6">
           <div className="flex items-center justify-between">
             <div>
-              <p className="text-sm text-slate-500">In Transit</p>
+              <p className="text-sm text-slate-500">{t('userDashboard.inTransit')}</p>
               <p className="text-3xl font-bold text-slate-900 mt-2">{stats.inTransit}</p>
             </div>
-            <div className="bg-gradient-to-br from-yellow-400 to-orange-500 rounded-xl p-3 text-2xl">🚚</div>
+            <div className="bg-gradient-to-br from-yellow-400 to-orange-500 rounded-xl p-3 text-white">
+              <Truck className="w-6 h-6" />
+            </div>
           </div>
         </div>
         <div className="rounded-2xl border border-slate-200 bg-slate-100/90 p-6">
           <div className="flex items-center justify-between">
             <div>
-              <p className="text-sm text-slate-500">Total Spent</p>
+              <p className="text-sm text-slate-500">{t('userDashboard.totalSpent')}</p>
               <p className="text-3xl font-bold text-slate-900 mt-2">${stats.totalSpent.toLocaleString()}</p>
             </div>
-            <div className="bg-gradient-to-br from-purple-400 to-pink-500 rounded-xl p-3 text-2xl">💰</div>
+            <div className="bg-gradient-to-br from-purple-400 to-pink-500 rounded-xl p-3 text-white">
+              <TrendingUp className="w-6 h-6" />
+            </div>
           </div>
         </div>
       </div>
@@ -138,7 +149,7 @@ export function UserDashboard() {
       {/* Recent Orders Section */}
       <div className="rounded-2xl border border-slate-200 bg-slate-100/90 p-6 backdrop-blur">
         <div className="flex justify-between items-center mb-4">
-          <h2 className="text-xl font-bold text-slate-900">Recent Orders</h2>
+          <h2 className="text-xl font-bold text-slate-900">{t('userDashboard.recentOrders')}</h2>
           <button 
             onClick={() => window.location.href = '/orders'}
             className="text-cyan-400 text-sm hover:text-cyan-300 transition"
@@ -171,9 +182,9 @@ export function UserDashboard() {
           ))}
           {orders.length === 0 && (
             <div className="text-center py-8">
-              <div className="text-5xl mb-3">📦</div>
-              <p className="text-slate-500">No orders yet</p>
-              <p className="text-slate-500 text-sm mt-1">Click "Create Order" to get started</p>
+              <Package className="mx-auto mb-3 text-cyan-400" size={40} />
+              <p className="text-slate-500">{t('userDashboard.noOrdersYet')}</p>
+              <p className="text-slate-500 text-sm mt-1">{t('userDashboard.createOrderPrompt')}</p>
             </div>
           )}
         </div>
@@ -183,20 +194,20 @@ export function UserDashboard() {
       <div className="rounded-2xl border border-slate-200 bg-slate-100/90 p-6 backdrop-blur">
         <div className="flex items-center justify-between mb-4">
           <div>
-            <h2 className="text-xl font-bold text-slate-900">Track Your Shipment</h2>
-            <p className="text-slate-500 text-sm">Follow your warehouse driver and shipment status in real time.</p>
+            <h2 className="text-xl font-bold text-slate-900">{t('userDashboard.trackYourShipment')}</h2>
+            <p className="text-slate-500 text-sm">{t('userDashboard.trackYourShipment')}</p>
           </div>
           <button
             onClick={() => window.location.href = '/track-shipment'}
             className="text-cyan-400 text-sm hover:text-cyan-300 transition"
           >
-            Go to Tracking →
+            {t('userDashboard.goToTracking')}
           </button>
         </div>
 
         {shipments.length === 0 ? (
           <div className="rounded-2xl border border-slate-200 bg-slate-50/30 p-6 text-slate-500">
-            No active shipments yet. Your order will appear here once it is assigned to a warehouse and driver.
+            {t('userDashboard.noActiveShipments')}
           </div>
         ) : (
           <div className="grid gap-4 md:grid-cols-2">
@@ -211,14 +222,14 @@ export function UserDashboard() {
                     {shipment.status}
                   </span>
                 </div>
-                <p className="text-sm text-slate-500 mb-2">Driver: <span className="text-slate-900">{shipment.driverName || 'Pending assignment'}</span></p>
+                <p className="text-sm text-slate-500 mb-2">Driver: <span className="text-slate-900">{shipment.driverName || t('common.pendingAssignment')}</span></p>
                 <p className="text-sm text-slate-500 mb-2">Order ID: <span className="text-slate-900">{shipment.orderId}</span></p>
                 <p className="text-sm text-slate-500 mb-4">ETA: <span className="text-slate-900">{new Date(shipment.estimatedDeliveryDate).toLocaleDateString()}</span></p>
                 <button
                   onClick={() => window.location.href = `/track-shipment/${shipment.id}`}
                   className="w-full rounded-lg bg-cyan-500 px-4 py-2 text-sm font-semibold text-slate-900 hover:bg-cyan-400 transition"
                 >
-                  Track this shipment
+                  {t('common.trackThisShipment')}
                 </button>
               </div>
             ))}

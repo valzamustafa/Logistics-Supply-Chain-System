@@ -1,4 +1,5 @@
 import { useState, useEffect, useRef } from 'react';
+import { useTranslation } from 'react-i18next';
 import { useAuth } from '../hooks/useAuth';
 import { shipmentService, Shipment } from '../services/shipmentService';
 import { orderService } from '../services/orderService';
@@ -29,6 +30,7 @@ interface LiveEvent {
 }
 
 export function TrackingPage() {
+  const { t } = useTranslation();
   const { user } = useAuth();
   const [shipments, setShipments] = useState<Shipment[]>([]);
   const [selectedShipment, setSelectedShipment] = useState<Shipment | null>(null);
@@ -190,7 +192,7 @@ export function TrackingPage() {
       if (data.length > 0) setSelectedShipment(data[0]);
     } catch (err) {
       console.error('Failed to load shipments:', err);
-      setError('Failed to load shipments. Make sure the backend is running.');
+      setError(t('shipments.errorLoading', 'Failed to load shipments. Make sure the backend is running.'));
     } finally {
       setLoading(false);
     }
@@ -204,11 +206,11 @@ export function TrackingPage() {
 
   const getStatusSteps = (status: string) => {
     const steps = [
-      { label: 'Order Placed', completed: true },
-      { label: 'Processing', completed: ['Processing', 'Shipped', 'In Transit', 'Delivered'].includes(status) },
-      { label: 'Shipped', completed: ['Shipped', 'In Transit', 'Delivered'].includes(status) },
-      { label: 'In Transit', completed: ['In Transit', 'Delivered'].includes(status) },
-      { label: 'Delivered', completed: status === 'Delivered' },
+      { label: t('trackShipment.timeline.orderPlaced', 'Order Placed'), completed: true },
+      { label: t('trackShipment.timeline.processing', 'Processing'), completed: ['Processing', 'Shipped', 'In Transit', 'Delivered'].includes(status) },
+      { label: t('orders.shipped', 'Shipped'), completed: ['Shipped', 'In Transit', 'Delivered'].includes(status) },
+      { label: t('trackShipment.timeline.inTransit', 'In Transit'), completed: ['In Transit', 'Delivered'].includes(status) },
+      { label: t('trackShipment.timeline.delivered', 'Delivered'), completed: status === 'Delivered' },
     ];
     return steps;
   };
@@ -257,7 +259,7 @@ export function TrackingPage() {
       <div className="flex h-screen items-center justify-center">
         <div className="text-center">
           <div className="w-16 h-16 border-4 border-cyan-500 border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
-          <p className="text-slate-500">Loading shipments...</p>
+          <p className="text-slate-500">{t('shipments.loading', 'Loading shipments...')}</p>
         </div>
       </div>
     );
@@ -266,8 +268,8 @@ export function TrackingPage() {
   return (
     <div className="flex flex-col gap-8 p-6">
       <div>
-        <h1 className="text-3xl font-bold text-slate-900 mb-2">Shipment Tracking</h1>
-        <p className="text-slate-500">Real-time tracking and monitoring of all shipments</p>
+        <h1 className="text-3xl font-bold text-slate-900 mb-2">{t('tracking.title', 'Shipment Tracking')}</h1>
+        <p className="text-slate-500">{t('tracking.description', 'Real-time tracking and monitoring of all shipments')}</p>
       </div>
 
       {error && (
@@ -281,11 +283,11 @@ export function TrackingPage() {
         {/* List of Shipments */}
         <div className="lg:col-span-1">
           <div className="rounded-2xl border border-slate-200 bg-slate-100/90 p-6 backdrop-blur h-full">
-            <h2 className="text-xl font-bold text-slate-900 mb-4">Shipments</h2>
+            <h2 className="text-xl font-bold text-slate-900 mb-4">{t('shipments.title', 'Shipments')}</h2>
             <div className="relative mb-4">
               <input
                 type="text"
-                placeholder="Search tracking #..."
+                placeholder={t('tracking.searchPlaceholder', 'Search tracking #...')}
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
                 className="w-full px-4 py-2 bg-slate-200 border border-slate-600 rounded-lg text-slate-900 placeholder-slate-400 focus:outline-none focus:border-cyan-500"
@@ -304,14 +306,14 @@ export function TrackingPage() {
                     }`}
                   >
                     <p className="text-slate-900 font-medium text-sm">{shipment.trackingNumber}</p>
-                    <p className="text-xs text-slate-500 mt-1">{shipment.shippingAddress || 'No address'}</p>
+                    <p className="text-xs text-slate-500 mt-1">{shipment.shippingAddress || t('tracking.noAddress', 'No address')}</p>
                     <span className={`text-xs mt-2 inline-block px-2 py-1 rounded ${getStatusBadge(shipment.status)}`}>
-                      {shipment.status}
+                      {t(`trackShipment.status.${shipment.status.toLowerCase().replace(/\s+/g, '')}`, shipment.status)}
                     </span>
                   </button>
                 ))
               ) : (
-                <p className="text-slate-500 text-center py-4 text-sm">No shipments found</p>
+                <p className="text-slate-500 text-center py-4 text-sm">{t('shipments.noShipments', 'No shipments found')}</p>
               )}
             </div>
           </div>
@@ -325,31 +327,31 @@ export function TrackingPage() {
               <div className="flex justify-between items-start mb-6">
                 <div>
                   <h2 className="text-2xl font-bold text-slate-900 mb-2">{selectedShipment.trackingNumber}</h2>
-                  <p className="text-slate-500">Order #{selectedShipment.orderId}</p>
+                  <p className="text-slate-500">{t('trackShipment.orderNumber', 'Order #{{id}}', { id: selectedShipment.orderId })}</p>
                 </div>
                 <span className={`px-4 py-2 rounded-full text-sm font-semibold ${getStatusBadge(selectedShipment.status)}`}>
-                  {selectedShipment.status}
+                  {t(`trackShipment.status.${selectedShipment.status.toLowerCase().replace(/\s+/g, '')}`, selectedShipment.status)}
                 </span>
               </div>
 
               <div className="grid grid-cols-2 gap-4">
                 <div>
-                  <p className="text-sm text-slate-500 mb-1">Driver</p>
-                  <p className="text-slate-900 font-medium">{selectedShipment.driverName || 'Not assigned'}</p>
+                  <p className="text-sm text-slate-500 mb-1">{t('trackShipment.driverLabel', 'Driver')}</p>
+                  <p className="text-slate-900 font-medium">{selectedShipment.driverName || t('trackShipment.notAssigned', 'Not assigned')}</p>
                 </div>
                 <div>
-                  <p className="text-sm text-slate-500 mb-1">Vehicle</p>
-                  <p className="text-slate-900 font-medium">{selectedShipment.vehiclePlate || 'N/A'}</p>
+                  <p className="text-sm text-slate-500 mb-1">{t('trackShipment.vehicleLabel', 'Vehicle')}</p>
+                  <p className="text-slate-900 font-medium">{selectedShipment.vehiclePlate || t('trackShipment.na', 'N/A')}</p>
                 </div>
                 <div>
-                  <p className="text-sm text-slate-500 mb-1">Est. Delivery</p>
+                  <p className="text-sm text-slate-500 mb-1">{t('shipments.estimatedDelivery', 'Est. Delivery')}</p>
                   <p className="text-slate-900 font-medium">
                     {new Date(selectedShipment.estimatedDeliveryDate).toLocaleDateString()}
                   </p>
                 </div>
                 <div>
-                  <p className="text-sm text-slate-500 mb-1">Items</p>
-                  <p className="text-slate-900 font-medium">{selectedShipment.items?.length || 0} items</p>
+                  <p className="text-sm text-slate-500 mb-1">{t('trackShipment.itemsLabel', 'Items')}</p>
+                  <p className="text-slate-900 font-medium">{t('trackShipment.itemsCount', '{{count}} items', { count: selectedShipment.items?.length || 0 })}</p>
                 </div>
               </div>
             </div>
@@ -359,55 +361,55 @@ export function TrackingPage() {
               <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-4 mb-4">
                 <div>
                   <div className="flex flex-wrap items-center gap-2">
-                    <h3 className="text-lg font-bold text-slate-900">Live Tracking</h3>
+                    <h3 className="text-lg font-bold text-slate-900">{t('trackShipment.liveTracking', 'Live Tracking')}</h3>
                     <span className={`rounded-full px-3 py-1 text-xs font-semibold ${realtimeConnected ? 'bg-green-100 text-green-600' : 'bg-amber-100 text-amber-600'}`}>
-                      {realtimeConnected ? 'Real-time connected' : 'Live updates offline'}
+                      {realtimeConnected ? t('tracking.realtimeConnected', 'Real-time connected') : t('tracking.liveUpdatesOffline', 'Live updates offline')}
                     </span>
                   </div>
-                  <p className="text-slate-500 text-sm">Latest driver location and shipment status.</p>
+                  <p className="text-slate-500 text-sm">{t('trackShipment.liveTrackingDesc', 'Latest driver location and shipment status.')}</p>
                 </div>
                 <button
                   onClick={refreshLiveTracking}
                   className="rounded-2xl bg-slate-200 px-4 py-2 text-sm font-semibold text-slate-900 hover:bg-slate-100 transition"
                 >
-                  Refresh
+                  {t('trackShipment.refresh', 'Refresh')}
                 </button>
               </div>
               {liveTracking ? (
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   <div className="space-y-3">
                     <div>
-                      <p className="text-slate-500 text-sm">Current Location</p>
-                      <p className="text-slate-900">{liveTracking.currentLocation || 'Waiting for driver update'}</p>
+                      <p className="text-slate-500 text-sm">{t('trackShipment.currentLocation', 'Current Location')}</p>
+                      <p className="text-slate-900">{liveTracking.currentLocation || t('trackShipment.waitingDriverUpdate', 'Waiting for driver update')}</p>
                     </div>
                     <div>
-                      <p className="text-slate-500 text-sm">Last Update</p>
-                      <p className="text-slate-900">{liveTracking.lastLocationUpdate ? new Date(liveTracking.lastLocationUpdate).toLocaleString() : 'No updates yet'}</p>
+                      <p className="text-slate-500 text-sm">{t('trackShipment.lastUpdate', 'Last Update')}</p>
+                      <p className="text-slate-900">{liveTracking.lastLocationUpdate ? new Date(liveTracking.lastLocationUpdate).toLocaleString() : t('trackShipment.noUpdatesYet', 'No updates yet')}</p>
                     </div>
                   </div>
                   <div className="space-y-3">
                     <div>
-                      <p className="text-slate-500 text-sm">Driver</p>
-                      <p className="text-slate-900">{liveTracking.driverName || 'Not assigned'}</p>
+                      <p className="text-slate-500 text-sm">{t('trackShipment.driverLabel', 'Driver')}</p>
+                      <p className="text-slate-900">{liveTracking.driverName || t('trackShipment.notAssigned', 'Not assigned')}</p>
                     </div>
                     <div>
-                      <p className="text-slate-500 text-sm">Driver Contact</p>
-                      <p className="text-slate-900">{liveTracking.driverPhone || 'N/A'}</p>
+                      <p className="text-slate-500 text-sm">{t('trackShipment.driverContact', 'Driver Contact')}</p>
+                      <p className="text-slate-900">{liveTracking.driverPhone || t('trackShipment.na', 'N/A')}</p>
                     </div>
                     <div>
-                      <p className="text-slate-500 text-sm">Shipment Status</p>
-                      <p className="text-slate-900">{liveTracking.status || selectedShipment.status}</p>
+                      <p className="text-slate-500 text-sm">{t('trackShipment.shipmentStatus', 'Shipment Status')}</p>
+                      <p className="text-slate-900">{t(`trackShipment.status.${(liveTracking.status || selectedShipment.status).toLowerCase().replace(/\s+/g, '')}`, liveTracking.status || selectedShipment.status)}</p>
                     </div>
                   </div>
                 </div>
               ) : (
-                <p className="text-slate-500">Live tracking is loading for this shipment.</p>
+                <p className="text-slate-500">{t('trackShipment.liveTrackingLoading', 'Live tracking is loading for this shipment.')}</p>
               )}
 
               {liveTracking?.currentLocation ? (
                 <div className="mt-6 rounded-2xl overflow-hidden border border-slate-200 bg-slate-100/80 h-72">
                   <iframe
-                    title="Shipment map"
+                    title={t('trackShipment.mapTitle', 'Shipment map')}
                     src={mapUrl}
                     className="w-full h-full border-0"
                     allowFullScreen
@@ -415,8 +417,8 @@ export function TrackingPage() {
                 </div>
               ) : (
                 <div className="mt-6 rounded-2xl border border-slate-200 bg-slate-100/90 p-6 text-center">
-                  <p className="text-slate-500">Driver live location is not available yet.</p>
-                  <p className="text-slate-500 text-sm mt-2">The driver must send GPS updates for this shipment before the map appears.</p>
+                  <p className="text-slate-500">{t('trackShipment.noDriverLocation', 'Driver live location is not available yet.')}</p>
+                  <p className="text-slate-500 text-sm mt-2">{t('trackShipment.waitingGps', 'The driver must send GPS updates for this shipment before the map appears.')}</p>
                 </div>
               )}
 
@@ -426,12 +428,12 @@ export function TrackingPage() {
             <div className="rounded-2xl border border-slate-200 bg-slate-100/90 p-6 backdrop-blur">
               <div className="flex items-center justify-between gap-4 mb-6">
                 <div>
-                  <h3 className="text-lg font-bold text-slate-900">Live Shipment Feed</h3>
-                  <p className="text-slate-500 text-sm">Real-time shipment and order events from the operations center.</p>
+                  <h3 className="text-lg font-bold text-slate-900">{t('tracking.liveShipmentFeed', 'Live Shipment Feed')}</h3>
+                  <p className="text-slate-500 text-sm">{t('tracking.liveShipmentFeedDesc', 'Real-time shipment and order events from the operations center.')}</p>
                 </div>
                 <div className="inline-flex items-center gap-2 rounded-full bg-slate-200 px-3 py-1 text-xs font-semibold text-slate-600">
                   <BellRing className="h-4 w-4 text-cyan-500" />
-                  {liveEvents.length} events
+                  {t('tracking.eventsCount', '{{count}} events', { count: liveEvents.length })}
                 </div>
               </div>
 
@@ -468,7 +470,7 @@ export function TrackingPage() {
                   </div>
                 )) : (
                   <div className="rounded-3xl border border-slate-200 bg-slate-50 p-6 text-center text-slate-500">
-                    <p>No live events yet. Real-time updates will appear here.</p>
+                    <p>{t('tracking.noLiveEvents', 'No live events yet. Real-time updates will appear here.')}</p>
                   </div>
                 )}
               </div>
@@ -476,7 +478,7 @@ export function TrackingPage() {
 
             {/* Tracking Timeline */}
             <div className="rounded-2xl border border-slate-200 bg-slate-100/90 p-6 backdrop-blur">
-              <h3 className="text-lg font-bold text-slate-900 mb-6">Live Operation Timeline</h3>
+              <h3 className="text-lg font-bold text-slate-900 mb-6">{t('tracking.liveOperationTimeline', 'Live Operation Timeline')}</h3>
               <div className="relative border-l border-slate-200 pl-6">
                 {liveEvents.length > 0 ? liveEvents.map((event, index) => (
                   <div key={event.id} className="relative mb-8 last:mb-0">
@@ -485,7 +487,7 @@ export function TrackingPage() {
                       <div className="flex flex-wrap items-center justify-between gap-3">
                         <div>
                           <p className="text-sm font-semibold text-slate-900">{event.title}</p>
-                          <p className="text-xs uppercase tracking-[0.18em] text-slate-400 mt-1">{event.type} event</p>
+                          <p className="text-xs uppercase tracking-[0.18em] text-slate-400 mt-1">{t('tracking.eventType', '{{type}} event', { type: event.type })}</p>
                         </div>
                         <span className="text-[0.70rem] text-slate-400">{new Date(event.timestamp).toLocaleTimeString()}</span>
                       </div>
@@ -495,7 +497,7 @@ export function TrackingPage() {
                   </div>
                 )) : (
                   <div className="rounded-3xl border border-slate-200 bg-slate-50 p-6 text-center text-slate-500">
-                    <p>No operational timeline events yet. Events populate here as shipments and orders update.</p>
+                    <p>{t('tracking.noTimelineEvents', 'No operational timeline events yet. Events populate here as shipments and orders update.')}</p>
                   </div>
                 )}
               </div>
@@ -507,14 +509,14 @@ export function TrackingPage() {
                 <div className="flex items-start gap-3">
                   <MapPin className="w-5 h-5 text-cyan-400 mt-1 flex-shrink-0" />
                   <div>
-                    <p className="text-sm text-slate-500">Shipping Address</p>
-                    <p className="text-slate-900 font-medium">{selectedShipment.shippingAddress || 'Address not provided'}</p>
+                    <p className="text-sm text-slate-500">{t('trackShipment.shippingAddress', 'Shipping Address')}</p>
+                    <p className="text-slate-900 font-medium">{selectedShipment.shippingAddress || t('trackShipment.addressNotProvided', 'Address not provided')}</p>
                   </div>
                 </div>
                 <div className="flex items-start gap-3">
                   <Calendar className="w-5 h-5 text-cyan-400 mt-1 flex-shrink-0" />
                   <div>
-                    <p className="text-sm text-slate-500">Estimated Delivery</p>
+                    <p className="text-sm text-slate-500">{t('trackShipment.estimatedDelivery', 'Estimated Delivery')}</p>
                     <p className="text-slate-900 font-medium">
                       {new Date(selectedShipment.estimatedDeliveryDate).toLocaleDateString()}
                     </p>
@@ -524,7 +526,7 @@ export function TrackingPage() {
                   <div className="flex items-start gap-3">
                     <Calendar className="w-5 h-5 text-green-400 mt-1 flex-shrink-0" />
                     <div>
-                      <p className="text-sm text-slate-500">Delivered</p>
+                      <p className="text-sm text-slate-500">{t('orders.delivered', 'Delivered')}</p>
                       <p className="text-slate-900 font-medium">
                         {new Date(selectedShipment.actualDeliveryDate).toLocaleDateString()}
                       </p>

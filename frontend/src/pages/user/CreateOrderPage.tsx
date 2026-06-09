@@ -211,9 +211,9 @@ export function CreateOrderPage() {
       
       showToast('success', `Order #${createdOrder.orderNumber} created successfully! A driver will be assigned shortly.`);
       if (user?.id) await notificationService.sendNotification({ userId: user.id, type: 'Order', title: 'Order Created', message: `Order #${createdOrder.orderNumber} created`, actionUrl: '/orders' }).catch(() => {});
-    } catch (error) {
+    } catch (error: any) {
       console.error('Failed to create order:', error);
-      showToast('error', 'Failed to create order. Please try again.');
+      showToast('error', error?.message || 'Failed to create order. Please try again.');
     } finally {
       setCreatingOrder(false);
     }
@@ -278,6 +278,7 @@ export function CreateOrderPage() {
         <p className="text-slate-500">Select a warehouse, browse products, and add them to your cart</p>
       </div>
 
+  
       <div className="bg-gradient-to-r from-cyan-600/20 to-blue-600/20 rounded-2xl p-6 border border-cyan-500/30">
         <div className="flex items-center gap-3 mb-4">
           <Building2 className="w-6 h-6 text-cyan-400" />
@@ -326,7 +327,8 @@ export function CreateOrderPage() {
             <div className="rounded-2xl border border-slate-200 bg-slate-100/90 backdrop-blur">
               <div className="p-6 border-b border-slate-200">
                 <h2 className="text-xl font-bold text-slate-900">Products</h2>
-           
+                
+               
                 <div className="flex gap-2 mt-4 flex-wrap">
                   <button
                     onClick={() => setSelectedCategory(null)}
@@ -354,7 +356,7 @@ export function CreateOrderPage() {
                 </div>
               </div>
 
-              
+             
               <div className="p-6">
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                   {getAvailableProducts().map((product) => {
@@ -394,7 +396,7 @@ export function CreateOrderPage() {
                           )}
                         </div>
                         
-                        {/* Product Info */}
+               
                         <div className="p-5">
                           <div className="flex justify-between items-start mb-2">
                             <h3 className="text-lg font-semibold text-slate-900 group-hover:text-cyan-400 transition line-clamp-1">

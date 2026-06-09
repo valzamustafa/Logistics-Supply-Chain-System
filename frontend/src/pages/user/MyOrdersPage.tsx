@@ -3,6 +3,7 @@ import { orderService, Order } from '../../services/orderService';
 import { shipmentService, Shipment } from '../../services/shipmentService';
 import { useAuth } from '../../hooks/useAuth';
 import { InvoiceModal } from '../../components/InvoiceModal';
+import { Pagination } from '../../components/Pagination';
 
 export function MyOrdersPage() {
   const { user } = useAuth();
@@ -12,6 +13,8 @@ export function MyOrdersPage() {
   const [error, setError] = useState<string | null>(null);
   const [selectedOrder, setSelectedOrder] = useState<Order | null>(null);
   const [showInvoice, setShowInvoice] = useState(false);
+  const [currentPage, setCurrentPage] = useState(1);
+  const [pageSize, setPageSize] = useState(10);
 
   useEffect(() => {
     if (user) {
@@ -24,7 +27,8 @@ export function MyOrdersPage() {
     try {
       const data = await orderService.getByUser(user!.id);
       setOrders(data);
- 
+      
+      
       const shipmentsMap = new Map<number, Shipment>();
       for (const order of data) {
         try {
@@ -68,6 +72,19 @@ export function MyOrdersPage() {
     setShowInvoice(true);
   };
 
+  const totalPages = Math.max(1, Math.ceil(orders.length / pageSize));
+  const paginatedOrders = orders.slice((currentPage - 1) * pageSize, currentPage * pageSize);
+
+  useEffect(() => {
+    if (currentPage > totalPages) {
+      setCurrentPage(totalPages);
+    }
+  }, [currentPage, totalPages]);
+
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [pageSize, orders.length]);
+
   if (loading) {
     return (
       <div className="flex justify-center items-center h-64">
@@ -96,15 +113,16 @@ export function MyOrdersPage() {
           <div className="text-6xl mb-4">📦</div>
           <h1 className="text-2xl font-bold text-slate-900 mb-2">No Orders Yet</h1>
           <p className="text-slate-500">You haven't placed any orders yet.</p>
-          <button 
-            onClick={() => window.location.href = '/create-order'}
-            className="mt-4 px-6 py-2 bg-cyan-500 text-white rounded-lg hover:bg-cyan-600 transition"
+          <button
+            onClick={() => (window.location.href = '/create-order')}
+            className="mt-4 btn-primary"
           >
             Create Your First Order
           </button>
         </div>
       </div>
     );
+
   }
 
   return (
@@ -140,6 +158,20 @@ export function MyOrdersPage() {
       {/* Orders Table */}
       <div className="bg-white rounded-lg shadow overflow-hidden border border-slate-200">
         <div className="overflow-x-auto">
+          <div className="px-6 py-4 border-b border-slate-200 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between text-sm text-slate-500">
+            <div>
+              Showing {orders.length === 0 ? 0 : (currentPage - 1) * pageSize + 1} - {Math.min(currentPage * pageSize, orders.length)} of {orders.length} orders
+            </div>
+            <Pagination
+              currentPage={currentPage}
+              totalPages={totalPages}
+              onPageChange={setCurrentPage}
+              pageSize={pageSize}
+              onPageSizeChange={setPageSize}
+              pageSizeOptions={[10, 20, 50]}
+              label="Orders"
+            />
+          </div>
           <table className="min-w-full divide-y divide-slate-700">
             <thead className="bg-slate-50">
               <tr>
@@ -167,7 +199,7 @@ export function MyOrdersPage() {
               </tr>
             </thead>
             <tbody className="bg-white divide-y divide-slate-700">
-              {orders.map((order) => {
+              {paginatedOrders.map((order) => {
                 const shipment = shipments.get(order.id);
                 return (
                   <tr key={order.id} className="hover:bg-slate-100/80 transition">

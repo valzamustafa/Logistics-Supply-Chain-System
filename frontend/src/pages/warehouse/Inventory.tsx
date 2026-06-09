@@ -7,7 +7,7 @@ import { orderService } from '../../services/orderService';
 import { warehouseStockService, LowStockAlert, StockMovement, WarehouseStock } from '../../services/warehouseStockService';
 import { warehouseService, Warehouse } from '../../services/warehouseService';
 import { productService, Product } from '../../services/productService';
-import { supplierService, Supplier, SupplierProductDto, PurchaseOrderDto } from '../../services/supplierService';
+import { supplierService, Supplier, SupplierProductDto, PurchaseOrderDto, CreatePurchaseOrderDto } from '../../services/supplierService';
 
 const stripePromise = loadStripe(import.meta.env.VITE_STRIPE_PUBLISHABLE_KEY ?? '');
 
@@ -34,6 +34,8 @@ export function WarehouseInventory() {
   const [paymentAmount, setPaymentAmount] = useState('0');
   const [paymentNotes, setPaymentNotes] = useState('');
   const [selectedPurchaseOrder, setSelectedPurchaseOrder] = useState<PurchaseOrderDto | null>(null);
+  const [pendingPurchaseOrderPayload, setPendingPurchaseOrderPayload] = useState<CreatePurchaseOrderDto | null>(null);
+  const [pendingOrderTotal, setPendingOrderTotal] = useState<number>(0);
   const [showStripeModal, setShowStripeModal] = useState(false);
   const [stripeClientSecret, setStripeClientSecret] = useState<string | null>(null);
   const [stripeError, setStripeError] = useState<string | null>(null);
@@ -70,7 +72,7 @@ export function WarehouseInventory() {
       setError(null);
     } catch (err) {
       console.error('Failed to fetch data:', err);
-   
+     
       const errorMessage = err instanceof Error ? err.message : 'Unknown error occurred';
       setError(`Failed to load warehouse inventory data: ${errorMessage}`);
     } finally {
@@ -266,7 +268,7 @@ export function WarehouseInventory() {
           reason: emergencyReason || 'Emergency supplier request for unavailable product',
         });
       } else {
-        const purchaseOrder = await supplierService.createPurchaseOrder({
+        const payload = {
           supplierId: selectedSupplierId,
           warehouseId: selectedSupplierOrderAlert.warehouseId,
           items: [
@@ -277,19 +279,32 @@ export function WarehouseInventory() {
             },
           ],
           notes: `Reorder generated from warehouse inventory alert`,
-        });
+        } as CreatePurchaseOrderDto;
 
-        setSelectedPurchaseOrder(purchaseOrder);
-        setPaymentAmount((quantity * price).toFixed(2));
+        const total = quantity * price;
+        setPendingPurchaseOrderPayload(payload);
+        setPendingOrderTotal(total);
 
         if (paymentMethod === 'Stripe') {
-          await handleStartStripePayment(quantity * price, purchaseOrder);
-          return;
+          try {
+            const response = await orderService.createPaymentIntent({ amount: total, currency: 'eur' });
+            setStripeClientSecret(response.clientSecret);
+            setShowStripeModal(true);
+            return;
+          } catch (err: any) {
+            console.error('Failed to create Stripe payment intent:', err);
+            setOrderError(err.message || 'Unable to create Stripe payment intent.');
+            setPendingPurchaseOrderPayload(null);
+            setPendingOrderTotal(0);
+            return;
+          }
         }
+
+        const purchaseOrder = await supplierService.createPurchaseOrder(payload);
 
         await supplierService.createPayment(purchaseOrder.id, {
           purchaseOrderId: purchaseOrder.id,
-          amount: quantity * price,
+          amount: total,
           paymentMethod: 'BankTransfer',
           transactionId: `WH-${purchaseOrder.poNumber}`,
           notes: paymentNotes || 'Recorded payment from warehouse purchase order creation',
@@ -333,18 +348,33 @@ export function WarehouseInventory() {
   };
 
   const handleStripePaymentSuccess = async (transactionId: string) => {
-    if (!selectedPurchaseOrder) return;
-
     try {
       setStripeError(null);
       setLoading(true);
-      await supplierService.createPayment(selectedPurchaseOrder.id, {
-        purchaseOrderId: selectedPurchaseOrder.id,
-        amount: Number(paymentAmount),
-        paymentMethod: 'Stripe',
-        transactionId,
-        notes: paymentNotes || 'Stripe payment completed from warehouse dashboard',
-      });
+
+      if (selectedPurchaseOrder) {
+
+        await supplierService.createPayment(selectedPurchaseOrder.id, {
+          purchaseOrderId: selectedPurchaseOrder.id,
+          amount: Number(paymentAmount),
+          paymentMethod: 'Stripe',
+          transactionId,
+          notes: paymentNotes || 'Stripe payment completed from warehouse dashboard',
+        });
+      } else if (pendingPurchaseOrderPayload) {
+        // New flow: create PO now that payment succeeded
+        const created = await supplierService.createPurchaseOrder(pendingPurchaseOrderPayload);
+        await supplierService.createPayment(created.id, {
+          purchaseOrderId: created.id,
+          amount: pendingOrderTotal,
+          paymentMethod: 'Stripe',
+          transactionId,
+          notes: paymentNotes || 'Stripe payment completed from warehouse dashboard',
+        });
+      } else {
+
+        return;
+      }
 
       await fetchData();
       setShowStripeModal(false);
@@ -357,12 +387,16 @@ export function WarehouseInventory() {
       setPaymentMethod('BankTransfer');
       setPaymentNotes('');
       setSelectedPurchaseOrder(null);
+      setPendingPurchaseOrderPayload(null);
+      setPendingOrderTotal(0);
       setIsEmergencyOrder(false);
       setEmergencyReason('');
     } catch (err: any) {
       console.error('Stripe payment processing failed:', err);
       setStripeError(err.message || 'Failed to save Stripe payment after payment success.');
       setOrderError(err.message || 'Failed to save Stripe payment after payment success.');
+      setPendingPurchaseOrderPayload(null);
+      setPendingOrderTotal(0);
     } finally {
       setLoading(false);
     }
@@ -413,7 +447,7 @@ export function WarehouseInventory() {
         </div>
       )}
 
-    
+     
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
         <div className="bg-gradient-to-br from-slate-800 to-slate-800/80 rounded-xl p-5 border border-slate-200">
           <div className="w-12 h-12 rounded-xl bg-red-500/20 flex items-center justify-center">
@@ -446,7 +480,6 @@ export function WarehouseInventory() {
         </div>
       </div>
 
-     
       <div className="rounded-2xl border border-slate-200 bg-white p-6">
         <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
           <div>
@@ -527,6 +560,7 @@ export function WarehouseInventory() {
         )}
       </div>
 
+      
       <div className="space-y-4">
         <div className="bg-white rounded-xl border border-slate-200 p-4">
           <h2 className="text-lg font-semibold text-slate-900 mb-3">Warehouse Inventory Overview</h2>
@@ -661,6 +695,7 @@ export function WarehouseInventory() {
                   </div>
                 </div>
 
+               
                 <div className="mt-3 bg-white rounded-full h-2 overflow-hidden">
                   <div
                     className={`h-full ${
@@ -677,6 +712,7 @@ export function WarehouseInventory() {
         </div>
       </div>
 
+     
       {showEditStockModal && selectedStockForEdit && (
         <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
           <div className="bg-white rounded-xl border border-slate-200 w-96 p-6 space-y-4">
@@ -720,6 +756,7 @@ export function WarehouseInventory() {
         </div>
       )}
 
+   
       {showSupplierOrderModal && selectedSupplierOrderAlert && (
         <div className="fixed inset-0 bg-black/60 flex items-center justify-center z-50 px-4 py-6">
           <div className="w-full max-w-2xl rounded-[28px] border border-slate-200 bg-slate-50 p-6 shadow-2xl">
@@ -890,15 +927,26 @@ export function WarehouseInventory() {
         </div>
       )}
 
-      {showStripeModal && stripeClientSecret && selectedPurchaseOrder && (
+      {showStripeModal && stripeClientSecret && (selectedPurchaseOrder || pendingPurchaseOrderPayload) && (
         <Elements stripe={stripePromise}>
           <StripeCheckoutModal
             clientSecret={stripeClientSecret}
-            totalAmount={Number(paymentAmount)}
+            totalAmount={pendingPurchaseOrderPayload ? pendingOrderTotal : Number(paymentAmount)}
             isLoading={loading}
-            onCancel={() => setShowStripeModal(false)}
+            onCancel={() => {
+              setShowStripeModal(false);
+              setStripeClientSecret(null);
+              setPendingPurchaseOrderPayload(null);
+              setPendingOrderTotal(0);
+            }}
             onSuccess={handleStripePaymentSuccess}
-            onError={handleStripeError}
+            onError={(msg) => {
+              handleStripeError(msg);
+              setShowStripeModal(false);
+              setStripeClientSecret(null);
+              setPendingPurchaseOrderPayload(null);
+              setPendingOrderTotal(0);
+            }}
           />
         </Elements>
       )}

@@ -1,5 +1,6 @@
 // frontend/src/components/vehicles/AssignVehicleToDriverModal.tsx
 import { useState } from 'react';
+import { useTranslation } from 'react-i18next';
 import { X, User } from 'lucide-react';
 import { Vehicle, vehicleService, Driver } from '../../services/driverService';
 import { useToast } from '../../hooks/useToast';
@@ -13,6 +14,7 @@ interface AssignVehicleToDriverModalProps {
 
 export function AssignVehicleToDriverModal({ drivers, vehicles, onClose, onSuccess }: AssignVehicleToDriverModalProps) {
   const { showToast } = useToast();
+  const { t } = useTranslation();
   const [loading, setLoading] = useState(false);
   const [selectedDriverId, setSelectedDriverId] = useState<number | null>(null);
   const [selectedVehicleId, setSelectedVehicleId] = useState<number | null>(null);
@@ -87,11 +89,11 @@ export function AssignVehicleToDriverModal({ drivers, vehicles, onClose, onSucce
         </div>
 
         <div className="p-4 border-t border-slate-200 flex gap-3">
-          <button onClick={onClose} className="flex-1 px-4 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-lg transition">
-            Cancel
+          <button onClick={onClose} className="flex-1 btn-ghost">
+            {t('common.cancel')}
           </button>
-          <button onClick={handleSubmit} disabled={loading} className="flex-1 px-4 py-2 bg-cyan-600 hover:bg-cyan-700 text-white rounded-lg transition disabled:opacity-50">
-            {loading ? 'Assigning...' : 'Assign Vehicle'}
+          <button onClick={handleSubmit} disabled={loading} className="flex-1 btn-primary">
+            {loading ? t('common.processing', 'Assigning...') : t('vehicles.assignVehicle', 'Assign Vehicle')}
           </button>
         </div>
       </div>

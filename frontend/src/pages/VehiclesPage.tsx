@@ -1,5 +1,6 @@
 
 import { useState, useEffect } from 'react';
+import { useTranslation } from 'react-i18next';
 import { Plus, Edit, Trash2, Truck, MapPin, Navigation, RefreshCw, User, Eye } from 'lucide-react';
 import { vehicleService, Vehicle, Driver } from '../services/driverService';
 import { driverService } from '../services/driverService';
@@ -11,6 +12,7 @@ import { VehicleLiveTracker } from '../components/vehicles/VehicleLiveTracker';
 import { useAuth } from '../hooks/useAuth';
 
 export function VehiclesPage() {
+  const { t } = useTranslation();
   const { user } = useAuth();
   const { showToast } = useToast();
   const [vehicles, setVehicles] = useState<Vehicle[]>([]);
@@ -42,13 +44,13 @@ export function VehiclesPage() {
         stats[vehicle.id] = {
           status: vehicle.isAvailable ? 'available' : 'maintenance',
           progress: Math.floor(Math.random() * 100),
-          location: Math.random() > 0.5 ? 'In Route - Highway A1' : 'Warehouse',
+          location: Math.random() > 0.5 ? t('vehicles.inRouteHighway', 'In Route - Highway A1') : t('inventory.warehouse', 'Warehouse'),
         };
       }
       setVehicleStats(stats);
     } catch (error) {
       console.error('Failed to fetch vehicles:', error);
-      showToast('error', 'Failed to load vehicles');
+      showToast('error', t('vehicles.failedToLoad', 'Failed to load vehicles'));
     } finally {
       setLoading(false);
     }
@@ -60,15 +62,15 @@ export function VehiclesPage() {
 
   const handleDelete = (vehicle: Vehicle) => {
     setConfirmDialog({
-      title: 'Delete Vehicle',
-      message: `Are you sure you want to delete vehicle ${vehicle.plateNumber}?`,
+      title: t('vehicles.deleteVehicle', 'Delete Vehicle'),
+      message: t('vehicles.deleteVehicleConfirmation', 'Are you sure you want to delete vehicle {{plate}}?', { plate: vehicle.plateNumber }),
       onConfirm: async () => {
         try {
           await vehicleService.delete(vehicle.id);
           await fetchData();
-          showToast('success', 'Vehicle deleted successfully');
+          showToast('success', t('vehicles.deletedSuccessfully', 'Vehicle deleted successfully'));
         } catch (error: any) {
-          showToast('error', error.message || 'Failed to delete vehicle');
+          showToast('error', error.message || t('vehicles.failedToDelete', 'Failed to delete vehicle'));
         }
       }
     });
@@ -82,10 +84,10 @@ export function VehiclesPage() {
   };
 
   const statusLabels: Record<string, string> = {
-    'available': 'Available',
-    'in-transit': 'In Transit',
-    'maintenance': 'Maintenance',
-    'offline': 'Offline'
+    'available': t('vehicles.available', 'Available'),
+    'in-transit': t('vehicles.inTransit', 'In Transit'),
+    'maintenance': t('vehicles.maintenance', 'Maintenance'),
+    'offline': t('vehicles.offline', 'Offline')
   };
 
   if (loading) {
@@ -93,7 +95,7 @@ export function VehiclesPage() {
       <div className="flex items-center justify-center h-64">
         <div className="text-center">
           <div className="w-12 h-12 border-4 border-cyan-500 border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
-          <p className="text-slate-500">Loading vehicles...</p>
+          <p className="text-slate-500">{t('vehicles.loading', 'Loading vehicles...')}</p>
         </div>
       </div>
     );
@@ -103,8 +105,8 @@ export function VehiclesPage() {
     <div className="p-6 space-y-6 bg-slate-50 min-h-screen">
       <div className="flex justify-between items-center">
         <div>
-          <h1 className="text-3xl font-bold text-slate-900">Vehicle Management</h1>
-          <p className="text-slate-500 mt-1">Manage fleet vehicles, track locations, and assign to drivers</p>
+          <h1 className="text-3xl font-bold text-slate-900">{t('vehicles.managementTitle', 'Vehicle Management')}</h1>
+          <p className="text-slate-500 mt-1">{t('vehicles.managementDescription', 'Manage fleet vehicles, track locations, and assign to drivers')}</p>
         </div>
         {canEdit && (
           <div className="flex gap-3">
@@ -113,17 +115,17 @@ export function VehiclesPage() {
                 setEditingVehicle(null);
                 setShowVehicleModal(true);
               }}
-              className="px-4 py-2 bg-cyan-600 hover:bg-cyan-700 text-white rounded-lg flex items-center gap-2 transition"
+              className="btn-primary flex items-center gap-2"
             >
               <Plus className="w-4 h-4" />
-              Add Vehicle
+              {t('vehicles.addVehicle', 'Add Vehicle')}
             </button>
             <button
               onClick={() => setShowAssignModal(true)}
               className="px-4 py-2 bg-purple-600 hover:bg-purple-700 text-white rounded-lg flex items-center gap-2 transition"
             >
               <User className="w-4 h-4" />
-              Assign to Driver
+              {t('adminDashboard.assignToDriver', 'Assign to Driver')}
             </button>
           </div>
         )}
@@ -131,7 +133,7 @@ export function VehiclesPage() {
 
       <div className="grid grid-cols-1 gap-6 lg:grid-cols-2 xl:grid-cols-3">
         {vehicles.map((vehicle) => {
-          const stats = vehicleStats[vehicle.id] || { status: vehicle.isAvailable ? 'available' : 'offline', progress: 0, location: 'Unknown' };
+          const stats = vehicleStats[vehicle.id] || { status: vehicle.isAvailable ? 'available' : 'offline', progress: 0, location: t('adminDashboard.unknown', 'Unknown') };
           const assignedDriver = drivers.find(d => d.id === vehicle.driverId);
           
           return (
@@ -160,15 +162,15 @@ export function VehiclesPage() {
               <div className="p-4 space-y-3">
                 <div className="grid grid-cols-2 gap-3 text-sm">
                   <div>
-                    <p className="text-slate-500">Type</p>
+                    <p className="text-slate-500">{t('vehicles.type', 'Vehicle Type')}</p>
                     <p className="text-slate-900 font-medium capitalize">{vehicle.vehicleType}</p>
                   </div>
                   <div>
-                    <p className="text-slate-500">Capacity</p>
+                    <p className="text-slate-500">{t('vehicles.capacity', 'Capacity')}</p>
                     <p className="text-slate-900 font-medium">{vehicle.capacity} kg</p>
                   </div>
                   <div>
-                    <p className="text-slate-500">Color</p>
+                    <p className="text-slate-500">{t('adminDashboard.color', 'Color')}</p>
                     <div className="flex items-center gap-2">
                       {vehicle.color && (
                         <span className="h-4 w-4 rounded-full border border-slate-300" style={{ backgroundColor: vehicle.color }} />
@@ -177,8 +179,8 @@ export function VehiclesPage() {
                     </div>
                   </div>
                   <div>
-                    <p className="text-slate-500">Driver</p>
-                    <p className="text-slate-900 font-medium">{assignedDriver ? `${assignedDriver.firstName} ${assignedDriver.lastName}` : 'Not assigned'}</p>
+                    <p className="text-slate-500">{t('vehicles.driver', 'Driver')}</p>
+                    <p className="text-slate-900 font-medium">{assignedDriver ? `${assignedDriver.firstName} ${assignedDriver.lastName}` : t('adminDashboard.notAssigned', 'Not assigned')}</p>
                   </div>
                 </div>
 
@@ -192,7 +194,7 @@ export function VehiclesPage() {
                 {stats.status === 'in-transit' && (
                   <div>
                     <div className="flex justify-between text-xs mb-1">
-                      <span className="text-slate-500">Route Progress</span>
+                      <span className="text-slate-500">{t('adminDashboard.routeProgress', 'Route Progress')}</span>
                       <span className="text-cyan-500 font-semibold">{stats.progress}%</span>
                     </div>
                     <div className="h-1.5 bg-slate-200 rounded-full overflow-hidden">
@@ -204,10 +206,10 @@ export function VehiclesPage() {
                 <div className="flex gap-2 pt-2">
                   <button
                     onClick={() => setShowTrackerModal(vehicle)}
-                    className="flex-1 px-3 py-2 bg-cyan-500 hover:bg-cyan-400 text-white rounded-lg text-sm font-semibold transition flex items-center justify-center gap-2"
+                    className="flex-1 btn-primary text-sm font-semibold flex items-center justify-center gap-2"
                   >
                     <Navigation className="w-4 h-4" />
-                    Live Tracking
+                    {t('driverDashboard.liveTracking', 'Live Tracking')}
                   </button>
                   {canEdit && (
                     <>
@@ -237,13 +239,13 @@ export function VehiclesPage() {
         {vehicles.length === 0 && (
           <div className="col-span-full text-center py-12 bg-white rounded-xl border border-slate-200">
             <Truck className="w-16 h-16 text-slate-400 mx-auto mb-4" />
-            <p className="text-slate-500">No vehicles found</p>
+            <p className="text-slate-500">{t('vehicles.noVehicles', 'No vehicles found')}</p>
             {canEdit && (
               <button
                 onClick={() => setShowVehicleModal(true)}
-                className="mt-4 px-4 py-2 bg-cyan-600 hover:bg-cyan-700 text-white rounded-lg"
+                className="mt-4 btn-primary"
               >
-                Add your first vehicle
+                {t('vehicles.addFirstVehicle', 'Add your first vehicle')}
               </button>
             )}
           </div>
@@ -285,8 +287,8 @@ export function VehiclesPage() {
         <ConfirmModal
           title={confirmDialog.title}
           message={confirmDialog.message}
-          confirmLabel="Delete"
-          cancelLabel="Cancel"
+          confirmLabel={t('common.delete', 'Delete')}
+          cancelLabel={t('common.cancel', 'Cancel')}
           onConfirm={async () => {
             await confirmDialog.onConfirm();
             setConfirmDialog(null);

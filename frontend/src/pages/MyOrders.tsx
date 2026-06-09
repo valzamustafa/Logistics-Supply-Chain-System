@@ -1,11 +1,13 @@
 
 import React, { useState, useEffect } from 'react';
+import { useTranslation } from 'react-i18next';
 import { useAuth } from '../hooks/useAuth';
 import { orderService, Order } from '../services/orderService';
 import { shipmentService, Shipment } from '../services/shipmentService';
 import { InvoiceModal } from '../components/InvoiceModal';
 
 export const MyOrdersPage: React.FC = () => {
+  const { t } = useTranslation();
   const { user, token } = useAuth();
   const [orders, setOrders] = useState<Order[]>([]);
   const [shipments, setShipments] = useState<Map<number, Shipment>>(new Map());
@@ -68,69 +70,75 @@ export const MyOrdersPage: React.FC = () => {
     setShowInvoice(true);
   };
 
+  const translateStatus = (status?: string) => {
+    if (!status) return t('orders.pending', 'Pending');
+    const key = status.toLowerCase().replace(/\s+/g, '');
+    return t(`myOrders.status.${key}`, status);
+  };
+
   if (loading) {
     return (
       <div className="flex justify-center items-center h-64">
-        <div className="text-slate-500">Loading your orders...</div>
+        <div className="text-slate-500">{t('myOrders.loading', 'Loading your orders...')}</div>
       </div>
     );
   }
 
   return (
     <div className="p-6">
-      <h1 className="text-2xl font-bold text-slate-900 mb-6">My Orders</h1>
+      <h1 className="text-2xl font-bold text-slate-900 mb-6">{t('orders.myOrders', 'My Orders')}</h1>
 
-      {/* Stats Cards - Dark Theme */}
+    
       <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-8">
         <div className="bg-white rounded-lg shadow p-4 border border-slate-200">
-          <div className="text-slate-500 text-sm">Total Orders</div>
+          <div className="text-slate-500 text-sm">{t('myOrders.totalOrders', 'Total Orders')}</div>
           <div className="text-2xl font-bold text-slate-900">{orders.length}</div>
         </div>
         <div className="bg-white rounded-lg shadow p-4 border border-slate-200">
-          <div className="text-slate-500 text-sm">Delivered</div>
+          <div className="text-slate-500 text-sm">{t('orders.delivered', 'Delivered')}</div>
           <div className="text-2xl font-bold text-green-400">
             {orders.filter(o => o.status?.toLowerCase() === 'delivered').length}
           </div>
         </div>
         <div className="bg-white rounded-lg shadow p-4 border border-slate-200">
-          <div className="text-slate-500 text-sm">In Transit</div>
+          <div className="text-slate-500 text-sm">{t('userDashboard.inTransit', 'In Transit')}</div>
           <div className="text-2xl font-bold text-blue-400">
             {orders.filter(o => o.status?.toLowerCase() === 'in transit' || o.status?.toLowerCase() === 'shipped').length}
           </div>
         </div>
         <div className="bg-white rounded-lg shadow p-4 border border-slate-200">
-          <div className="text-slate-500 text-sm">Total Spent</div>
+          <div className="text-slate-500 text-sm">{t('userDashboard.totalSpent', 'Total Spent')}</div>
           <div className="text-2xl font-bold text-cyan-400">
             €{orders.reduce((sum, o) => sum + (o.totalAmount || 0), 0).toFixed(2)}
           </div>
         </div>
       </div>
 
-      {/* Orders Table - Dark Theme */}
+     
       <div className="bg-white rounded-lg shadow overflow-hidden border border-slate-200">
         <table className="min-w-full divide-y divide-slate-700">
           <thead className="bg-slate-50">
             <tr>
               <th className="px-6 py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">
-                Order ID
+                {t('orders.orderId', 'Order ID')}
               </th>
               <th className="px-6 py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">
-                Date
+                {t('orders.date', 'Date')}
               </th>
               <th className="px-6 py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">
-                Items
+                {t('orders.itemsLabel', 'Items')}
               </th>
               <th className="px-6 py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">
-                Total
+                {t('orders.total', 'Total')}
               </th>
               <th className="px-6 py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">
-                Status
+                {t('orders.statusLabel', 'Status')}
               </th>
               <th className="px-6 py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">
-                Tracking
+                {t('navigation.tracking', 'Tracking')}
               </th>
               <th className="px-6 py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">
-                Actions
+                {t('orders.actions', 'Actions')}
               </th>
             </tr>
           </thead>
@@ -146,14 +154,14 @@ export const MyOrdersPage: React.FC = () => {
                     {new Date(order.orderDate).toLocaleDateString()}
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap text-sm text-slate-500">
-                    {order.items?.length || 0} {(order.items?.length || 0) === 1 ? 'item' : 'items'}
+                    {t('myOrders.itemsCount', '{{count}} items', { count: order.items?.length || 0 })}
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap text-sm text-cyan-400 font-medium">
                     €{(order.totalAmount || 0).toFixed(2)}
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap">
                     <span className={`px-2 py-1 inline-flex text-xs leading-5 font-semibold rounded-full ${getStatusBadgeColor(order.status)}`}>
-                      {order.status || 'Pending'}
+                      {translateStatus(order.status)}
                     </span>
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap text-sm">
@@ -165,7 +173,7 @@ export const MyOrdersPage: React.FC = () => {
                         {shipment.trackingNumber}
                       </a>
                     ) : (
-                      <span className="text-slate-500">Not shipped yet</span>
+                      <span className="text-slate-500">{t('myOrders.notShippedYet', 'Not shipped yet')}</span>
                     )}
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap text-sm">
@@ -173,7 +181,7 @@ export const MyOrdersPage: React.FC = () => {
                       onClick={() => viewInvoice(order)}
                       className="px-3 py-1 bg-cyan-500/10 text-cyan-400 rounded-md hover:bg-cyan-500/20 transition border border-cyan-500/30"
                     >
-                      Invoice
+                      {t('myOrders.invoice', 'Invoice')}
                     </button>
                   </td>
                 </tr>
@@ -184,7 +192,7 @@ export const MyOrdersPage: React.FC = () => {
 
         {orders.length === 0 && (
           <div className="text-center py-8 text-slate-500">
-            You haven't placed any orders yet.
+            {t('myOrders.noOrdersYet', "You haven't placed any orders yet.")}
           </div>
         )}
       </div>

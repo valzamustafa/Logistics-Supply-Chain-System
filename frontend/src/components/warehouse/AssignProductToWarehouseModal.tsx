@@ -199,13 +199,13 @@ export function AssignProductToWarehouseModal({
         </div>
         
         <div className="flex gap-3 p-4 border-t border-slate-200">
-          <button onClick={onClose} className="flex-1 px-4 py-2 bg-slate-200 hover:bg-slate-100 text-slate-900 rounded-lg transition">
+          <button onClick={onClose} className="flex-1 btn-ghost">
             Cancel
           </button>
           <button 
             onClick={handleSubmit} 
             disabled={submitting || !selectedProductId}
-            className="flex-1 px-4 py-2 bg-cyan-600 hover:bg-cyan-700 text-slate-900 rounded-lg transition disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+            className="flex-1 btn-primary flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
           >
             {submitting ? (
               <>
@@ -224,7 +224,3 @@ export function AssignProductToWarehouseModal({
     </div>
   );
 }
-
-
-
-

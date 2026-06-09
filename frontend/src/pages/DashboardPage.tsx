@@ -1,9 +1,11 @@
 import { useEffect, useState } from 'react';
+import { useTranslation } from 'react-i18next';
 import { shipmentService, Shipment } from '../services/shipmentService';
 import { orderService, Order } from '../services/orderService';
 import { AlertCircle, RefreshCw } from 'lucide-react';
 
 export function DashboardPage() {
+  const { t } = useTranslation();
   const [shipments, setShipments] = useState<Shipment[]>([]);
   const [orders, setOrders] = useState<Order[]>([]);
   const [selectedShipment, setSelectedShipment] = useState<Shipment | null>(null);
@@ -26,7 +28,7 @@ export function DashboardPage() {
       }
     } catch (err) {
       console.error('Failed to fetch dashboard data:', err);
-      setError('Failed to load data. Make sure the backend services are running.');
+      setError(t('dashboard.errorLoading', 'Failed to load data. Make sure the backend services are running.'));
     } finally {
       setLoading(false);
     }
@@ -47,25 +49,25 @@ export function DashboardPage() {
 
   const stats = [
     { 
-      label: 'Total Shipments', 
+      label: t('dashboard.stats.totalShipments', 'Total Shipments'), 
       value: shipments.length, 
       icon: '📦', 
       color: 'from-cyan-400 to-blue-500' 
     },
     { 
-      label: 'In Transit', 
+      label: t('dashboard.stats.inTransit', 'In Transit'), 
       value: shipments.filter(s => s.status?.toLowerCase().includes('in') || s.status?.toLowerCase().includes('route')).length, 
       icon: '🚚', 
       color: 'from-green-400 to-emerald-500' 
     },
     { 
-      label: 'Delivered', 
+      label: t('dashboard.stats.delivered', 'Delivered'), 
       value: shipments.filter(s => s.status?.toLowerCase().includes('deliver')).length, 
       icon: '✅', 
       color: 'from-purple-400 to-pink-500' 
     },
     { 
-      label: 'Pending', 
+      label: t('dashboard.stats.pending', 'Pending'), 
       value: shipments.filter(s => s.status?.toLowerCase().includes('pending')).length, 
       icon: '⏳', 
       color: 'from-yellow-400 to-orange-500' 
@@ -87,15 +89,15 @@ export function DashboardPage() {
     <div className="flex flex-col gap-8 p-6">
       <div className="flex justify-between items-center">
         <div>
-          <h1 className="text-3xl font-bold text-slate-900 mb-2">Dashboard</h1>
-          <p className="text-slate-500">Real-time logistics and supply chain management</p>
+          <h1 className="text-3xl font-bold text-slate-900 mb-2">{t('dashboard.title', 'Dashboard')}</h1>
+          <p className="text-slate-500">{t('dashboard.description', 'Real-time logistics and supply chain management')}</p>
         </div>
         <button
           onClick={fetchData}
           className="px-4 py-2 bg-cyan-600 hover:bg-cyan-700 rounded-lg text-slate-900 flex items-center gap-2 transition"
         >
           <RefreshCw className="w-4 h-4" />
-          Refresh
+          {t('dashboard.refresh', 'Refresh')}
         </button>
       </div>
 

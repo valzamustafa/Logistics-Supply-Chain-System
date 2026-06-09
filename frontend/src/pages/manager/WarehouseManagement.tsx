@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react';
 import { Plus } from 'lucide-react';
+import { useTranslation } from 'react-i18next';
 import { warehouseService, Warehouse } from '../../services/warehouseService';
 import { inventoryService, InventoryItem } from '../../services/inventoryService';
 import { AssignProductToWarehouseModal } from '../../components/warehouse/AssignProductToWarehouseModal';
@@ -25,6 +26,7 @@ export function WarehouseManagement() {
   const [showAssignProductModal, setShowAssignProductModal] = useState(false);
   const [confirmDialog, setConfirmDialog] = useState<{ title: string; message: string; onConfirm: () => Promise<void> } | null>(null);
   const { showToast } = useToast();
+  const { t } = useTranslation();
 
   const fetchWarehouses = async () => {
     try {
@@ -33,7 +35,8 @@ export function WarehouseManagement() {
       const data = await warehouseService.getAll();
       console.log('Warehouses fetched:', data);
       setWarehouses(data || []);
-     
+      
+   
       if (data && data.length > 0) {
         const stats: Record<number, WarehouseStats> = {};
         for (const warehouse of data) {
@@ -66,7 +69,7 @@ export function WarehouseManagement() {
 
   const handleSave = async () => {
     if (!formData.name.trim()) {
-      setError('Warehouse name is required');
+      setError(t('warehouseManagement.nameRequired', 'Warehouse name is required'));
       return;
     }
 
@@ -88,22 +91,22 @@ export function WarehouseManagement() {
       setFormData({ name: '', location: '', phone: '' });
     } catch (err: any) {
       console.error('Failed to save warehouse:', err);
-      setError(err.message || 'Failed to save warehouse');
+      setError(err.message || t('warehouseManagement.failedToSave', 'Failed to save warehouse'));
     }
   };
 
   const handleDelete = (id: number) => {
     setConfirmDialog({
-      title: 'Delete Warehouse',
-      message: 'Are you sure you want to delete this warehouse?',
+      title: t('warehouseManagement.deleteWarehouse', 'Delete Warehouse'),
+      message: t('warehouseManagement.deleteWarehouseConfirmation', 'Are you sure you want to delete this warehouse?'),
       onConfirm: async () => {
         try {
           await warehouseService.delete(id);
           await fetchWarehouses();
-          showToast('success', 'Warehouse deleted successfully');
+          showToast('success', t('warehouseManagement.deletedWarehouseSuccess', 'Warehouse deleted successfully'));
         } catch (err) {
-          setError('Failed to delete warehouse');
-          showToast('error', 'Failed to delete warehouse');
+          setError(t('warehouseManagement.failedToDelete', 'Failed to delete warehouse'));
+          showToast('error', t('warehouseManagement.failedToDelete', 'Failed to delete warehouse'));
         }
       }
     });
@@ -121,8 +124,8 @@ export function WarehouseManagement() {
     <div className="p-6 space-y-6 bg-slate-50 min-h-screen">
       <div className="flex justify-between items-center">
         <div>
-          <h1 className="text-3xl font-bold text-slate-900">Warehouse Management</h1>
-          <p className="text-slate-500 mt-1">Manage all warehouses and view their inventory statistics</p>
+          <h1 className="text-3xl font-bold text-slate-900">{t('warehouseManagementTitle', 'Warehouse Management')}</h1>
+          <p className="text-slate-500 mt-1">{t('warehouseManagementDescription', 'Manage all warehouses and view their inventory statistics')}</p>
         </div>
         <button
           onClick={() => {
@@ -132,7 +135,7 @@ export function WarehouseManagement() {
           }}
           className="px-4 py-2 bg-cyan-600 hover:bg-cyan-700 text-slate-900 rounded-lg flex items-center gap-2 transition"
         >
-          <Plus className="w-4 h-4" /> Add Warehouse
+          <Plus className="w-4 h-4" /> {t('warehouseManagement.addWarehouse', 'Add Warehouse')}
         </button>
       </div>
 
@@ -145,7 +148,7 @@ export function WarehouseManagement() {
       <div className="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-6">
         {warehouses.length === 0 ? (
           <div className="col-span-full text-center text-slate-500 py-12">
-            No warehouses found. Click "Add Warehouse" to create your first warehouse.
+            {t('warehouseManagement.noWarehouses', 'No warehouses found. Click "Add Warehouse" to create your first warehouse.')}
           </div>
         ) : (
           warehouses.map((warehouse) => {
@@ -168,46 +171,47 @@ export function WarehouseManagement() {
         )}
       </div>
 
-      
+
       {showModal && (
         <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50" onClick={() => setShowModal(false)}>
           <div className="bg-white rounded-xl w-full max-w-md p-6 border border-slate-200" onClick={(e) => e.stopPropagation()}>
-            <h2 className="text-xl font-semibold text-slate-900 mb-4">{editingWarehouse ? 'Edit Warehouse' : 'Add Warehouse'}</h2>
+            <h2 className="text-xl font-semibold text-slate-900 mb-4">{editingWarehouse ? t('warehouseManagement.editWarehouse', 'Edit Warehouse') : t('warehouseManagement.addWarehouse', 'Add Warehouse')}</h2>
             <div className="space-y-4">
-              <input type="text" placeholder="Warehouse Name" value={formData.name} onChange={(e) => setFormData({ ...formData, name: e.target.value })} className="w-full px-4 py-2 bg-slate-50 border border-slate-200 rounded-lg text-slate-900" />
-              <input type="text" placeholder="Location" value={formData.location} onChange={(e) => setFormData({ ...formData, location: e.target.value })} className="w-full px-4 py-2 bg-slate-50 border border-slate-200 rounded-lg text-slate-900" />
-              <input type="text" placeholder="Phone" value={formData.phone} onChange={(e) => setFormData({ ...formData, phone: e.target.value })} className="w-full px-4 py-2 bg-slate-50 border border-slate-200 rounded-lg text-slate-900" />
+              <input type="text" placeholder={t('warehouseManagement.namePlaceholder', 'Warehouse Name')} value={formData.name} onChange={(e) => setFormData({ ...formData, name: e.target.value })} className="w-full px-4 py-2 bg-slate-50 border border-slate-200 rounded-lg text-slate-900" />
+              <input type="text" placeholder={t('warehouseManagement.locationPlaceholder', 'Location')} value={formData.location} onChange={(e) => setFormData({ ...formData, location: e.target.value })} className="w-full px-4 py-2 bg-slate-50 border border-slate-200 rounded-lg text-slate-900" />
+              <input type="text" placeholder={t('warehouseManagement.phonePlaceholder', 'Phone')} value={formData.phone} onChange={(e) => setFormData({ ...formData, phone: e.target.value })} className="w-full px-4 py-2 bg-slate-50 border border-slate-200 rounded-lg text-slate-900" />
             </div>
             <div className="flex gap-3 mt-6">
-              <button onClick={() => setShowModal(false)} className="flex-1 px-4 py-2 bg-slate-200 hover:bg-slate-100 text-slate-900 rounded-lg">Cancel</button>
-              <button onClick={handleSave} className="flex-1 px-4 py-2 bg-cyan-600 hover:bg-cyan-700 text-slate-900 rounded-lg">{editingWarehouse ? 'Update' : 'Create'}</button>
+              <button onClick={() => setShowModal(false)} className="flex-1 btn-ghost">{t('common.cancel', 'Cancel')}</button>
+              <button onClick={handleSave} className="flex-1 btn-primary">{editingWarehouse ? t('common.update', 'Update') : t('common.create', 'Create')}</button>
             </div>
           </div>
         </div>
       )}
 
+    
       {selectedWarehouse && (
         <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50" onClick={() => setSelectedWarehouse(null)}>
           <div className="bg-white rounded-xl w-full max-w-2xl max-h-[80vh] overflow-y-auto p-6 border border-slate-200" onClick={(e) => e.stopPropagation()}>
             <div className="flex justify-between items-center mb-4">
-              <h2 className="text-xl font-bold text-slate-900">{selectedWarehouse.name} - Details</h2>
+              <h2 className="text-xl font-bold text-slate-900">{selectedWarehouse.name} - {t('warehouseManagement.details', 'Details')}</h2>
               <button onClick={() => setSelectedWarehouse(null)} className="text-slate-500 hover:text-slate-900">✕</button>
             </div>
             <div className="space-y-4">
               <div className="bg-slate-100/80 rounded-lg p-4">
-                <h3 className="text-slate-900 font-semibold mb-2">Contact Information</h3>
-                <p className="text-slate-500">Location: {selectedWarehouse.location || 'Not specified'}</p>
-                <p className="text-slate-500">Phone: {selectedWarehouse.phone || 'Not specified'}</p>
-                <p className="text-slate-500">Status: {selectedWarehouse.isActive ? 'Active' : 'Inactive'}</p>
+                <h3 className="text-slate-900 font-semibold mb-2">{t('warehouseManagement.contactInformation', 'Contact Information')}</h3>
+                <p className="text-slate-500">{t('warehouseManagement.locationLabel', 'Location')}: {selectedWarehouse.location || t('warehouseManagement.notSpecified', 'Not specified')}</p>
+                <p className="text-slate-500">{t('warehouseManagement.phoneLabel', 'Phone')}: {selectedWarehouse.phone || t('warehouseManagement.notSpecified', 'Not specified')}</p>
+                <p className="text-slate-500">{t('warehouseManagement.statusLabel', 'Status')}: {selectedWarehouse.isActive ? t('warehouseManagement.active', 'Active') : t('warehouseManagement.inactive', 'Inactive')}</p>
               </div>
               {selectedWarehouse.zones && selectedWarehouse.zones.length > 0 && (
                 <div className="bg-slate-100/80 rounded-lg p-4">
-                  <h3 className="text-slate-900 font-semibold mb-2">Zones</h3>
+                  <h3 className="text-slate-900 font-semibold mb-2">{t('warehouseManagement.zones', 'Zones')}</h3>
                   <div className="space-y-2">
                     {selectedWarehouse.zones.map((zone: { id: number; zoneName: string; capacity: number }) => (
                       <div key={zone.id} className="flex justify-between items-center border-b border-slate-600 pb-2">
                         <span className="text-slate-500">{zone.zoneName}</span>
-                        <span className="text-slate-500 text-sm">Capacity: {zone.capacity} units</span>
+                        <span className="text-slate-500 text-sm">{t('warehouseManagement.capacityLabel', 'Capacity')}: {zone.capacity} {t('warehouseManagement.units', 'units')}</span>
                       </div>
                     ))}
                   </div>
@@ -215,12 +219,12 @@ export function WarehouseManagement() {
               )}
               {selectedWarehouse.staff && selectedWarehouse.staff.length > 0 && (
                 <div className="bg-slate-100/80 rounded-lg p-4">
-                  <h3 className="text-slate-900 font-semibold mb-2">Staff</h3>
+                  <h3 className="text-slate-900 font-semibold mb-2">{t('warehouseManagement.staff', 'Staff')}</h3>
                   <div className="space-y-2">
                     {selectedWarehouse.staff.map((staff: { id: number; userId: number; position: string | null }) => (
                       <div key={staff.id} className="flex justify-between items-center border-b border-slate-600 pb-2">
-                        <span className="text-slate-500">User #{staff.userId}</span>
-                        <span className="text-slate-500 text-sm">{staff.position || 'Staff'}</span>
+                        <span className="text-slate-500">{t('warehouseManagement.userLabel', 'User')} #{staff.userId}</span>
+                        <span className="text-slate-500 text-sm">{staff.position || t('warehouseManagement.staffLabel', 'Staff')}</span>
                       </div>
                     ))}
                   </div>
@@ -228,13 +232,14 @@ export function WarehouseManagement() {
               )}
             </div>
             <div className="flex gap-3 mt-6">
-              <button onClick={() => setShowAssignProductModal(true)} className="flex-1 px-4 py-2 bg-cyan-600 hover:bg-cyan-700 text-slate-900 rounded-lg">Assign Product</button>
-              <button onClick={() => setSelectedWarehouse(null)} className="flex-1 px-4 py-2 bg-slate-200 hover:bg-slate-100 text-slate-900 rounded-lg">Close</button>
+              <button onClick={() => setShowAssignProductModal(true)} className="flex-1 btn-primary">{t('warehouseManagement.assignProduct', 'Assign Product')}</button>
+              <button onClick={() => setSelectedWarehouse(null)} className="flex-1 btn-ghost">{t('common.close', 'Close')}</button>
             </div>
           </div>
         </div>
       )}
 
+   
       {showAssignProductModal && selectedWarehouse && (
         <AssignProductToWarehouseModal
           warehouseId={selectedWarehouse.id}
@@ -250,8 +255,8 @@ export function WarehouseManagement() {
         <ConfirmModal
           title={confirmDialog.title}
           message={confirmDialog.message}
-          confirmLabel="Confirm"
-          cancelLabel="Cancel"
+          confirmLabel={t('common.confirm', 'Confirm')}
+          cancelLabel={t('common.cancel', 'Cancel')}
           onConfirm={async () => {
             await confirmDialog.onConfirm();
             setConfirmDialog(null);
