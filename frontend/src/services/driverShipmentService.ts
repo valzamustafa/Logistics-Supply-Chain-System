@@ -37,6 +37,7 @@ export const driverShipmentService = {
   getMyShipments: () => api.get<DriverShipment[]>('/api/shipments/driver/assigned'),
   getById: (id: string) => api.get<DriverShipment>(`/api/shipments/${id}`),
   
+
   updateStatus: async (id: string, data: UpdateShipmentStatusDto) => {
    
     return api.put<DriverShipment>(`/api/shipments/${id}/status`, data);

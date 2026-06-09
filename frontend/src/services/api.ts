@@ -50,7 +50,7 @@ async function request<T>(
         const text = await response.text();
         if (text) errorMessage = text;
       } catch {
-        
+     
       }
     }
     throw new Error(errorMessage);
@@ -68,7 +68,7 @@ async function requestBlob(
   options: RequestInit = {}
 ): Promise<Blob> {
   const token = getLocalStorageItem('token');
-
+  
   const isAbsolute = /^https?:\/\//i.test(endpoint);
   const url = isAbsolute ? endpoint : `${API_BASE_URL}${endpoint}`;
 
@@ -78,6 +78,7 @@ async function requestBlob(
   };
 
   const response = await fetch(url, {
+    method: options.method ?? 'GET',
     ...options,
     headers,
   });
@@ -92,7 +93,7 @@ async function requestBlob(
       try {
         errorMessage = await clone.text() || errorMessage;
       } catch {
-     
+ 
       }
     }
     throw new Error(errorMessage);
