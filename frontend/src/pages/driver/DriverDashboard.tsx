@@ -46,7 +46,7 @@ export function DriverDashboard() {
   const [editingVehicle, setEditingVehicle] = useState<DriverVehicle | null>(null);
   const [loadingVehicle, setLoadingVehicle] = useState(false);
 
- 
+
   useEffect(() => {
     const handleOnline = () => {
       setIsOnline(true);
@@ -94,7 +94,7 @@ export function DriverDashboard() {
     localStorage.setItem('offline_locations', JSON.stringify(locations));
   };
 
- 
+
   const fetchMyVehicle = async () => {
     setLoadingVehicle(true);
     try {
@@ -463,7 +463,7 @@ export function DriverDashboard() {
 
   return (
     <div className="flex flex-col gap-8 p-6 bg-slate-50 min-h-screen">
-  
+
       <div className="flex justify-between items-center">
         <div>
           <h1 className="text-3xl font-bold text-slate-900 mb-2">Driver Dashboard</h1>
@@ -519,7 +519,7 @@ export function DriverDashboard() {
                 setEditingVehicle(null);
                 setShowVehicleModal(true);
               }}
-              className="px-4 py-2 bg-cyan-600 hover:bg-cyan-700 text-white rounded-lg flex items-center gap-2"
+              className="btn-primary flex items-center gap-2"
             >
               <Plus className="w-4 h-4" />
               Register Vehicle
@@ -845,7 +845,7 @@ export function DriverDashboard() {
         </div>
       </div>
 
-
+      {/* Delivery Proof Modal */}
       {showProofModal && (
         <div className="fixed inset-0 bg-black/70 flex items-center justify-center z-50" onClick={() => setShowProofModal(false)}>
           <div className="bg-white rounded-2xl p-6 w-[450px] border border-slate-200" onClick={(e) => e.stopPropagation()}>
@@ -884,6 +884,7 @@ export function DriverDashboard() {
         </div>
       )}
 
+   
       {showProfileModal && profile && (
         <div className="fixed inset-0 bg-black/70 flex items-center justify-center z-50" onClick={() => setShowProfileModal(false)}>
           <div className="bg-white rounded-2xl p-6 w-[450px] border border-slate-200" onClick={(e) => e.stopPropagation()}>
@@ -954,6 +955,7 @@ export function DriverDashboard() {
           </div>
         </div>
       )}
+
 
       {showVehicleModal && (
         <VehicleManagementModal

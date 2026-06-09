@@ -1,4 +1,5 @@
 import React from 'react';
+import { useTranslation } from 'react-i18next';
 
 interface ConfirmModalProps {
   title?: string;
@@ -11,35 +12,41 @@ interface ConfirmModalProps {
 }
 
 export const ConfirmModal: React.FC<ConfirmModalProps> = ({
-  title = 'Confirm action',
+  title,
   message,
-  confirmLabel = 'Confirm',
-  cancelLabel = 'Cancel',
+  confirmLabel,
+  cancelLabel,
   onConfirm,
   onCancel,
   isProcessing = false,
 }) => {
+  const { t } = useTranslation();
+  const finalTitle = title || t('common.confirmAction', 'Confirm action');
+  const finalConfirm = confirmLabel || t('common.confirm', 'Confirm');
+  const finalCancel = cancelLabel || t('common.cancel', 'Cancel');
+  const processingText = t('common.processing', 'Processing...');
+
   return (
-    <div className="fixed inset-0 bg-black/80 backdrop-blur-sm flex items-center justify-center z-50">
-      <div className="bg-white rounded-lg p-6 max-w-md w-full border border-slate-200 shadow-xl">
-        <h2 className="text-2xl font-bold text-slate-900 mb-4">{title}</h2>
+    <div className="modal-backdrop fixed inset-0 z-50 flex items-center justify-center p-4">
+      <div className="w-full max-w-md rounded-lg border border-slate-200 bg-white p-6 shadow-xl">
+        <h2 className="mb-3 text-xl font-bold text-slate-950">{finalTitle}</h2>
         <p className="text-slate-500 mb-6">{message}</p>
         <div className="flex gap-3">
           <button
             type="button"
             onClick={onCancel}
-            className="flex-1 px-4 py-2 bg-slate-200 text-slate-900 rounded-lg hover:bg-slate-100 transition"
+            className="flex-1 btn-ghost"
             disabled={isProcessing}
           >
-            {cancelLabel}
+            {finalCancel}
           </button>
           <button
             type="button"
             onClick={onConfirm}
-            className="flex-1 px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition disabled:opacity-50"
+            className="flex-1 btn-danger disabled:opacity-50"
             disabled={isProcessing}
           >
-            {isProcessing ? 'Processing...' : confirmLabel}
+            {isProcessing ? processingText : finalConfirm}
           </button>
         </div>
       </div>

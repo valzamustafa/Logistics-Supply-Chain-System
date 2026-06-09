@@ -38,7 +38,7 @@ export function ProductsPage() {
     setAddingToCart(product.id);
     try {
       await addToCart(product, 1);
-   
+
     } catch (error) {
       console.error('Failed to add to cart:', error);
     } finally {
@@ -49,11 +49,12 @@ export function ProductsPage() {
   const getFilteredProducts = () => {
     let filtered = products;
     
-  
+
     if (selectedCategory !== null) {
       filtered = filtered.filter(p => p.categoryId === selectedCategory);
     }
     
+  
     if (searchTerm.trim()) {
       const term = searchTerm.toLowerCase();
       filtered = filtered.filter(p => 
@@ -109,7 +110,7 @@ export function ProductsPage() {
           <span className="absolute left-3 top-2.5 text-slate-500">🔍</span>
         </div>
         
-  
+
         <div className="flex items-center gap-4 px-4 py-2 rounded-lg bg-white border border-slate-200">
           <div className="flex items-center gap-2">
             <span className="text-slate-900">🛒</span>

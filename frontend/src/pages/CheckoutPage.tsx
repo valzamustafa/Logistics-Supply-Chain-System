@@ -2,6 +2,7 @@
 import React, { useState, useEffect } from 'react';
 import { loadStripe } from '@stripe/stripe-js';
 import { Elements } from '@stripe/react-stripe-js';
+import { useTranslation } from 'react-i18next';
 import { useCart } from '../hooks/useCart';
 import { useNavigate } from 'react-router-dom';
 import { OrderConfirmationModal } from '../components/OrderConfirmationModal';
@@ -12,6 +13,7 @@ import { warehouseService, Warehouse } from '../services/warehouseService';
 const stripePromise = loadStripe(import.meta.env.VITE_STRIPE_PUBLISHABLE_KEY ?? '');
 
 export const CheckoutPage: React.FC = () => {
+  const { t } = useTranslation();
   const { cart, getCartTotal, placeOrder, isLoading, error } = useCart();
   const [warehouses, setWarehouses] = useState<Warehouse[]>([]);
   const [selectedWarehouseId, setSelectedWarehouseId] = useState<number | null>(null);
@@ -25,20 +27,21 @@ export const CheckoutPage: React.FC = () => {
 
   const handlePlaceOrder = async () => {
     if (!selectedWarehouseId) {
-      setStripeError('Ju lutem zgjidhni një magazinë për të vazhduar me porosinë.');
-      return;
-    }
-
-    if (paymentMethod === 'Stripe') {
-      try {
-        setStripeError(null);
-        const response = await orderService.createPaymentIntent({ amount: getCartTotal(), currency: 'eur' });
-        setStripeClientSecret(response.clientSecret);
-        setShowStripeModal(true);
-      } catch (err: any) {
-        setStripeError(err.message || 'Unable to create payment intent');
+        setStripeError(t('checkout.selectWarehouseError', 'Please select a warehouse to continue.'));
+        return;
       }
-      return;
+
+      if (paymentMethod === 'Stripe') {
+        try {
+          setStripeError(null);
+          const response = await orderService.createPaymentIntent({ amount: getCartTotal(), currency: 'eur' });
+          setStripeClientSecret(response.clientSecret);
+          setShowStripeModal(true);
+          return;
+        } catch (err: any) {
+          setStripeError(err.message || t('checkout.paymentIntentFailed', 'Unable to create payment intent'));
+          return;
+        }
     }
 
     setShowConfirmation(true);
@@ -74,9 +77,9 @@ export const CheckoutPage: React.FC = () => {
   if (cart.length === 0) {
     return (
       <div className="container mx-auto px-4 py-8 text-center">
-        <h1 className="text-2xl font-bold mb-4">Your cart is empty</h1>
+        <h1 className="text-2xl font-bold mb-4">{t('checkout.emptyCart', 'Your cart is empty')}</h1>
         <button onClick={() => navigate('/products')} className="bg-blue-600 text-white px-4 py-2 rounded">
-          Continue Shopping
+          {t('checkout.continueShopping', 'Continue Shopping')}
         </button>
       </div>
     );
@@ -97,11 +100,11 @@ export const CheckoutPage: React.FC = () => {
 
   return (
     <div className="container mx-auto px-4 py-8">
-      <h1 className="text-2xl font-bold mb-6">Checkout</h1>
+      <h1 className="text-2xl font-bold mb-6">{t('checkout.title', 'Checkout')}</h1>
       
       <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
         <div className="md:col-span-2">
-          <h2 className="text-xl font-semibold mb-4">Order Summary</h2>
+          <h2 className="text-xl font-semibold mb-4">{t('checkout.orderSummary', 'Order Summary')}</h2>
           {cart.map(item => (
             <div key={item.productId} className="flex justify-between py-2 border-b border-slate-200">
               <span>{item.product.name} x {item.quantity}</span>
@@ -109,28 +112,28 @@ export const CheckoutPage: React.FC = () => {
             </div>
           ))}
           <div className="flex justify-between py-2 font-bold text-slate-900">
-            <span>Total</span>
+            <span>{t('checkout.totalLabel', 'Total')}</span>
             <span>€{getCartTotal().toFixed(2)}</span>
           </div>
         </div>
         
         <div className="rounded-3xl border border-slate-200 bg-slate-50 p-6">
-          <h2 className="text-xl font-semibold mb-4">Warehouse Selection</h2>
+          <h2 className="text-xl font-semibold mb-4">{t('checkout.warehouseSelection', 'Warehouse Selection')}</h2>
           <div className="mb-6">
-            <label className="block text-sm text-slate-500 mb-2">Choose warehouse</label>
+            <label className="block text-sm text-slate-500 mb-2">{t('checkout.chooseWarehouse', 'Choose warehouse')}</label>
             <select
               value={selectedWarehouseId ?? ''}
               onChange={(e) => setSelectedWarehouseId(Number(e.target.value) || null)}
               className="w-full rounded-2xl border border-slate-200 bg-white px-4 py-3 text-slate-900 outline-none"
             >
-              <option value="">Select warehouse</option>
+              <option value="">{t('checkout.selectWarehouse', 'Select warehouse')}</option>
               {warehouses.map((warehouse) => (
                 <option key={warehouse.id} value={warehouse.id}>{warehouse.name}{warehouse.location ? ` — ${warehouse.location}` : ''}</option>
               ))}
             </select>
           </div>
 
-          <h2 className="text-xl font-semibold mb-4">Payment Method</h2>
+          <h2 className="text-xl font-semibold mb-4">{t('checkout.paymentMethod', 'Payment Method')}</h2>
           <div className="space-y-4">
             <label className="flex items-center gap-3 rounded-2xl border border-slate-200 bg-white p-4 cursor-pointer">
               <input
@@ -141,8 +144,8 @@ export const CheckoutPage: React.FC = () => {
                 onChange={() => setPaymentMethod('Stripe')}
               />
               <div>
-                <div className="font-semibold text-slate-900">Stripe</div>
-                <div className="text-sm text-slate-500">Pay instantly with Stripe test card.</div>
+                <div className="font-semibold text-slate-900">{t('checkout.stripe', 'Stripe')}</div>
+                <div className="text-sm text-slate-500">{t('checkout.stripeDescription', 'Pay instantly with Stripe test card.')}</div>
               </div>
             </label>
             <label className="flex items-center gap-3 rounded-2xl border border-slate-200 bg-white p-4 cursor-pointer">
@@ -154,8 +157,8 @@ export const CheckoutPage: React.FC = () => {
                 onChange={() => setPaymentMethod('BankTransfer')}
               />
               <div>
-                <div className="font-semibold text-slate-900">Bank Transfer</div>
-                <div className="text-sm text-slate-500">Pay later by bank transfer and confirm when ready.</div>
+                <div className="font-semibold text-slate-900">{t('checkout.bankTransfer', 'Bank Transfer')}</div>
+                <div className="text-sm text-slate-500">{t('checkout.bankTransferDescription', 'Pay later by bank transfer and confirm when ready.')}</div>
               </div>
             </label>
           </div>
@@ -165,7 +168,7 @@ export const CheckoutPage: React.FC = () => {
             disabled={isLoading}
             className="mt-6 w-full rounded-3xl bg-cyan-500 px-4 py-3 text-slate-900 font-semibold hover:bg-cyan-400 disabled:opacity-50"
           >
-            {isLoading ? 'Processing...' : `Pay €${getCartTotal().toFixed(2)}`}
+            {isLoading ? t('checkout.processing', 'Processing...') : t('checkout.payNow', 'Pay €{{amount}}', { amount: getCartTotal().toFixed(2) })}
           </button>
 
           {stripeError && (

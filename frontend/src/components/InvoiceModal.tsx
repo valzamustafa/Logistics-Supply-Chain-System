@@ -35,7 +35,7 @@ export const InvoiceModal: React.FC<InvoiceModalProps> = ({ order, onClose }) =>
       if (response.ok) {
         const blob = await response.blob();
         
-    
+   
         if (blob.type === 'application/pdf' || blob.type === 'application/octet-stream') {
           const url = window.URL.createObjectURL(blob);
           const a = document.createElement('a');
@@ -50,13 +50,13 @@ export const InvoiceModal: React.FC<InvoiceModalProps> = ({ order, onClose }) =>
           showToast('error', 'Invalid response format from server');
         }
       } else {
-        
+       
         console.warn('PDF download failed, using HTML print fallback');
         printInvoiceAsPDF();
       }
     } catch (error) {
       console.error('Error downloading invoice:', error);
-     
+
       printInvoiceAsPDF();
     }
   };
@@ -179,13 +179,13 @@ export const InvoiceModal: React.FC<InvoiceModalProps> = ({ order, onClose }) =>
         <div className="flex justify-end space-x-3 mt-6 pt-4 border-t border-slate-200">
           <button
             onClick={onClose}
-            className="px-4 py-2 border border-slate-600 rounded-md text-slate-500 hover:bg-slate-200 transition"
+            className="btn-ghost btn-sm"
           >
             Close
           </button>
           <button
             onClick={downloadPDF}
-            className="px-4 py-2 bg-cyan-500 text-white rounded-md hover:bg-cyan-600 transition"
+            className="btn-primary btn-sm"
           >
             Download PDF
           </button>

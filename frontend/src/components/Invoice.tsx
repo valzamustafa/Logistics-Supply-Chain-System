@@ -21,7 +21,7 @@ export const Invoice: React.FC<InvoiceProps> = ({ order, bankAccount }) => {
   };
 
   const downloadPDF = async () => {
-   
+    
     const response = await fetch(`/api/orders/${order.id}/invoice`, {
       method: 'GET',
       headers: {

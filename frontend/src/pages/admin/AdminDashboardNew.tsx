@@ -48,8 +48,11 @@ export function AdminDashboard() {
   }, []);
 
   const setupSignalR = async () => {
+    const token = localStorage.getItem('token');
     const connection = new signalR.HubConnectionBuilder()
-      .withUrl('http://localhost:5008/dashboardHub')
+      .withUrl('http://localhost:5008/dashboardHub', {
+        accessTokenFactory: () => token || ''
+      })
       .withAutomaticReconnect()
       .build();
 

@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import { useTranslation } from 'react-i18next';
 import { useAuth } from '../../hooks/useAuth';
 import { api } from '../../services/api';
 import { useToast } from '../../hooks/useToast';
@@ -22,6 +23,7 @@ interface Permission {
 }
 
 export function RolesPage() {
+  const { t } = useTranslation();
   const { token, user } = useAuth();
   const { showToast } = useToast();
   const [roles, setRoles] = useState<Role[]>([]);
@@ -63,7 +65,7 @@ export function RolesPage() {
 
   const handleCreateRole = async () => {
     if (!newRole.name.trim()) {
-      showToast('error', 'Role name is required');
+      showToast('error', t('roles.roleNameRequired', 'Role name is required'));
       return;
     }
 
@@ -76,11 +78,11 @@ export function RolesPage() {
       setRoles([...roles, created]);
       setShowAddModal(false);
       setNewRole({ name: '', description: '', permissions: [] });
-      showToast('success', 'Role created successfully');
-      if (user?.id) await notificationService.sendNotification({ userId: user.id, type: 'Role', title: 'Role Created', message: `Role ${created.name} created`, actionUrl: '/admin/roles' }).catch(() => {});
+      showToast('success', t('roles.roleCreatedSuccess', 'Role created successfully'));
+      if (user?.id) await notificationService.sendNotification({ userId: user.id, type: 'Role', title: t('roles.roleCreatedNotificationTitle', 'Role Created'), message: t('roles.roleCreatedNotificationMessage', { roleName: created.name, defaultValue: `Role ${created.name} created` }), actionUrl: '/admin/roles' }).catch(() => {});
     } catch (error) {
       console.error('Failed to create role:', error);
-      showToast('error', 'Failed to create role');
+      showToast('error', t('roles.roleCreateFailed', 'Failed to create role'));
     }
   };
 
@@ -93,33 +95,33 @@ export function RolesPage() {
       setRoles(roles.map(r => r.id === updated.id ? updated : r));
       if (selectedRole?.id === updated.id) setSelectedRole(updated);
       setShowEditModal(false);
-      showToast('success', 'Role updated successfully');
-      if (user?.id) await notificationService.sendNotification({ userId: user.id, type: 'Role', title: 'Role Updated', message: `Role ${updated.name} updated`, actionUrl: '/admin/roles' }).catch(() => {});
+      showToast('success', t('roles.roleUpdatedSuccess', 'Role updated successfully'));
+      if (user?.id) await notificationService.sendNotification({ userId: user.id, type: 'Role', title: t('roles.roleUpdatedNotificationTitle', 'Role Updated'), message: t('roles.roleUpdatedNotificationMessage', { roleName: updated.name, defaultValue: `Role ${updated.name} updated` }), actionUrl: '/admin/roles' }).catch(() => {});
     } catch (error) {
       console.error('Failed to update role:', error);
-      showToast('error', 'Failed to update role');
+      showToast('error', t('roles.roleUpdateFailed', 'Failed to update role'));
     }
   };
 
   const handleDeleteRole = (roleId: number, roleName: string) => {
     if (roleName === 'Admin') {
-      showToast('error', 'Cannot delete Admin role');
+      showToast('error', t('roles.cannotDeleteAdminRole', 'Cannot delete Admin role'));
       return;
     }
 
     setConfirmDialog({
-      title: 'Delete Role',
-      message: `Are you sure you want to delete role "${roleName}"?`,
+      title: t('roles.deleteRoleTitle', 'Delete Role'),
+      message: t('roles.deleteRoleConfirm', { roleName, defaultValue: `Are you sure you want to delete role "${roleName}"?` }),
       onConfirm: async () => {
         try {
           await api.delete(`/api/auth/roles/${roleId}`);
           setRoles(roles.filter(r => r.id !== roleId));
           if (selectedRole?.id === roleId) setSelectedRole(null);
-          showToast('success', 'Role deleted successfully');
-          if (user?.id) await notificationService.sendNotification({ userId: user.id, type: 'Role', title: 'Role Deleted', message: `Role ${roleName} deleted`, actionUrl: '/admin/roles' }).catch(() => {});
+          showToast('success', t('roles.roleDeletedSuccess', 'Role deleted successfully'));
+          if (user?.id) await notificationService.sendNotification({ userId: user.id, type: 'Role', title: t('roles.roleDeletedNotificationTitle', 'Role Deleted'), message: t('roles.roleDeletedNotificationMessage', { roleName, defaultValue: `Role ${roleName} deleted` }), actionUrl: '/admin/roles' }).catch(() => {});
         } catch (error) {
           console.error('Failed to delete role:', error);
-          showToast('error', 'Failed to delete role');
+          showToast('error', t('roles.roleDeleteFailed', 'Failed to delete role'));
         }
       }
     });
@@ -129,11 +131,11 @@ export function RolesPage() {
     try {
       await api.put(`/api/auth/roles/${roleId}/permissions`, { permissions: permissionNames });
       setRoles(roles.map(r => r.id === roleId ? { ...r, permissions: permissionNames } : r));
-      showToast('success', 'Permissions updated successfully');
-      if (user?.id) await notificationService.sendNotification({ userId: user.id, type: 'Role', title: 'Permissions Updated', message: `Permissions updated for role`, actionUrl: '/admin/roles' }).catch(() => {});
+      showToast('success', t('roles.permissionsUpdatedSuccess', 'Permissions updated successfully'));
+      if (user?.id) await notificationService.sendNotification({ userId: user.id, type: 'Role', title: t('roles.permissionsUpdatedNotificationTitle', 'Permissions Updated'), message: t('roles.permissionsUpdatedNotificationMessage', 'Permissions updated for role'), actionUrl: '/admin/roles' }).catch(() => {});
     } catch (error) {
       console.error('Failed to update permissions:', error);
-      showToast('error', 'Failed to update permissions');
+      showToast('error', t('roles.permissionsUpdateFailed', 'Failed to update permissions'));
     }
   };
 
@@ -143,8 +145,30 @@ export function RolesPage() {
       case 'Manager': return 'bg-blue-500/20 text-blue-400';
       case 'Driver': return 'bg-green-500/20 text-green-400';
       case 'WarehouseStaff': return 'bg-orange-500/20 text-orange-400';
+      case 'Supplier': return 'bg-teal-500/20 text-teal-400';
       default: return 'bg-slate-500/20 text-slate-500';
     }
+  };
+
+  const getRoleLabel = (role: Role) => {
+    return t(`roles.names.${role.name}`, role.name);
+  };
+
+  const getRoleDescription = (role: Role) => {
+    const description = role.description || t('roles.noDescription', 'No description available');
+    return t(`roles.descriptions.${role.name}`, description);
+  };
+
+  const getPermissionLabel = (perm: Permission) => {
+    return t(`permissions.${perm.name}`, perm.name);
+  };
+
+  const getPermissionDescription = (perm: Permission) => {
+    return t(`permissions.${perm.name}Description`, perm.description);
+  };
+
+  const getPermissionCategoryLabel = (category: string) => {
+    return t(`permissions.categories.${category}`, category);
   };
 
   const groupedPermissions = permissions.reduce((acc, perm) => {
@@ -158,7 +182,7 @@ export function RolesPage() {
       <div className="flex items-center justify-center h-64">
         <div className="text-center">
           <div className="w-12 h-12 border-4 border-cyan-500 border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
-          <p className="text-slate-500">Loading roles...</p>
+          <p className="text-slate-500">{t('roles.loading', 'Loading roles...')}</p>
         </div>
       </div>
     );
@@ -168,57 +192,57 @@ export function RolesPage() {
     <div className="flex flex-col gap-8 p-6">
       <div className="flex justify-between items-center">
         <div>
-          <h1 className="text-3xl font-bold text-slate-900 mb-2">Role Management</h1>
-          <p className="text-slate-500">Create, edit, and manage system roles and permissions</p>
+          <h1 className="text-3xl font-bold text-slate-900 mb-2">{t('roles.title', 'Role Management')}</h1>
+          <p className="text-slate-500">{t('roles.description', 'Create, edit, and manage system roles and permissions')}</p>
         </div>
         <button 
           onClick={() => setShowAddModal(true)} 
-          className="rounded-lg bg-gradient-to-r from-cyan-500 to-blue-500 px-4 py-2 text-slate-900 font-medium hover:from-cyan-400 hover:to-blue-400 transition"
+          className="btn-primary"
         >
-          + Add New Role
+          {t('roles.addNewRole', '+ Add New Role')}
         </button>
       </div>
 
       <div className="grid grid-cols-1 gap-6 lg:grid-cols-3">
         <div className="lg:col-span-1 space-y-4">
           <div className="flex justify-between items-center">
-            <h2 className="text-xl font-bold text-slate-900">Roles</h2>
-            <span className="text-sm text-slate-500">{roles.length} total</span>
+            <h2 className="text-xl font-bold text-slate-900">{t('roles.rolesSection', 'Roles')}</h2>
+            <span className="text-sm text-slate-500">{t('roles.totalRoles', '{{count}} total', { count: roles.length })}</span>
           </div>
           <div className="space-y-3 max-h-[500px] overflow-y-auto pr-2">
             {roles.map((role) => (
               <div
                 key={role.id}
                 onClick={() => setSelectedRole(role)}
-                className={`cursor-pointer rounded-2xl border p-4 transition ${
+                className={`card cursor-pointer transition ${
                   selectedRole?.id === role.id
-                    ? 'border-cyan-500 bg-white'
-                    : 'border-slate-200 bg-slate-100/90 hover:border-slate-600'
+                    ? 'border-cyan-500 bg-white shadow-lg'
+                    : 'border-slate-200 bg-slate-50/90 hover:border-slate-400 hover:shadow-sm'
                 }`}
               >
-                <div className="flex justify-between items-start">
+                <div className="flex justify-between items-start gap-3">
                   <div>
                     <div className="flex items-center gap-2">
-                      <span className={`rounded-full px-2 py-1 text-xs font-medium ${getRoleColor(role.name)}`}>
-                        {role.name}
+                      <span className={`rounded-full px-2 py-1 text-xs font-semibold ${getRoleColor(role.name)}`}>
+                        {getRoleLabel(role)}
                       </span>
-                      <span className="text-xs text-slate-500">{role.userCount || 0} users</span>
+                      <span className="text-xs text-slate-500">{t('roles.usersCount', '{{count}} users', { count: role.userCount || 0 })}</span>
                     </div>
-                    <p className="text-sm text-slate-500 mt-2">{role.description}</p>
+                    <p className="text-sm text-slate-500 mt-3">{getRoleDescription(role)}</p>
                   </div>
-                  <div className="flex gap-1">
+                  <div className="flex flex-col gap-2 text-right">
                     <button 
                       onClick={(e) => { e.stopPropagation(); setEditRole({ id: role.id, name: role.name, description: role.description }); setShowEditModal(true); }}
-                      className="text-cyan-400 hover:text-cyan-300 text-sm"
+                      className="text-cyan-500 hover:text-cyan-600 text-sm"
                     >
-                      Edit
+                      {t('common.edit', 'Edit')}
                     </button>
                     {role.name !== 'Admin' && (
                       <button 
                         onClick={(e) => { e.stopPropagation(); handleDeleteRole(role.id, role.name); }}
-                        className="text-red-400 hover:text-red-300 text-sm"
+                        className="text-red-500 hover:text-red-600 text-sm"
                       >
-                        Delete
+                        {t('common.delete', 'Delete')}
                       </button>
                     )}
                   </div>
@@ -230,27 +254,27 @@ export function RolesPage() {
 
         <div className="lg:col-span-2">
           {selectedRole ? (
-            <div className="rounded-2xl border border-slate-200 bg-slate-100/90 p-6 backdrop-blur">
-              <div className="flex justify-between items-center mb-6">
+            <div className="card bg-white/95 shadow-lg">
+              <div className="flex flex-col gap-4 lg:flex-row lg:justify-between lg:items-center mb-6">
                 <div>
-                  <h2 className="text-xl font-bold text-slate-900">{selectedRole.name} - Permissions</h2>
-                  <p className="text-sm text-slate-500">{selectedRole.description}</p>
+                  <h2 className="text-xl font-bold text-slate-900">{getRoleLabel(selectedRole)} - {t('roles.permissions', 'Permissions')}</h2>
+                  <p className="text-sm text-slate-500">{getRoleDescription(selectedRole)}</p>
                 </div>
                 <button 
                   onClick={() => handleUpdatePermissions(selectedRole.id, selectedRole.permissions || [])}
-                  className="rounded-lg bg-cyan-500 px-4 py-2 text-slate-900 text-sm hover:bg-cyan-400 transition"
+                  className="btn-primary"
                 >
-                  Save Changes
+                  {t('common.save', 'Save Changes')}
                 </button>
               </div>
               
               <div className="space-y-6 max-h-[500px] overflow-y-auto pr-2">
                 {Object.entries(groupedPermissions).map(([category, perms]) => (
                   <div key={category}>
-                    <h3 className="text-lg font-semibold text-slate-900 mb-3 border-b border-slate-200 pb-2">{category}</h3>
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                    <h3 className="text-lg font-semibold text-slate-900 mb-3 border-b border-slate-200 pb-2">{getPermissionCategoryLabel(category)}</h3>
+                            <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
                       {perms.map((perm) => (
-                        <label key={perm.id} className="flex items-center gap-3 p-2 rounded-lg hover:bg-slate-100/80 cursor-pointer">
+                        <label key={perm.id} className="flex items-center gap-3 rounded-2xl border border-slate-200 bg-slate-50 p-4 shadow-sm hover:shadow-md transition cursor-pointer">
                           <input
                             type="checkbox"
                             checked={selectedRole.permissions?.includes(perm.name) || false}
@@ -260,11 +284,11 @@ export function RolesPage() {
                                 : (selectedRole.permissions || []).filter(p => p !== perm.name);
                               setSelectedRole({ ...selectedRole, permissions: newPermissions });
                             }}
-                            className="w-4 h-4 rounded border-slate-600 bg-slate-200 text-cyan-500 focus:ring-cyan-500"
+                            className="h-4 w-4 rounded border-slate-600 bg-slate-200 text-cyan-500 focus:ring-cyan-500"
                           />
                           <div>
-                            <p className="text-slate-900 text-sm font-medium">{perm.name}</p>
-                            <p className="text-xs text-slate-500">{perm.description}</p>
+                            <p className="text-slate-900 text-sm font-semibold">{getPermissionLabel(perm)}</p>
+                            <p className="text-xs text-slate-500">{getPermissionDescription(perm)}</p>
                           </div>
                         </label>
                       ))}
@@ -276,23 +300,23 @@ export function RolesPage() {
           ) : (
             <div className="rounded-2xl border border-slate-200 bg-slate-100/90 p-12 backdrop-blur text-center">
               <p className="text-6xl mb-4">🔑</p>
-              <h2 className="text-xl font-bold text-slate-900 mb-2">Select a Role</h2>
-              <p className="text-slate-500">Choose a role from the list to view and edit permissions</p>
+              <h2 className="text-xl font-bold text-slate-900 mb-2">{t('roles.selectRoleTitle', 'Select a Role')}</h2>
+              <p className="text-slate-500">{t('roles.selectRoleDescription', 'Choose a role from the list to view and edit permissions')}</p>
             </div>
           )}
         </div>
       </div>
 
       {showAddModal && (
-        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50" onClick={() => setShowAddModal(false)}>
-          <div className="bg-white rounded-2xl p-6 w-[500px] max-w-[90vw] border border-slate-200" onClick={(e) => e.stopPropagation()}>
-            <h2 className="text-xl font-bold text-slate-900 mb-4">Add New Role</h2>
+        <div className="fixed inset-0 modal-backdrop flex items-center justify-center z-50" onClick={() => setShowAddModal(false)}>
+          <div className="card w-[500px] max-w-[90vw]" onClick={(e) => e.stopPropagation()}>
+            <h2 className="text-xl font-bold text-slate-900 mb-4">{t('roles.addRole', 'Add New Role')}</h2>
             <div className="space-y-4">
-              <input type="text" placeholder="Role Name" value={newRole.name} onChange={(e) => setNewRole({...newRole, name: e.target.value})} className="w-full rounded-lg border border-slate-600 bg-slate-50 px-4 py-2 text-slate-900 focus:border-cyan-400 focus:outline-none" />
-              <textarea placeholder="Description" value={newRole.description} onChange={(e) => setNewRole({...newRole, description: e.target.value})} className="w-full rounded-lg border border-slate-600 bg-slate-50 px-4 py-2 text-slate-900 h-24 resize-none focus:border-cyan-400 focus:outline-none" />
+              <input type="text" placeholder={t('roles.roleName', 'Role Name')} value={newRole.name} onChange={(e) => setNewRole({...newRole, name: e.target.value})} className="w-full rounded-2xl border border-slate-300 bg-slate-50 px-4 py-3 text-slate-900 focus:border-cyan-400 focus:outline-none" />
+              <textarea placeholder={t('roles.roleDescription', 'Description')} value={newRole.description} onChange={(e) => setNewRole({...newRole, description: e.target.value})} className="w-full rounded-2xl border border-slate-300 bg-slate-50 px-4 py-3 text-slate-900 h-24 resize-none focus:border-cyan-400 focus:outline-none" />
               <div className="flex gap-3 pt-4">
-                <button onClick={() => setShowAddModal(false)} className="flex-1 rounded-lg bg-slate-200 px-4 py-2 text-slate-900 hover:bg-slate-100 transition">Cancel</button>
-                <button onClick={handleCreateRole} className="flex-1 rounded-lg bg-gradient-to-r from-cyan-500 to-blue-500 px-4 py-2 text-slate-900 hover:from-cyan-400 hover:to-blue-400 transition">Create Role</button>
+                <button onClick={() => setShowAddModal(false)} className="flex-1 btn-ghost">{t('common.cancel', 'Cancel')}</button>
+                <button onClick={handleCreateRole} className="flex-1 btn-primary">{t('roles.createRole', 'Create Role')}</button>
               </div>
             </div>
           </div>
@@ -300,15 +324,15 @@ export function RolesPage() {
       )}
 
       {showEditModal && (
-        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50" onClick={() => setShowEditModal(false)}>
-          <div className="bg-white rounded-2xl p-6 w-96 border border-slate-200" onClick={(e) => e.stopPropagation()}>
-            <h2 className="text-xl font-bold text-slate-900 mb-4">Edit Role</h2>
+        <div className="fixed inset-0 modal-backdrop flex items-center justify-center z-50" onClick={() => setShowEditModal(false)}>
+          <div className="card w-96" onClick={(e) => e.stopPropagation()}>
+            <h2 className="text-xl font-bold text-slate-900 mb-4">{t('roles.editRole', 'Edit Role')}</h2>
             <div className="space-y-4">
-              <input type="text" value={editRole.name} onChange={(e) => setEditRole({...editRole, name: e.target.value})} className="w-full rounded-lg border border-slate-600 bg-slate-50 px-4 py-2 text-slate-900 focus:border-cyan-400 focus:outline-none" />
-              <textarea value={editRole.description} onChange={(e) => setEditRole({...editRole, description: e.target.value})} className="w-full rounded-lg border border-slate-600 bg-slate-50 px-4 py-2 text-slate-900 h-24 resize-none focus:border-cyan-400 focus:outline-none" />
+              <input type="text" value={editRole.name} onChange={(e) => setEditRole({...editRole, name: e.target.value})} className="w-full rounded-2xl border border-slate-300 bg-slate-50 px-4 py-3 text-slate-900 focus:border-cyan-400 focus:outline-none" />
+              <textarea value={editRole.description} onChange={(e) => setEditRole({...editRole, description: e.target.value})} className="w-full rounded-2xl border border-slate-300 bg-slate-50 px-4 py-3 text-slate-900 h-24 resize-none focus:border-cyan-400 focus:outline-none" />
               <div className="flex gap-3 pt-4">
-                <button onClick={() => setShowEditModal(false)} className="flex-1 rounded-lg bg-slate-200 px-4 py-2 text-slate-900 hover:bg-slate-100 transition">Cancel</button>
-                <button onClick={handleUpdateRole} className="flex-1 rounded-lg bg-gradient-to-r from-cyan-500 to-blue-500 px-4 py-2 text-slate-900 hover:from-cyan-400 hover:to-blue-400 transition">Save Changes</button>
+                <button onClick={() => setShowEditModal(false)} className="flex-1 btn-ghost">{t('common.cancel', 'Cancel')}</button>
+                <button onClick={handleUpdateRole} className="flex-1 btn-primary">{t('common.save', 'Save Changes')}</button>
               </div>
             </div>
           </div>
@@ -318,8 +342,8 @@ export function RolesPage() {
         <ConfirmModal
           title={confirmDialog.title}
           message={confirmDialog.message}
-          confirmLabel="Confirm"
-          cancelLabel="Cancel"
+          confirmLabel={t('common.confirm', 'Confirm')}
+          cancelLabel={t('common.cancel', 'Cancel')}
           onConfirm={async () => {
             await confirmDialog.onConfirm();
             setConfirmDialog(null);
