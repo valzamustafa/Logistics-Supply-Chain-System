@@ -28,9 +28,9 @@ namespace NotificationService.Business
             _configuration = configuration;
         }
 
-        public async Task<IEnumerable<NotificationDto>> GetUserNotificationsAsync(int userId)
+        public async Task<IEnumerable<NotificationDto>> GetUserNotificationsAsync(int userId, int? take = 30)
         {
-            var notifications = await _repository.GetByUserAsync(userId);
+            var notifications = await _repository.GetByUserAsync(userId, take);
             return notifications.Select(MapToDto);
         }
 

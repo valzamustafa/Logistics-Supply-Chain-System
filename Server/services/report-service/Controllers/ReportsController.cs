@@ -1,5 +1,6 @@
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using System.Security.Claims;
 using ReportService.DTOs;
 using ReportService.Services.Interfaces;
 
@@ -49,11 +50,12 @@ public class ReportsController : ControllerBase
             return BadRequest(new { message = "Type and Name are required" });
         }
 
-        var userIdClaim = User.FindFirst("sub")?.Value ?? User.FindFirst("nameid")?.Value;
-        if (string.IsNullOrEmpty(userIdClaim))
-            return Unauthorized();
+        var userIdClaim = User.FindFirst(ClaimTypes.NameIdentifier)?.Value
+            ?? User.FindFirst("sub")?.Value
+            ?? User.FindFirst("nameid")?.Value;
 
-        var userId = int.Parse(userIdClaim);
+        if (!int.TryParse(userIdClaim, out var userId))
+            return Unauthorized();
         
         var report = await _reportService.GenerateReportAsync(dto, userId);
         return Ok(report);

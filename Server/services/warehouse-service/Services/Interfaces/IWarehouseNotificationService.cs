@@ -1,4 +1,3 @@
-
 namespace WarehouseService.Services.Interfaces
 {
     public interface IWarehouseNotificationService

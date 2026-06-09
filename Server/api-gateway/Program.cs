@@ -16,7 +16,8 @@ var servicePortMap = new Dictionary<string, int>(StringComparer.OrdinalIgnoreCas
     ["warehouse-service"] = 5006,
     ["notification-service"] = 5009,
     ["report-service"] = 5008,
-    ["tracking-services"] = 5010
+    ["tracking-services"] = 5010,
+    ["settings-service"] = 5011
 };
 
 string ResolveHost(string serviceName)
@@ -48,6 +49,11 @@ foreach (var service in servicePortMap.Keys)
 {
     ocelotTemplate = ocelotTemplate.Replace($"{{{{{service.Replace('-', '_').ToUpperInvariant()}_HOST}}}}", ResolveHost(service));
     ocelotTemplate = ocelotTemplate.Replace($"{{{{{service.Replace('-', '_').ToUpperInvariant()}_PORT}}}}", ResolvePort(service).ToString());
+
+   
+    var hostEntry = $"\"DownstreamHostAndPorts\": [{{ \"Host\": \"{service}\", \"Port\": 80 }}]";
+    var resolvedEntry = $"\"DownstreamHostAndPorts\": [{{ \"Host\": \"{ResolveHost(service)}\", \"Port\": {ResolvePort(service)} }}]";
+    ocelotTemplate = ocelotTemplate.Replace(hostEntry, resolvedEntry);
 }
 
 builder.Configuration.AddJsonStream(new MemoryStream(Encoding.UTF8.GetBytes(ocelotTemplate)));
@@ -77,7 +83,21 @@ app.UseCors("AllowSpecificOrigin");
 if (app.Environment.IsDevelopment())
 {
     app.UseSwagger();
-    app.UseSwaggerUI();
+    app.UseSwaggerUI(c =>
+    {
+        c.SwaggerEndpoint("/swagger/v1/swagger.json", "API Gateway");
+        c.SwaggerEndpoint("http://localhost:5001/swagger/v1/swagger.json", "Auth Service");
+        c.SwaggerEndpoint("http://localhost:5002/swagger/v1/swagger.json", "Order Service");
+        c.SwaggerEndpoint("http://localhost:5003/swagger/v1/swagger.json", "Inventory Service");
+        c.SwaggerEndpoint("http://localhost:5004/swagger/v1/swagger.json", "Shipment Service");
+        c.SwaggerEndpoint("http://localhost:5005/swagger/v1/swagger.json", "Product Service");
+        c.SwaggerEndpoint("http://localhost:5006/swagger/v1/swagger.json", "Warehouse Service");
+        c.SwaggerEndpoint("http://localhost:5007/swagger/v1/swagger.json", "Supplier Service");
+        c.SwaggerEndpoint("http://localhost:5008/swagger/v1/swagger.json", "Report Service");
+        c.SwaggerEndpoint("http://localhost:5009/swagger/v1/swagger.json", "Notification Service");
+        c.SwaggerEndpoint("http://localhost:5010/swagger/v1/swagger.json", "Tracking Service");
+        c.SwaggerEndpoint("http://localhost:5011/swagger/v1/swagger.json", "Settings Service");
+    });
 }
 
 app.UseWebSockets();

@@ -2,9 +2,11 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.Authorization;
 using System.Linq;
+using System.Security.Claims;
 using System.Text;
 using Microsoft.IdentityModel.Tokens;
 using NotificationService.Data;
+using NotificationService.Models;
 using NotificationService.Repositories.Interfaces;
 using NotificationService.Repositories.Implementations;
 using Microsoft.AspNetCore.SignalR;
@@ -72,7 +74,9 @@ builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
             ValidateIssuerSigningKey = true,
             ValidIssuer = jwtIssuer,
             ValidAudience = jwtAudience,
-            IssuerSigningKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(jwtKey))
+            IssuerSigningKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(jwtKey)),
+            NameClaimType = ClaimTypes.NameIdentifier,
+            RoleClaimType = ClaimTypes.Role
         };
 
         options.Events = new JwtBearerEvents
@@ -103,6 +107,11 @@ builder.Services.AddAuthorization(options =>
     options.FallbackPolicy = new AuthorizationPolicyBuilder()
         .RequireAuthenticatedUser()
         .Build();
+    var permissionNames = new[] { "view_users","create_users","edit_users","delete_users","view_warehouses","manage_warehouses","view_inventory","manage_inventory","view_orders","manage_orders","view_shipments","manage_shipments" };
+    foreach (var p in permissionNames)
+    {
+        options.AddPolicy(p, policy => policy.RequireClaim("permission", p));
+    }
 });
 
 var app = builder.Build();
@@ -126,6 +135,60 @@ using (var scope = app.Services.CreateScope())
 {
     var dbContext = scope.ServiceProvider.GetRequiredService<NotificationDbContext>();
     await dbContext.Database.MigrateAsync();
+
+    if (!dbContext.NotificationTemplates.Any())
+    {
+        dbContext.NotificationTemplates.AddRange(new[]
+        {
+            new NotificationTemplate
+            {
+                Name = "OrderConfirmed",
+                Type = "Order",
+                Subject = "Your order has been confirmed",
+                BodyTemplate = "Hello {{CustomerName}}, your order {{OrderNumber}} has been confirmed.",
+                CreatedAt = DateTime.UtcNow
+            },
+            new NotificationTemplate
+            {
+                Name = "DeliveryUpdate",
+                Type = "Shipment",
+                Subject = "Shipment status updated",
+                BodyTemplate = "Hello {{CustomerName}}, your shipment {{TrackingNumber}} is now {{Status}}.",
+                CreatedAt = DateTime.UtcNow
+            }
+        });
+        await dbContext.SaveChangesAsync();
+    }
+
+    if (!dbContext.Notifications.Any())
+    {
+        dbContext.Notifications.Add(new Notification
+        {
+            UserId = 1,
+            Type = "Info",
+            Title = "Welcome to Logjistika",
+            Message = "Your notification system is ready.",
+            IsRead = false,
+            CreatedBy = 1,
+            UpdatedBy = 1,
+            CreatedAt = DateTime.UtcNow,
+            UpdatedAt = DateTime.UtcNow
+        });
+        await dbContext.SaveChangesAsync();
+    }
+
+    if (!dbContext.ChatMessages.Any())
+    {
+        dbContext.ChatMessages.Add(new ChatMessage
+        {
+            SenderId = 1,
+            RecipientId = 2,
+            Message = "Welcome to the Logjistika chat system.",
+            SentAt = DateTime.UtcNow,
+            IsRead = false
+        });
+        await dbContext.SaveChangesAsync();
+    }
 }
 
 app.Run();

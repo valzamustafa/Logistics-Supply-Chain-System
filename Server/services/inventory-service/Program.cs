@@ -4,6 +4,7 @@ using Microsoft.AspNetCore.Authorization;
 using System.Text;
 using Microsoft.IdentityModel.Tokens;
 using InventoryService.Data;
+using InventoryService.Models;
 using InventoryService.Repositories.Interfaces;
 using InventoryService.Repositories.Implementations;
 using InventoryService.Services.Interfaces;
@@ -73,6 +74,11 @@ builder.Services.AddAuthorization(options =>
     options.FallbackPolicy = new AuthorizationPolicyBuilder()
         .RequireAuthenticatedUser()
         .Build();
+    var permissionNames = new[] { "view_users","create_users","edit_users","delete_users","view_warehouses","manage_warehouses","view_inventory","manage_inventory","view_orders","manage_orders","view_shipments","manage_shipments" };
+    foreach (var p in permissionNames)
+    {
+        options.AddPolicy(p, policy => policy.RequireClaim("permission", p));
+    }
 });
 
 var app = builder.Build();
@@ -92,6 +98,58 @@ using (var scope = app.Services.CreateScope())
 {
     var dbContext = scope.ServiceProvider.GetRequiredService<InventoryDbContext>();
     await dbContext.Database.EnsureCreatedAsync();
+
+    var now = DateTime.UtcNow;
+    const int adminUserId = 1;
+
+    if (!dbContext.Inventories.Any())
+    {
+        var inventory = new Inventory
+        {
+            ProductId = 1,
+            WarehouseId = 1,
+            Quantity = 180,
+            ReservedQuantity = 10,
+            ReorderLevel = 25,
+            CreatedBy = adminUserId,
+            UpdatedBy = adminUserId,
+            CreatedAt = now,
+            UpdatedAt = now
+        };
+
+        dbContext.Inventories.Add(inventory);
+        await dbContext.SaveChangesAsync();
+
+        dbContext.StockMovements.Add(new StockMovement
+        {
+            InventoryId = inventory.Id,
+            ProductId = inventory.ProductId,
+            Quantity = 180,
+            Type = "IN",
+            ReferenceType = "InitialStock",
+            Notes = "Initial inventory seeded",
+            MovementDate = now,
+            CreatedBy = adminUserId,
+            UpdatedBy = adminUserId,
+            CreatedAt = now,
+            UpdatedAt = now
+        });
+
+        dbContext.LowStockAlerts.Add(new LowStockAlert
+        {
+            InventoryId = inventory.Id,
+            ProductId = inventory.ProductId,
+            CurrentQuantity = inventory.Quantity,
+            ThresholdLevel = 30,
+            IsResolved = false,
+            CreatedBy = adminUserId,
+            UpdatedBy = adminUserId,
+            CreatedAt = now,
+            UpdatedAt = now
+        });
+
+        await dbContext.SaveChangesAsync();
+    }
 }
 
 app.Run();

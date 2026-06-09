@@ -30,17 +30,22 @@ namespace AuthService.Controllers
         }
 
         [HttpPost("register")]
-        [Authorize(Roles = "Admin,Manager")]
+        [AllowAnonymous]
         public async Task<IActionResult> Register([FromBody] RegisterDto dto)
         {
             if (!ModelState.IsValid)
                 return BadRequest(ModelState);
 
+          
+            if (!User.Identity?.IsAuthenticated ?? true || !(User.IsInRole("Admin") || User.IsInRole("Manager")))
+            {
+                dto.Role = "User";
+            }
+
             var response = await _authService.RegisterAsync(dto);
             if (response == null)
                 return BadRequest(new { message = "User with this email already exists" });
 
-           
             var fullName = $"{response.FirstName} {response.LastName}";
             await _notificationClient.SendNotificationToRoleAsync(
                 "Admin",
@@ -264,6 +269,20 @@ namespace AuthService.Controllers
 
             _dbContext.RolePermissions.AddRange(addedPermissions);
             await _dbContext.SaveChangesAsync();
+
+           
+            try
+            {
+                await _notificationClient.SendNotificationToRoleAsync(role.Name,
+                    "PermissionsUpdated",
+                    "Permissions Updated",
+                    $"Permissions for role '{role.Name}' were updated. Some actions may require re-login.",
+                    $"/admin/roles/{roleId}");
+            }
+            catch
+            {
+
+            }
 
             return Ok(new { message = "Permissions updated successfully", permissions = dto.Permissions });
         }

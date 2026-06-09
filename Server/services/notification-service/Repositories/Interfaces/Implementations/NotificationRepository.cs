@@ -19,12 +19,18 @@ namespace NotificationService.Repositories.Implementations
             return await _context.Notifications.FindAsync(id);
         }
 
-        public async Task<IEnumerable<Notification>> GetByUserAsync(int userId)
+        public async Task<IEnumerable<Notification>> GetByUserAsync(int userId, int? take = null)
         {
-            return await _context.Notifications
+            IQueryable<Notification> query = _context.Notifications
                 .Where(n => n.UserId == userId)
-                .OrderByDescending(n => n.CreatedAt)
-                .ToListAsync();
+                .OrderByDescending(n => n.CreatedAt);
+
+            if (take.HasValue && take > 0)
+            {
+                query = query.Take(take.Value);
+            }
+
+            return await query.ToListAsync();
         }
 
         public async Task<IEnumerable<Notification>> GetUnreadByUserAsync(int userId)

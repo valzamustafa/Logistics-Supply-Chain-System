@@ -46,7 +46,7 @@ namespace InventoryService.Controllers
         {
             var result = await _inventoryService.UpdateStockAsync(request);
             
-           
+         
             await _notificationClient.SendNotificationToRoleAsync(
                 "Warehouse",
                 "StockUpdated",
@@ -72,7 +72,7 @@ namespace InventoryService.Controllers
             return Ok(new { isAvailable });
         }
 
-
+      
         [HttpPost("reserve")]
         public async Task<IActionResult> ReserveStock([FromBody] StockOperationRequest request)
         {
@@ -94,7 +94,7 @@ namespace InventoryService.Controllers
             return Ok(new { success = result });
         }
 
-      
+     
         [HttpPost("release")]
         public async Task<IActionResult> ReleaseStock([FromBody] StockOperationRequest request)
         {
@@ -116,7 +116,7 @@ namespace InventoryService.Controllers
             return Ok(new { success = result });
         }
 
-   
+     
         [HttpPost("deduct")]
         public async Task<IActionResult> DeductStock([FromBody] StockDeductRequest request)
         {
@@ -138,7 +138,7 @@ namespace InventoryService.Controllers
             return Ok(new { success = result });
         }
 
-  
+   
         [HttpPost("restore")]
         public async Task<IActionResult> RestoreStock([FromBody] StockDeductRequest request)
         {
@@ -161,7 +161,7 @@ namespace InventoryService.Controllers
         }
     }
 
-
+  
     public class StockOperationRequest
     {
         public int ProductId { get; set; }

@@ -5,6 +5,7 @@ using System.Text;
 using Microsoft.IdentityModel.Tokens;
 using Microsoft.OpenApi.Models;
 using WarehouseService.Data;
+using WarehouseService.Models;
 using WarehouseService.Repositories.Interfaces;
 using WarehouseService.Repositories.Implementations;
 using WarehouseService.Services.Interfaces;
@@ -152,6 +153,18 @@ builder.Services.AddAuthorization(options =>
     options.FallbackPolicy = new AuthorizationPolicyBuilder()
         .RequireAuthenticatedUser()
         .Build();
+    
+    var permissionNames = new[]
+    {
+        "view_users","create_users","edit_users","delete_users",
+        "view_warehouses","manage_warehouses","view_inventory","manage_inventory",
+        "view_orders","manage_orders","view_shipments","manage_shipments"
+    };
+
+    foreach (var p in permissionNames)
+    {
+        options.AddPolicy(p, policy => policy.RequireClaim("permission", p));
+    }
 });
 
 var app = builder.Build();
@@ -178,9 +191,86 @@ using (var scope = app.Services.CreateScope())
     var logger = scope.ServiceProvider.GetRequiredService<ILogger<Program>>();
     try
     {
-       
-        await dbContext.Database.EnsureCreatedAsync();
-        logger.LogInformation("Database schema ensured successfully");
+        logger.LogInformation("Applying pending database migrations for WarehouseService...");
+        await dbContext.Database.MigrateAsync();
+        logger.LogInformation("Database migrations applied successfully");
+
+        var now = DateTime.UtcNow;
+        const int adminUserId = 1;
+
+        if (!dbContext.Warehouses.Any())
+        {
+            var warehouse = new Warehouse
+            {
+                Name = "Central Warehouse",
+                Location = "Bulevardi Nënë Tereza 12, Prishtinë",
+                Phone = "+383441234567",
+                IsActive = true,
+                CreatedBy = adminUserId,
+                UpdatedBy = adminUserId,
+                CreatedAt = now,
+                UpdatedAt = now
+            };
+
+            warehouse.Zones.Add(new WarehouseZone
+            {
+                ZoneName = "Receiving A",
+                Description = "Primary receiving and staging zone",
+                CreatedBy = adminUserId,
+                UpdatedBy = adminUserId,
+                CreatedAt = now,
+                UpdatedAt = now
+            });
+
+            warehouse.Staff.Add(new WarehouseStaff
+            {
+                UserId = 2,
+                Position = "Warehouse Supervisor",
+                HireDate = now.AddMonths(-6),
+                CreatedBy = adminUserId,
+                UpdatedBy = adminUserId,
+                CreatedAt = now,
+                UpdatedAt = now
+            });
+
+            dbContext.Warehouses.Add(warehouse);
+            await dbContext.SaveChangesAsync();
+
+            var stock = new WarehouseStock
+            {
+                WarehouseId = warehouse.Id,
+                ProductId = 1,
+                Quantity = 120,
+                MinimumStockLevel = 10,
+                MaximumStockLevel = 500,
+                ShelfLocation = "A1-01",
+                CreatedBy = adminUserId,
+                UpdatedBy = adminUserId,
+                CreatedAt = now,
+                UpdatedAt = now
+            };
+
+            dbContext.WarehouseStocks.Add(stock);
+            await dbContext.SaveChangesAsync();
+
+            dbContext.StockMovements.Add(new StockMovement
+            {
+                WarehouseStockId = stock.Id,
+                ProductId = stock.ProductId,
+                Type = MovementType.Inbound,
+                Quantity = 120,
+                PreviousQuantity = 0,
+                NewQuantity = 120,
+                Reference = "Initial inventory seed",
+                Notes = "Initial warehouse stock seeded",
+                CreatedBy = adminUserId,
+                UpdatedBy = adminUserId,
+                CreatedAt = now,
+                UpdatedAt = now
+            });
+
+            await dbContext.SaveChangesAsync();
+        }
     }
     catch (Exception ex)
     {

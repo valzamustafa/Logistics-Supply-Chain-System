@@ -234,6 +234,20 @@
       "UpstreamHttpMethod": [ "GET", "POST", "PUT", "DELETE", "OPTIONS" ]
     },
     {
+      "DownstreamPathTemplate": "/api/settings",
+      "DownstreamScheme": "http",
+      "DownstreamHostAndPorts": [{ "Host": "settings-service", "Port": 80 }],
+      "UpstreamPathTemplate": "/api/settings",
+      "UpstreamHttpMethod": [ "GET", "POST", "PUT", "DELETE", "OPTIONS" ]
+    },
+    {
+      "DownstreamPathTemplate": "/api/settings/{everything}",
+      "DownstreamScheme": "http",
+      "DownstreamHostAndPorts": [{ "Host": "settings-service", "Port": 80 }],
+      "UpstreamPathTemplate": "/api/settings/{everything}",
+      "UpstreamHttpMethod": [ "GET", "POST", "PUT", "DELETE", "OPTIONS" ]
+    },
+    {
       "DownstreamPathTemplate": "/api/tracking/{everything}",
       "DownstreamScheme": "http",
       "DownstreamHostAndPorts": [{ "Host": "tracking-services", "Port": 80 }],

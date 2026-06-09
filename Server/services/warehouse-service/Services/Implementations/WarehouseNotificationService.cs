@@ -1,4 +1,3 @@
-
 using BuildingBlocks;
 using Microsoft.Extensions.Logging;
 using WarehouseService.Services.Interfaces;

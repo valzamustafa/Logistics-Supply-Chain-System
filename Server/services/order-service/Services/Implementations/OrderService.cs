@@ -41,11 +41,16 @@ namespace OrderService.Business
             }
         }
 
+        private string GetWarehouseServiceUrl()
+        {
+            return _configuration["Services:WarehouseService"] ?? "http://localhost:5006";
+        }
+
         private string GenerateInternalServiceJwt()
         {
-            var jwtKey = _configuration["Jwt:Key"];
-            var jwtIssuer = _configuration["Jwt:Issuer"] ?? "Logjistika";
-            var jwtAudience = _configuration["Jwt:Audience"] ?? "LogjistikaClients";
+            var jwtKey = _configuration["Jwt:Key"] ?? _configuration["JwtSettings:SecretKey"];
+            var jwtIssuer = _configuration["Jwt:Issuer"] ?? _configuration["JwtSettings:Issuer"] ?? "Logjistika";
+            var jwtAudience = _configuration["Jwt:Audience"] ?? _configuration["JwtSettings:Audience"] ?? "LogjistikaClients";
 
             if (string.IsNullOrEmpty(jwtKey))
                 jwtKey = "YourSuperSecretKeyForJWTThatIsAtLeast32CharactersLong123!";
@@ -55,7 +60,8 @@ namespace OrderService.Business
             var claims = new[]
             {
                 new Claim(ClaimTypes.NameIdentifier, "internal-order-service"),
-                new Claim(ClaimTypes.Role, "Admin")
+                new Claim(ClaimTypes.Role, "Admin"),
+                new Claim("permission", "manage_inventory")
             };
 
             var token = new JwtSecurityToken(
@@ -141,8 +147,8 @@ namespace OrderService.Business
 
         public async Task<OrderDto> CreateOrderAsync(CreateOrderRequestDto request)
         {
-           
-            var warehouseServiceUrl = _configuration["Services:WarehouseService"] ?? "http://warehouse-service:80";
+          
+            var warehouseServiceUrl = GetWarehouseServiceUrl();
             var warehouseId = request.WarehouseId ?? 1;
             var warehouseClient = _httpClientFactory.CreateClient();
             AddInternalServiceAuthorizationHeader(warehouseClient);
@@ -316,16 +322,17 @@ namespace OrderService.Business
         }
         #region Warehouse Selection
 
-       
+
         public async Task<int> SelectOptimalWarehouseAsync(int orderId, string? customerAddress = null)
         {
             var order = await _orderRepository.GetByIdAsync(orderId);
             if (order == null)
                 throw new InvalidOperationException("Order not found");
 
-            var warehouseServiceUrl = _configuration["Services:WarehouseService"] ?? "http://localhost:5006";
+            var warehouseServiceUrl = GetWarehouseServiceUrl();
             var client = _httpClientFactory.CreateClient();
 
+            
             var warehousesResponse = await client.GetAsync($"{warehouseServiceUrl}/api/warehouses");
             if (!warehousesResponse.IsSuccessStatusCode)
                 throw new InvalidOperationException("Failed to retrieve warehouses");
@@ -343,7 +350,7 @@ namespace OrderService.Business
             {
                 int availableCount = 0;
                 
-              
+               
                 foreach (var item in order.OrderItems ?? new List<OrderItem>())
                 {
                     var inventoryResponse = await client.GetAsync(
@@ -367,7 +374,7 @@ namespace OrderService.Business
                 }
                 else if (availableCount == maxAvailability && availableCount > 0)
                 {
-                  
+                    
                     if (warehouse.Id < bestWarehouseId || bestWarehouseId == 0)
                     {
                         bestWarehouseId = warehouse.Id;
@@ -388,8 +395,8 @@ namespace OrderService.Business
             if (order == null)
                 throw new InvalidOperationException("Order not found");
 
-   
-            var warehouseServiceUrl = _configuration["Services:WarehouseService"] ?? "http://localhost:5006";
+           
+            var warehouseServiceUrl = GetWarehouseServiceUrl();
             var client = _httpClientFactory.CreateClient();
             
             var warehouseResponse = await client.GetAsync($"{warehouseServiceUrl}/api/warehouses/{warehouseId}");
@@ -408,6 +415,7 @@ namespace OrderService.Business
 
         #region Inventory Validation & Deduction
 
+      
         public async Task<bool> ValidateInventoryAsync(int orderId)
         {
             var order = await _orderRepository.GetByIdAsync(orderId);
@@ -434,7 +442,7 @@ namespace OrderService.Business
             return true;
         }
 
-
+       
         public async Task<bool> ReserveInventoryAsync(int orderId)
         {
             var order = await _orderRepository.GetByIdAsync(orderId);
@@ -460,7 +468,7 @@ namespace OrderService.Business
 
                 if (!response.IsSuccessStatusCode)
                 {
-                 
+                    
                     await ReleaseInventoryAsync(orderId);
                     return false;
                 }
@@ -469,7 +477,7 @@ namespace OrderService.Business
             return true;
         }
 
-
+     
         public async Task<bool> DeductInventoryAsync(int orderId)
         {
             var order = await _orderRepository.GetByIdAsync(orderId);
@@ -501,7 +509,7 @@ namespace OrderService.Business
             return true;
         }
 
-
+       
         public async Task<bool> ReleaseInventoryAsync(int orderId)
         {
             var order = await _orderRepository.GetByIdAsync(orderId);
@@ -529,7 +537,7 @@ namespace OrderService.Business
                 }
                 catch
                 {
-      
+                  
                 }
             }
 
@@ -540,7 +548,7 @@ namespace OrderService.Business
 
         #region Order Processing (Fulfillment)
 
- 
+     
         public async Task<OrderDto> StartProcessingAsync(int orderId)
         {
             var order = await _orderRepository.GetByIdAsync(orderId);
@@ -550,7 +558,7 @@ namespace OrderService.Business
             if (order.Status != "Pending" && order.Status != "Confirmed")
                 throw new InvalidOperationException($"Cannot start processing for order in status: {order.Status}");
 
-          
+        
             if (!await ValidateInventoryAsync(orderId))
                 throw new InvalidOperationException("Insufficient inventory");
 
@@ -564,7 +572,7 @@ namespace OrderService.Business
             return MapToDto(updated);
         }
 
- 
+       
         public async Task<OrderDto> UpdateProcessingStatusAsync(int orderId, string processingStatus)
         {
             var order = await _orderRepository.GetByIdAsync(orderId);
@@ -574,7 +582,7 @@ namespace OrderService.Business
             if (order.Status != "Processing")
                 throw new InvalidOperationException("Order is not in processing state");
 
-        
+           
             order.Status = processingStatus switch
             {
                 "Picking" => "Processing_Picking",
@@ -588,13 +596,12 @@ namespace OrderService.Business
             return MapToDto(updated);
         }
 
-     
         public async Task<OrderDto> CompletePickingAsync(int orderId)
         {
             return await UpdateProcessingStatusAsync(orderId, "Picking");
         }
 
-  
+      
         public async Task<OrderDto> CompletePackingAsync(int orderId)
         {
             return await UpdateProcessingStatusAsync(orderId, "Packed");
@@ -641,7 +648,7 @@ namespace OrderService.Business
             return result?.Id ?? 0;
         }
 
-     
+    
         public async Task<OrderDto> MarkAsShippedAsync(int orderId, int shipmentId)
         {
             var order = await _orderRepository.GetByIdAsync(orderId);
@@ -660,7 +667,6 @@ namespace OrderService.Business
 
         #region Delivery
 
- 
         public async Task<OrderDto> ConfirmDeliveryAsync(int orderId)
         {
             var order = await _orderRepository.GetByIdAsync(orderId);
@@ -696,7 +702,6 @@ namespace OrderService.Business
 
         #region Returns & Adjustments
 
-
         public async Task<OrderDto> ProcessReturnAsync(int orderId, Dictionary<int, int> returnedItems)
         {
             var order = await _orderRepository.GetByIdAsync(orderId);
@@ -712,6 +717,7 @@ namespace OrderService.Business
             var updated = await _orderRepository.UpdateAsync(order);
             return MapToDto(updated);
         }
+
 
         public async Task<bool> RestoreInventoryForReturnAsync(int orderId, Dictionary<int, int> returnedItems)
         {
@@ -748,7 +754,7 @@ namespace OrderService.Business
 
         #region Workflow Status
 
-
+  
         public async Task<string> GetOrderWorkflowStatusAsync(int orderId)
         {
             var order = await _orderRepository.GetByIdAsync(orderId);
@@ -775,9 +781,10 @@ namespace OrderService.Business
 
         private int ExtractWarehouseId(string? shippingAddress)
         {
-            
+         
             if (string.IsNullOrEmpty(shippingAddress))
                 return 1; 
+
             if (shippingAddress.StartsWith("Warehouse:"))
             {
                 var parts = shippingAddress.Split('|');
@@ -788,6 +795,7 @@ namespace OrderService.Business
             return 1; 
         }
 
+       
         private async Task<int> GetWarehouseIdFromOrderAsync(int orderId)
         {
             var order = await _orderRepository.GetByIdAsync(orderId);
@@ -807,14 +815,14 @@ namespace OrderService.Business
                         {
                             document.Open();
 
-     
+                            
                             var titleFont = FontFactory.GetFont(FontFactory.HELVETICA_BOLD, 18);
                             var headerFont = FontFactory.GetFont(FontFactory.HELVETICA_BOLD, 12);
                             var normalFont = FontFactory.GetFont(FontFactory.HELVETICA, 10);
                             var boldFont = FontFactory.GetFont(FontFactory.HELVETICA_BOLD, 10);
                             var smallFont = FontFactory.GetFont(FontFactory.HELVETICA, 8);
 
-                         
+                       
                             var companyTable = new PdfPTable(1);
                             companyTable.WidthPercentage = 100;
                             
@@ -848,7 +856,7 @@ namespace OrderService.Business
                             
                             document.Add(companyTable);
 
-                       
+                          
                             var titleTable = new PdfPTable(1);
                             titleTable.WidthPercentage = 100;
                             titleTable.AddCell(new PdfPCell(new Phrase("TAX INVOICE", titleFont))
@@ -861,7 +869,7 @@ namespace OrderService.Business
                             
                             document.Add(new Paragraph(" "));
 
-                        
+                          
                             var detailsTable = new PdfPTable(2);
                             detailsTable.WidthPercentage = 100;
                             detailsTable.SetWidths(new float[] { 50f, 50f });
@@ -903,7 +911,7 @@ namespace OrderService.Business
                             
                             document.Add(detailsTable);
 
-                         
+
                             var itemTable = new PdfPTable(5);
                             itemTable.WidthPercentage = 100;
                             itemTable.SetWidths(new float[] { 40f, 15f, 15f, 15f, 15f });
@@ -931,7 +939,7 @@ namespace OrderService.Business
                             document.Add(itemTable);
                             document.Add(new Paragraph(" "));
 
-                     
+                           
                             var totalTax = subtotal * 0.18m;
                             var grandTotal = subtotal + totalTax;
                             
@@ -947,7 +955,7 @@ namespace OrderService.Business
                             document.Add(totalTable);
                             document.Add(new Paragraph(" "));
 
-
+                          
                             var paymentTable = new PdfPTable(1);
                             paymentTable.WidthPercentage = 100;
                             
@@ -970,7 +978,7 @@ namespace OrderService.Business
                             document.Add(paymentTable);
                             document.Add(new Paragraph(" "));
 
-                        
+                            
                             var footerTable = new PdfPTable(1);
                             footerTable.WidthPercentage = 100;
                             footerTable.AddCell(new PdfPCell(new Phrase("Thank you for your business!", smallFont))

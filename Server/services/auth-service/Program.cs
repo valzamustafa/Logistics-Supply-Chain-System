@@ -16,7 +16,6 @@ using BuildingBlocks;
 
 var builder = WebApplication.CreateBuilder(args);
 
-
 builder.Services.AddControllers(options => options.Filters.Add<NotificationActionFilter>());
 builder.Services.AddHttpClient();
 builder.Services.AddEndpointsApiExplorer();
@@ -73,7 +72,6 @@ builder.Services.AddCors(options =>
     });
 });
 
-
 var authConnectionString = builder.Configuration.GetConnectionString("AuthDB")
     ?? builder.Configuration.GetConnectionString("DefaultConnection")
     ?? "Server=(localdb)\\mssqllocaldb;Database=AuthServiceDB;Trusted_Connection=True;TrustServerCertificate=True";
@@ -119,7 +117,7 @@ builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
             RoleClaimType = ClaimTypes.Role
         };
         
- 
+       
         options.Events = new JwtBearerEvents
         {
             OnAuthenticationFailed = context =>
@@ -190,6 +188,7 @@ if (app.Environment.IsDevelopment())
 app.UseAuthentication();
 app.UseAuthorization();
 app.MapControllers();
+
 
 using (var scope = app.Services.CreateScope())
 {
