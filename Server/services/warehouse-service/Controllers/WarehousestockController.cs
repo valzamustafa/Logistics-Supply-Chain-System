@@ -16,7 +16,7 @@ namespace WarehouseService.Controllers
             _warehouseService = warehouseService;
         }
 
-   
+  
         [HttpGet]
         public async Task<IActionResult> GetAll()
         {
@@ -24,7 +24,7 @@ namespace WarehouseService.Controllers
             return Ok(stock);
         }
 
- 
+
         [HttpGet("warehouse/{warehouseId}")]
         public async Task<IActionResult> GetByWarehouse(int warehouseId)
         {
@@ -32,6 +32,7 @@ namespace WarehouseService.Controllers
             return Ok(stock);
         }
 
+      
         [HttpGet("product/{productId}")]
         public async Task<IActionResult> GetByProduct(int productId)
         {
@@ -39,7 +40,7 @@ namespace WarehouseService.Controllers
             return Ok(stock);
         }
 
-
+       
         [HttpGet("warehouse/{warehouseId}/product/{productId}")]
         public async Task<IActionResult> GetByWarehouseAndProduct(int warehouseId, int productId)
         {
@@ -50,7 +51,9 @@ namespace WarehouseService.Controllers
             return Ok(stock);
         }
 
+       
         [HttpPost("warehouse/{warehouseId}/assign")]
+        [Microsoft.AspNetCore.Authorization.Authorize(Roles = "Admin,Manager,WarehouseStaff")]
         public async Task<IActionResult> AssignProductToWarehouse(int warehouseId, [FromBody] AssignProductToWarehouseDto dto)
         {
             try
@@ -64,18 +67,30 @@ namespace WarehouseService.Controllers
             }
         }
 
-    
+      
         [HttpGet("warehouse/{warehouseId}/unassigned-products")]
         public async Task<IActionResult> GetUnassignedProducts(int warehouseId)
         {
-        
+           
             return Ok(new List<object>());
         }
 
-  
+       
         [HttpPut("warehouse/{warehouseId}/product/{productId}/stock")]
+        [Microsoft.AspNetCore.Authorization.AllowAnonymous]
         public async Task<IActionResult> UpdateStock(int warehouseId, int productId, [FromBody] UpdateStockDto dto)
         {
+            var isInternal = HttpContext.Request.Headers.TryGetValue("X-Internal-Request", out var internalHeader)
+                && string.Equals(internalHeader, "true", StringComparison.OrdinalIgnoreCase);
+
+            if (!isInternal)
+            {
+                if (User?.Identity?.IsAuthenticated != true || !User.HasClaim(c => c.Type == "permission" && c.Value == "manage_inventory"))
+                {
+                    return Forbid();
+                }
+            }
+
             try
             {
                 var stock = await _warehouseService.UpdateStockAsync(warehouseId, productId, dto);
@@ -87,8 +102,9 @@ namespace WarehouseService.Controllers
             }
         }
 
- 
+        
         [HttpPost("transfer")]
+        [Microsoft.AspNetCore.Authorization.Authorize(Roles = "Admin,Manager,WarehouseStaff")]
         public async Task<IActionResult> TransferStock([FromBody] TransferStockDto dto)
         {
             try
@@ -102,7 +118,7 @@ namespace WarehouseService.Controllers
             }
         }
 
- 
+     
         [HttpGet("warehouse/{warehouseId}/product/{productId}/movements")]
         public async Task<IActionResult> GetMovements(int warehouseId, int productId, [FromQuery] int? limit = null)
         {
@@ -110,7 +126,7 @@ namespace WarehouseService.Controllers
             return Ok(movements);
         }
 
-
+       
         [HttpGet("low-stock")]
         public async Task<IActionResult> GetLowStockAlerts([FromQuery] int? warehouseId = null)
         {
@@ -118,7 +134,7 @@ namespace WarehouseService.Controllers
             return Ok(alerts);
         }
 
- 
+       
         [HttpGet("warehouse/{warehouseId}/product/{productId}/availability")]
         public async Task<IActionResult> CheckAvailability(int warehouseId, int productId, [FromQuery] int quantity)
         {
@@ -126,8 +142,9 @@ namespace WarehouseService.Controllers
             return Ok(new { isAvailable });
         }
 
-   
+        
         [HttpDelete("warehouse/{warehouseId}/product/{productId}")]
+        [Microsoft.AspNetCore.Authorization.Authorize(Roles = "Admin,Manager,WarehouseStaff")]
         public async Task<IActionResult> RemoveProduct(int warehouseId, int productId)
         {
             var result = await _warehouseService.RemoveProductFromWarehouseAsync(warehouseId, productId);

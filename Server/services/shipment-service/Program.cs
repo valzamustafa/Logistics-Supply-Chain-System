@@ -4,6 +4,7 @@ using Microsoft.Data.SqlClient;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
 using ShipmentService.Data;
+using ShipmentService.Models;
 using ShipmentService.Repositories;
 using ShipmentService.Repositories.Interfaces;
 using ShipmentService.Services;
@@ -73,6 +74,31 @@ builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
             NameClaimType = ClaimTypes.NameIdentifier,
             RoleClaimType = ClaimTypes.Role
         };
+
+      
+        options.Events = new JwtBearerEvents
+        {
+            OnMessageReceived = context =>
+            {
+                var accessToken = context.Request.Query["access_token"].FirstOrDefault();
+                var authHeader = context.Request.Headers["Authorization"].ToString();
+                var path = context.HttpContext.Request.Path;
+
+              
+                if (path.StartsWithSegments("/dashboardHub"))
+                {
+                    if (!string.IsNullOrEmpty(accessToken))
+                    {
+                        context.Token = accessToken;
+                    }
+                    else if (!string.IsNullOrEmpty(authHeader) && authHeader.StartsWith("Bearer ", StringComparison.OrdinalIgnoreCase))
+                    {
+                        context.Token = authHeader.Substring("Bearer ".Length).Trim();
+                    }
+                }
+                return Task.CompletedTask;
+            }
+        };
     });
 
 builder.Services.AddAuthorization(options =>
@@ -88,6 +114,13 @@ builder.Services.AddAuthorization(options =>
                   )
               )
     );
+
+
+    var permissionNames = new[] { "view_users","create_users","edit_users","delete_users","view_warehouses","manage_warehouses","view_inventory","manage_inventory","view_orders","manage_orders","view_shipments","manage_shipments" };
+    foreach (var p in permissionNames)
+    {
+        options.AddPolicy(p, policy => policy.RequireClaim("permission", p));
+    }
 
     options.FallbackPolicy = new AuthorizationPolicyBuilder()
         .RequireAuthenticatedUser()
@@ -209,6 +242,88 @@ using (var scope = app.Services.CreateScope())
 
         await dbContext.Database.EnsureCreatedAsync();
         Console.WriteLine("Database schema ensured successfully!");
+
+        var now = DateTime.UtcNow;
+        const int adminUserId = 1;
+
+        if (!dbContext.Drivers.Any())
+        {
+            dbContext.Drivers.Add(new Driver
+            {
+                UserId = 3,
+                LicenseNumber = "D-PR-2025-001",
+                PhoneNumber = "+383443210987",
+                IsAvailable = true,
+                CreatedBy = adminUserId,
+                UpdatedBy = adminUserId,
+                CreatedAt = now,
+                UpdatedAt = now
+            });
+            await dbContext.SaveChangesAsync();
+        }
+
+        if (!dbContext.Vehicles.Any())
+        {
+            var driver = dbContext.Drivers.First();
+            dbContext.Vehicles.Add(new Vehicle
+            {
+                PlateNumber = "04-123-AB",
+                Model = "Volvo FH",
+                Capacity = 18000,
+                IsAvailable = true,
+                DriverId = driver.Id,
+                VehicleType = "Truck",
+                Year = 2022,
+                Color = "White",
+                CreatedBy = adminUserId,
+                UpdatedBy = adminUserId,
+                CreatedAt = now,
+                UpdatedAt = now
+            });
+            await dbContext.SaveChangesAsync();
+        }
+
+        if (!dbContext.Shipments.Any())
+        {
+            var driver = dbContext.Drivers.First();
+            var vehicle = dbContext.Vehicles.First();
+
+            var shipment = new Shipment
+            {
+                TrackingNumber = "TRK-2025-0001",
+                OrderId = 1,
+                DriverId = driver.Id,
+                VehicleId = vehicle.Id,
+                Status = "In Transit",
+                Priority = 2,
+                CurrentLocation = "Prishtina Warehouse",
+                LastLocationUpdate = now,
+                EstimatedDeliveryDate = now.AddDays(2),
+                ShippingAddress = "Rruga B 34, Mitrovicë",
+                PickupLocation = "Central Warehouse, Prishtinë",
+                DeliveryLocation = "Mitrovicë Distribution Center",
+                Distance = 132.5M,
+                ETA = "48 hours",
+                InventoryDeducted = true,
+                CreatedBy = adminUserId,
+                UpdatedBy = adminUserId,
+                CreatedAt = now,
+                UpdatedAt = now,
+                Items = new List<ShipmentItem>
+                {
+                    new ShipmentItem
+                    {
+                        ProductId = 1,
+                        Quantity = 25,
+                        ProductName = "Smart Supply Tracker",
+                        UnitPrice = 49.99M
+                    }
+                }
+            };
+
+            dbContext.Shipments.Add(shipment);
+            await dbContext.SaveChangesAsync();
+        }
     }
     catch (Exception ex)
     {

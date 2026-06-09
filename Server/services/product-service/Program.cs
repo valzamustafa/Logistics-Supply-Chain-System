@@ -1,9 +1,9 @@
-
 using System;
 using System.IO;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.Extensions.FileProviders;
+using System.Security.Claims;
 using System.Text;
 using System.Text.Json.Serialization;
 using Microsoft.IdentityModel.Tokens;
@@ -74,7 +74,9 @@ builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
             ValidateIssuerSigningKey = true,
             ValidIssuer = jwtIssuer ?? "Logjistika",
             ValidAudience = jwtAudience ?? "LogjistikaClients",
-            IssuerSigningKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(jwtKey))
+            IssuerSigningKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(jwtKey)),
+            NameClaimType = ClaimTypes.NameIdentifier,
+            RoleClaimType = ClaimTypes.Role
         };
     });
 
@@ -84,6 +86,12 @@ builder.Services.AddAuthorization(options =>
     options.FallbackPolicy = new AuthorizationPolicyBuilder()
         .RequireAuthenticatedUser()
         .Build();
+
+    var permissionNames = new[] { "view_users","create_users","edit_users","delete_users","view_warehouses","manage_warehouses","view_inventory","manage_inventory","view_orders","manage_orders","view_shipments","manage_shipments" };
+    foreach (var p in permissionNames)
+    {
+        options.AddPolicy(p, policy => policy.RequireClaim("permission", p));
+    }
 });
 
 var app = builder.Build();
@@ -112,16 +120,116 @@ app.MapControllers();
 using (var scope = app.Services.CreateScope())
 {
     var dbContext = scope.ServiceProvider.GetRequiredService<ProductDbContext>();
-    
-  
     await dbContext.Database.EnsureCreatedAsync();
+
+    var now = DateTime.UtcNow;
+    const int adminUserId = 1;
 
     if (!dbContext.Categories.Any())
     {
         dbContext.Categories.Add(new Category
         {
             Name = "General",
-            Description = "Default category for products"
+            Description = "Default category for products",
+            CreatedBy = adminUserId,
+            UpdatedBy = adminUserId,
+            CreatedAt = now,
+            UpdatedAt = now
+        });
+        await dbContext.SaveChangesAsync();
+    }
+
+    if (!dbContext.Products.Any())
+    {
+        var category = dbContext.Categories.First();
+
+        var products = new[]
+        {
+            new Product
+            {
+                Name = "Smart Supply Tracker",
+                SKU = "LOG-PRD-001",
+                Description = "Intelligent inventory tracker for warehouses and shipments.",
+                Price = 299.99M,
+                Cost = 180.00M,
+                CategoryId = category.Id,
+                IsActive = true,
+                CreatedBy = adminUserId,
+                UpdatedBy = adminUserId,
+                CreatedAt = now,
+                UpdatedAt = now
+            },
+            new Product
+            {
+                Name = "Warehouse Barcode Scanner",
+                SKU = "LOG-PRD-002",
+                Description = "Handheld scanner for fast receiving and picking operations.",
+                Price = 129.99M,
+                Cost = 75.00M,
+                CategoryId = category.Id,
+                IsActive = true,
+                CreatedBy = adminUserId,
+                UpdatedBy = adminUserId,
+                CreatedAt = now,
+                UpdatedAt = now
+            }
+        };
+
+        dbContext.Products.AddRange(products);
+        await dbContext.SaveChangesAsync();
+    }
+
+    if (!dbContext.ProductImages.Any())
+    {
+        var products = dbContext.Products.Take(2).ToList();
+        if (products.Any())
+        {
+            dbContext.ProductImages.AddRange(new[]
+            {
+                new ProductImage
+                {
+                    ProductId = products[0].Id,
+                    ImageUrl = "https://example.com/images/smart-supply-tracker.png",
+                    IsPrimary = true,
+                    DisplayOrder = 1,
+                    CreatedBy = adminUserId,
+                    UpdatedBy = adminUserId,
+                    CreatedAt = now,
+                    UpdatedAt = now
+                },
+                new ProductImage
+                {
+                    ProductId = products[1].Id,
+                    ImageUrl = "https://example.com/images/barcode-scanner.png",
+                    IsPrimary = true,
+                    DisplayOrder = 1,
+                    CreatedBy = adminUserId,
+                    UpdatedBy = adminUserId,
+                    CreatedAt = now,
+                    UpdatedAt = now
+                }
+            });
+            await dbContext.SaveChangesAsync();
+        }
+    }
+
+    if (!dbContext.ProductReviews.Any())
+    {
+        var product = dbContext.Products.First();
+        dbContext.ProductReviews.AddRange(new[]
+        {
+            new ProductReview
+            {
+                ProductId = product.Id,
+                UserId = 1,
+                Rating = 5,
+                Comment = "Excellent product for logistics teams.",
+                IsApproved = true,
+                CreatedBy = adminUserId,
+                UpdatedBy = adminUserId,
+                CreatedAt = now,
+                UpdatedAt = now
+            }
         });
         await dbContext.SaveChangesAsync();
     }

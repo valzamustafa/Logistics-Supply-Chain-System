@@ -12,19 +12,19 @@ namespace InventoryService.Services.Interfaces
       
         Task<IEnumerable<LowStockAlertDto>> GetLowStockAlertsAsync();
         
-      
+     
         Task<bool> CheckStockAvailabilityAsync(int productId, int warehouseId, int quantity);
         
-      
+    
         Task<bool> ReserveStockAsync(int productId, int warehouseId, int quantity, string referenceType, int referenceId);
         
-     
+   
         Task<bool> ReleaseStockAsync(int productId, int warehouseId, int quantity, string referenceType, int referenceId);
         
-  
+       
         Task<bool> DeductStockAsync(int productId, int warehouseId, int quantity, string referenceType, int referenceId, string? notes);
         
-
+      
         Task<bool> RestoreStockAsync(int productId, int warehouseId, int quantity, string referenceType, int referenceId, string? notes);
     }
 }

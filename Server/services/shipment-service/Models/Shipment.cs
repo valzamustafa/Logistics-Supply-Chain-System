@@ -14,7 +14,7 @@ public class Shipment
     [Required]
     public int OrderId { get; set; }
     
-    
+
     public int? PurchaseOrderId { get; set; }
     
     public int? DriverId { get; set; }
@@ -23,7 +23,7 @@ public class Shipment
     [Required]
     public string Status { get; set; } = "Pending";
     
-    public int Priority { get; set; } = 1; 
+    public int Priority { get; set; } = 1;
     public string? CurrentLocation { get; set; }
 public DateTime? LastLocationUpdate { get; set; }
 public double? CustomerRating { get; set; }
@@ -44,7 +44,7 @@ public string? CustomerFeedback { get; set; }
     public int? CreatedBy { get; set; }
     public int? UpdatedBy { get; set; }
     
-
+   
     public virtual Driver? Driver { get; set; }
     public virtual Vehicle? Vehicle { get; set; }
     public virtual ICollection<ShipmentItem> Items { get; set; } = new List<ShipmentItem>();

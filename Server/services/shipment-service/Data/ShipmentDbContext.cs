@@ -18,7 +18,7 @@ public class ShipmentDbContext : DbContext
     {
         base.OnModelCreating(modelBuilder);
         
-  
+   
         modelBuilder.Entity<Shipment>()
             .HasOne(s => s.Driver)
             .WithMany(d => d.Shipments)

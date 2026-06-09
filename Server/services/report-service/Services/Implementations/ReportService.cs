@@ -1,4 +1,8 @@
 using System.Text.Json;
+using iText.Kernel.Pdf;
+using iText.Layout;
+using iText.Layout.Element;
+using iText.Layout.Properties;
 using ReportService.DTOs;
 using ReportService.Models;
 using ReportService.Repositories.Interfaces;
@@ -45,7 +49,7 @@ namespace ReportService.Business
         public async Task<ReportDto> GenerateReportAsync(GenerateReportDto dto, int userId)
         {
             var reportData = await GenerateReportDataAsync(dto);
-            
+
             var report = new Report
             {
                 Type = dto.Type,
@@ -58,7 +62,7 @@ namespace ReportService.Business
             };
 
             var created = await _repository.CreateAsync(report);
-            
+
             await _repository.CreateLogAsync(new ReportLog
             {
                 ReportId = created.Id,
@@ -148,8 +152,29 @@ namespace ReportService.Business
 
         public async Task<byte[]> GeneratePdfAsync(ReportDto report)
         {
-            var pdfText = $"%PDF-1.4\n%âãÏÓ\n1 0 obj\n<< /Type /Catalog /Pages 2 0 R >>\nendobj\n2 0 obj\n<< /Type /Pages /Kids [3 0 R] /Count 1 >>\nendobj\n3 0 obj\n<< /Type /Page /Parent 2 0 R /MediaBox [0 0 612 792] /Contents 4 0 R /Resources << /Font << /F1 5 0 R >> >> >>\nendobj\n4 0 obj\n<< /Length 55 >>\nstream\nBT /F1 24 Tf 72 720 Td (Report: {report.Name}) Tj ET\nendstream\nendobj\n5 0 obj\n<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica >>\nendobj\nxref\n0 6\n0000000000 65535 f \n0000000010 00000 n \n0000000061 00000 n \n0000000116 00000 n \n0000000215 00000 n \n0000000305 00000 n \ntrailer\n<< /Size 6 /Root 1 0 R >>\nstartxref\n394\n%%EOF";
-            return await Task.FromResult(System.Text.Encoding.ASCII.GetBytes(pdfText));
+            using var stream = new MemoryStream();
+            using var writer = new PdfWriter(stream);
+            using var pdf = new PdfDocument(writer);
+            using var document = new Document(pdf);
+
+            document.Add(new Paragraph(report.Name)
+                .SetFontSize(20)
+                .SetBold());
+            document.Add(new Paragraph($"Type: {report.Type}"));
+            document.Add(new Paragraph($"Generated: {report.GeneratedAt:yyyy-MM-dd HH:mm} UTC"));
+
+            if (string.IsNullOrWhiteSpace(report.Data))
+            {
+                document.Add(new Paragraph("No report data was saved for this report."));
+            }
+            else
+            {
+                using var json = JsonDocument.Parse(report.Data);
+                AddJsonContent(document, json.RootElement);
+            }
+
+            document.Close();
+            return await Task.FromResult(stream.ToArray());
         }
 
         public async Task<ReportSummaryDto> GetSummaryAsync()
@@ -159,9 +184,12 @@ namespace ReportService.Business
 
         private async Task<object> GenerateReportDataAsync(GenerateReportDto dto)
         {
-            
-            
-            return new
+            if (dto.Data is { ValueKind: not JsonValueKind.Undefined and not JsonValueKind.Null } data)
+            {
+                return await Task.FromResult(data);
+            }
+
+            return await Task.FromResult(new
             {
                 Type = dto.Type,
                 Name = dto.Name,
@@ -180,6 +208,105 @@ namespace ReportService.Business
                     Total = 0,
                     Items = new List<object>()
                 }
+            });
+        }
+
+        private static void AddJsonContent(Document document, JsonElement root)
+        {
+            if (TryGetProperty(root, "metrics", out var metrics))
+            {
+                document.Add(new Paragraph("Key Metrics").SetBold().SetFontSize(14));
+                var table = new Table(UnitValue.CreatePercentArray(new float[] { 2, 1 }))
+                    .UseAllAvailableWidth();
+                table.AddHeaderCell("Metric");
+                table.AddHeaderCell("Value");
+                AddMetricRow(table, "Total revenue", GetString(metrics, "totalRevenue"));
+                AddMetricRow(table, "Delivered shipments", GetString(metrics, "deliveredShipments"));
+                AddMetricRow(table, "In transit shipments", GetString(metrics, "inTransitShipments"));
+                AddMetricRow(table, "Pending shipments", GetString(metrics, "pendingShipments"));
+                AddMetricRow(table, "Active products", GetString(metrics, "activeProducts"));
+                AddMetricRow(table, "Active warehouses", GetString(metrics, "activeWarehouses"));
+                AddMetricRow(table, "Low stock alerts", GetString(metrics, "lowStockAlerts"));
+                document.Add(table);
+            }
+
+            if (TryGetProperty(root, "topOrders", out var topOrders) && topOrders.ValueKind == JsonValueKind.Array)
+            {
+                document.Add(new Paragraph("Top Orders").SetBold().SetFontSize(14));
+                var table = new Table(UnitValue.CreatePercentArray(new float[] { 2, 1, 1, 1 }))
+                    .UseAllAvailableWidth();
+                table.AddHeaderCell("Order");
+                table.AddHeaderCell("Status");
+                table.AddHeaderCell("Items");
+                table.AddHeaderCell("Amount");
+
+                foreach (var order in topOrders.EnumerateArray())
+                {
+                    table.AddCell(GetString(order, "orderNumber"));
+                    table.AddCell(GetString(order, "status"));
+                    table.AddCell(GetString(order, "itemsCount"));
+                    table.AddCell(GetString(order, "totalAmount"));
+                }
+
+                document.Add(table);
+            }
+
+            if (TryGetProperty(root, "lowStockAlerts", out var alerts) && alerts.ValueKind == JsonValueKind.Array)
+            {
+                document.Add(new Paragraph("Low Stock Alerts").SetBold().SetFontSize(14));
+                var table = new Table(UnitValue.CreatePercentArray(new float[] { 2, 2, 1, 1, 1 }))
+                    .UseAllAvailableWidth();
+                table.AddHeaderCell("Product");
+                table.AddHeaderCell("Warehouse");
+                table.AddHeaderCell("Current");
+                table.AddHeaderCell("Minimum");
+                table.AddHeaderCell("Deficit");
+
+                foreach (var alert in alerts.EnumerateArray())
+                {
+                    table.AddCell(GetString(alert, "productName"));
+                    table.AddCell(GetString(alert, "warehouseName"));
+                    table.AddCell(GetString(alert, "currentQuantity"));
+                    table.AddCell(GetString(alert, "minimumLevel"));
+                    table.AddCell(GetString(alert, "deficit"));
+                }
+
+                document.Add(table);
+            }
+        }
+
+        private static void AddMetricRow(Table table, string label, string value)
+        {
+            table.AddCell(label);
+            table.AddCell(value);
+        }
+
+        private static bool TryGetProperty(JsonElement element, string name, out JsonElement property)
+        {
+            if (element.ValueKind == JsonValueKind.Object)
+            {
+                return element.TryGetProperty(name, out property);
+            }
+
+            property = default;
+            return false;
+        }
+
+        private static string GetString(JsonElement element, string name)
+        {
+            if (!TryGetProperty(element, name, out var property))
+            {
+                return "-";
+            }
+
+            return property.ValueKind switch
+            {
+                JsonValueKind.String => property.GetString() ?? "-",
+                JsonValueKind.Number => property.GetRawText(),
+                JsonValueKind.True => "Yes",
+                JsonValueKind.False => "No",
+                JsonValueKind.Null => "-",
+                _ => property.GetRawText()
             };
         }
 
@@ -189,7 +316,7 @@ namespace ReportService.Business
             {
                 Id = report.Id,
                 Type = report.Type,
-                Name = report.Name,
+                Name = report.Name ?? string.Empty,
                 Data = report.Data,
                 GeneratedAt = report.GeneratedAt,
                 GeneratedBy = report.GeneratedBy

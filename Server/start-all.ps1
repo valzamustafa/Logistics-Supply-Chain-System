@@ -54,6 +54,7 @@ $services = @(
     @{Name="Warehouse Service"; Path="services\warehouse-service"; Port=5006; Command="dotnet run --urls=http://localhost:5006"},
     @{Name="Report Service"; Path="services\report-service"; Port=5008; Command="dotnet run --urls=http://localhost:5008"},
     @{Name="Notification Service"; Path="services\notification-service"; Port=5009; Command="dotnet run --urls=http://localhost:5009"},
+    @{Name="Settings Service"; Path="services\settings-service"; Port=5011; Command="dotnet run --urls=http://localhost:5011"},
     @{Name="Tracking Service"; Path="services\tracking-services"; Port=5010; Command="dotnet run --urls=http://localhost:5010"},
     @{Name="API Gateway"; Path="api-gateway"; Port=5000; Command="dotnet run --urls=http://localhost:5000"},
     @{Name="Frontend"; Path="..\frontend"; Port=5173; Command="npm.cmd run dev"}

@@ -2,10 +2,12 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Diagnostics;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.Authorization;
+using System.Security.Claims;
 using System.Text;
 using Microsoft.IdentityModel.Tokens;
 using QuestPDF.Infrastructure;
 using SupplierService.Data;
+using SupplierService.Models;
 using SupplierService.Repositories.Interfaces;
 using SupplierService.Repositories.Implementations;
 using SupplierService.Services.Interfaces;
@@ -65,7 +67,9 @@ builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
             ValidateIssuerSigningKey = true,
             ValidIssuer = jwtIssuer ?? "Logjistika",
             ValidAudience = jwtAudience ?? "LogjistikaClients",
-            IssuerSigningKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(jwtKey))
+            IssuerSigningKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(jwtKey)),
+            NameClaimType = ClaimTypes.NameIdentifier,
+            RoleClaimType = ClaimTypes.Role
         };
     });
 
@@ -74,6 +78,11 @@ builder.Services.AddAuthorization(options =>
     options.FallbackPolicy = new AuthorizationPolicyBuilder()
         .RequireAuthenticatedUser()
         .Build();
+    var permissionNames = new[] { "view_users","create_users","edit_users","delete_users","view_warehouses","manage_warehouses","view_inventory","manage_inventory","view_orders","manage_orders","view_shipments","manage_shipments" };
+    foreach (var p in permissionNames)
+    {
+        options.AddPolicy(p, policy => policy.RequireClaim("permission", p));
+    }
 });
 
 var app = builder.Build();
@@ -97,6 +106,78 @@ using (var scope = app.Services.CreateScope())
     try
     {
         await dbContext.Database.MigrateAsync();
+
+        var now = DateTime.UtcNow;
+        const int adminUserId = 1;
+
+        if (!dbContext.Suppliers.Any())
+        {
+            var supplier = new Supplier
+            {
+                Name = "Balkan Supply Partners",
+                ContactPerson = "Mira Krasniqi",
+                Email = "sales@balkansupply.com",
+                Phone = "+383441987654",
+                VatNumber = "AL123456789",
+                Address = "Rruga B 25, Prishtinë",
+                PaymentTerms = "30 days",
+                CreditLimit = 25000M,
+                IsApproved = true,
+                IsActive = true,
+                CreatedBy = adminUserId,
+                UpdatedBy = adminUserId,
+                CreatedAt = now,
+                UpdatedAt = now
+            };
+
+            dbContext.Suppliers.Add(supplier);
+            await dbContext.SaveChangesAsync();
+
+            dbContext.SupplierProducts.Add(new SupplierProduct
+            {
+                SupplierId = supplier.Id,
+                ProductId = 1,
+                SupplierSKU = "SUP-001",
+                LeadTimeDays = 5,
+                CreatedBy = adminUserId,
+                UpdatedBy = adminUserId,
+                CreatedAt = now,
+                UpdatedAt = now
+            });
+
+            dbContext.PurchaseOrders.Add(new PurchaseOrder
+            {
+                SupplierId = supplier.Id,
+                WarehouseId = 1,
+                PONumber = "PO-5001",
+                InvoiceNumber = "INV-5001",
+                OrderDate = now.AddDays(-7),
+                ExpectedDeliveryDate = now.AddDays(3),
+                Status = "Ordered",
+                TotalAmount = 1250.00M,
+                Notes = "Seeded supplier purchase order for warehouse stock.",
+                CreatedBy = adminUserId,
+                UpdatedBy = adminUserId,
+                CreatedAt = now,
+                UpdatedAt = now,
+                Items = new List<PurchaseOrderItem>
+                {
+                    new PurchaseOrderItem
+                    {
+                        ProductId = 1,
+                        Quantity = 25,
+                        UnitPrice = 50.00M,
+                        TotalPrice = 1250.00M,
+                        CreatedBy = adminUserId,
+                        UpdatedBy = adminUserId,
+                        CreatedAt = now,
+                        UpdatedAt = now
+                    }
+                }
+            });
+
+            await dbContext.SaveChangesAsync();
+        }
     }
     catch (Exception ex)
     {

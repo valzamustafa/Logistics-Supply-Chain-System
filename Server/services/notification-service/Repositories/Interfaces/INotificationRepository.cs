@@ -5,7 +5,7 @@ namespace NotificationService.Repositories.Interfaces
     public interface INotificationRepository
     {
         Task<Notification?> GetByIdAsync(int id);
-        Task<IEnumerable<Notification>> GetByUserAsync(int userId);
+        Task<IEnumerable<Notification>> GetByUserAsync(int userId, int? take = null);
         Task<IEnumerable<Notification>> GetUnreadByUserAsync(int userId);
         Task<Notification> CreateAsync(Notification notification);
         Task<Notification> UpdateAsync(Notification notification);

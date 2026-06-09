@@ -162,6 +162,7 @@ namespace OrderService.Controllers
         }
 
         [HttpPut("{id}/status")]
+        [Microsoft.AspNetCore.Authorization.Authorize(Roles = "Admin,Manager")]
         public async Task<IActionResult> UpdateStatus(int id, [FromBody] UpdateOrderStatusDto request)
         {
             try
@@ -344,6 +345,7 @@ namespace OrderService.Controllers
         }
 
         [HttpPost("{id}/reserve-inventory")]
+        [Microsoft.AspNetCore.Authorization.Authorize(Roles = "Admin,Manager")]
         public async Task<IActionResult> ReserveInventory(int id)
         {
             try
@@ -358,6 +360,7 @@ namespace OrderService.Controllers
         }
 
         [HttpPost("{id}/start-processing")]
+        [Microsoft.AspNetCore.Authorization.Authorize(Roles = "Admin,Manager")]
         public async Task<IActionResult> StartProcessing(int id)
         {
             try
@@ -394,6 +397,7 @@ namespace OrderService.Controllers
         }
 
         [HttpPost("{id}/complete-picking")]
+        [Microsoft.AspNetCore.Authorization.Authorize(Roles = "Admin,Manager")]
         public async Task<IActionResult> CompletePicking(int id)
         {
             try
@@ -422,6 +426,7 @@ namespace OrderService.Controllers
         }
 
         [HttpPost("{id}/complete-packing")]
+        [Microsoft.AspNetCore.Authorization.Authorize(Roles = "Admin,Manager")]
         public async Task<IActionResult> CompletePacking(int id)
         {
             try
@@ -450,6 +455,7 @@ namespace OrderService.Controllers
         }
 
         [HttpPost("{id}/create-shipment")]
+        [Microsoft.AspNetCore.Authorization.Authorize(Roles = "Admin,Manager")]
         public async Task<IActionResult> CreateShipment(int id)
         {
             try
@@ -477,6 +483,7 @@ namespace OrderService.Controllers
         }
 
         [HttpPost("{id}/mark-shipped/{shipmentId}")]
+        [Microsoft.AspNetCore.Authorization.Authorize(Policy = "manage_orders")]
         public async Task<IActionResult> MarkAsShipped(int id, int shipmentId)
         {
             try
@@ -588,7 +595,7 @@ namespace OrderService.Controllers
         }
     }
 
-
+   
     public class UpdateOrderStatusDto
     {
         public string Status { get; set; } = string.Empty;

@@ -2,9 +2,11 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.Authorization;
 using System.Text;
+using System.Security.Claims;
 using Microsoft.IdentityModel.Tokens;
 using ReportService.Data;
 using ReportService.Filters;
+using ReportService.Models;
 using ReportService.Repositories.Interfaces;
 using ReportService.Repositories.Implementations;
 using ReportService.Services.Interfaces;
@@ -49,9 +51,10 @@ builder.Services.AddHttpClient<INotificationClient, NotificationClient>(client =
     client.Timeout = TimeSpan.FromSeconds(10);
 });
 
-var jwtKey = builder.Configuration["Jwt:Key"];
-var jwtIssuer = builder.Configuration["Jwt:Issuer"];
-var jwtAudience = builder.Configuration["Jwt:Audience"];
+
+var jwtKey = builder.Configuration["Jwt:Key"] ?? builder.Configuration["JwtSettings:SecretKey"];
+var jwtIssuer = builder.Configuration["Jwt:Issuer"] ?? builder.Configuration["JwtSettings:Issuer"];
+var jwtAudience = builder.Configuration["Jwt:Audience"] ?? builder.Configuration["JwtSettings:Audience"];
 
 if (string.IsNullOrEmpty(jwtKey))
 {
@@ -67,12 +70,22 @@ builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
             ValidateAudience = true,
             ValidateLifetime = true,
             ValidateIssuerSigningKey = true,
-            ValidIssuer = jwtIssuer ?? "Logjistika",
-            ValidAudience = jwtAudience ?? "LogjistikaClients",
-            IssuerSigningKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(jwtKey))
+            ValidIssuers = new[]
+            {
+                jwtIssuer ?? "AuthService",
+                "Logjistika"
+            },
+            ValidAudiences = new[]
+            {
+                jwtAudience ?? "LogisticsSystem",
+                "LogjistikaClients"
+            },
+            IssuerSigningKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(jwtKey)),
+            NameClaimType = ClaimTypes.NameIdentifier,
+            RoleClaimType = ClaimTypes.Role
         };
         
-        
+    
         options.Events = new JwtBearerEvents
         {
             OnMessageReceived = context =>
@@ -84,6 +97,18 @@ builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
                     context.Token = accessToken;
                 }
                 return Task.CompletedTask;
+            },
+            OnAuthenticationFailed = context =>
+            {
+                var logger = context.HttpContext.RequestServices.GetRequiredService<ILogger<Program>>();
+                logger.LogWarning("JWT authentication failed: {Message}", context.Exception?.Message);
+                return Task.CompletedTask;
+            },
+            OnChallenge = context =>
+            {
+                var logger = context.HttpContext.RequestServices.GetRequiredService<ILogger<Program>>();
+                logger.LogWarning("JWT challenge: {Error} {ErrorDescription}", context.Error, context.ErrorDescription);
+                return Task.CompletedTask;
             }
         };
     });
@@ -93,6 +118,11 @@ builder.Services.AddAuthorization(options =>
     options.FallbackPolicy = new AuthorizationPolicyBuilder()
         .RequireAuthenticatedUser()
         .Build();
+    var permissionNames = new[] { "view_users","create_users","edit_users","delete_users","view_warehouses","manage_warehouses","view_inventory","manage_inventory","view_orders","manage_orders","view_shipments","manage_shipments" };
+    foreach (var p in permissionNames)
+    {
+        options.AddPolicy(p, policy => policy.RequireClaim("permission", p));
+    }
 });
 
 var app = builder.Build();
@@ -113,6 +143,42 @@ using (var scope = app.Services.CreateScope())
 {
     var dbContext = scope.ServiceProvider.GetRequiredService<ReportDbContext>();
     await dbContext.Database.MigrateAsync();
+
+    var now = DateTime.UtcNow;
+    const int adminUserId = 1;
+
+    if (!dbContext.Reports.Any())
+    {
+        var report = new Report
+        {
+            Type = "Inventory",
+            Name = "Monthly Warehouse Inventory Report",
+            Data = "{\"items\":[{\"name\":\"Smart Supply Tracker\",\"qty\":120}]}",
+            GeneratedAt = now,
+            GeneratedBy = adminUserId,
+            CreatedBy = adminUserId,
+            UpdatedBy = adminUserId,
+            CreatedAt = now,
+            UpdatedAt = now
+        };
+
+        dbContext.Reports.Add(report);
+        await dbContext.SaveChangesAsync();
+
+        dbContext.ReportLogs.Add(new ReportLog
+        {
+            ReportId = report.Id,
+            Status = "Created",
+            ErrorMessage = null,
+            ExecutedAt = now,
+            CreatedBy = adminUserId,
+            UpdatedBy = adminUserId,
+            CreatedAt = now,
+            UpdatedAt = now
+        });
+
+        await dbContext.SaveChangesAsync();
+    }
 }
 
 app.Run();

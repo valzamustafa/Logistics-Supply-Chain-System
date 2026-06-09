@@ -24,7 +24,7 @@ namespace AuthService.Filters
         {
             var resultContext = await next();
             
-
+           
             if (resultContext.Exception == null && resultContext.HttpContext.Response.StatusCode >= 200 && resultContext.HttpContext.Response.StatusCode < 300)
             {
                 var actionName = resultContext.ActionDescriptor.RouteValues["action"];
@@ -32,7 +32,8 @@ namespace AuthService.Filters
                 
                 _logger.LogInformation("Action {Action} in {Controller} completed successfully at {Time}", 
                     actionName, controllerName, DateTime.UtcNow);
-                     
+                
+           
                 await SendNotificationForAction(context, resultContext, actionName, controllerName);
             }
             else if (resultContext.Exception != null)
@@ -46,8 +47,9 @@ namespace AuthService.Filters
             try
             {
                 var notificationServiceUrl = _configuration["Services:NotificationService"] ?? "http://localhost:5003";
-                var client = _httpClientFactory.CreateClient();     
-               
+                var client = _httpClientFactory.CreateClient();
+                
+              
                 if (actionName == "Register" && controllerName == "Auth")
                 {
                     var registerDto = context.ActionArguments.Values.FirstOrDefault();
@@ -71,7 +73,7 @@ namespace AuthService.Filters
                     }
                 }
                 
-             
+
                 if (actionName == "AssignRole" && controllerName == "Auth")
                 {
                     var notification = new

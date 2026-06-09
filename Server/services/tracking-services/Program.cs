@@ -5,6 +5,7 @@ using System.Text;
 using Microsoft.IdentityModel.Tokens;
 using TrackingService.Data;
 using TrackingService.Filters;
+using TrackingService.Models;
 using TrackingService.Repositories.Interfaces;
 using TrackingService.Repositories.Implementations;
 using TrackingService.Services.Interfaces;
@@ -35,6 +36,7 @@ builder.Services.AddHttpClient<INotificationClient, NotificationClient>(client =
 {
     client.Timeout = TimeSpan.FromSeconds(10);
 });
+
 
 builder.Services.AddCors(options =>
 {
@@ -77,6 +79,11 @@ builder.Services.AddAuthorization(options =>
     options.FallbackPolicy = new AuthorizationPolicyBuilder()
         .RequireAuthenticatedUser()
         .Build();
+    var permissionNames = new[] { "view_users","create_users","edit_users","delete_users","view_warehouses","manage_warehouses","view_inventory","manage_inventory","view_orders","manage_orders","view_shipments","manage_shipments" };
+    foreach (var p in permissionNames)
+    {
+        options.AddPolicy(p, policy => policy.RequireClaim("permission", p));
+    }
 });
 
 var app = builder.Build();
@@ -96,6 +103,26 @@ using (var scope = app.Services.CreateScope())
 {
     var dbContext = scope.ServiceProvider.GetRequiredService<TrackingDbContext>();
     await dbContext.Database.MigrateAsync();
+
+    var now = DateTime.UtcNow;
+    const int adminUserId = 1;
+
+    if (!dbContext.Trackings.Any())
+    {
+        dbContext.Trackings.Add(new Tracking
+        {
+            ShipmentId = 1,
+            CurrentStatus = "In Transit",
+            CurrentLocation = "Prishtina Distribution Hub",
+            LastUpdateTime = now,
+            EstimatedDeliveryDate = now.AddDays(2),
+            CreatedBy = adminUserId,
+            UpdatedBy = adminUserId,
+            CreatedAt = now,
+            UpdatedAt = now
+        });
+        await dbContext.SaveChangesAsync();
+    }
 }
 
 app.Run();

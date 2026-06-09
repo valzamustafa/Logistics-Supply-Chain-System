@@ -1,18 +1,17 @@
-
 using WarehouseService.Models;
 
 namespace WarehouseService.Repositories.Interfaces
 {
     public interface IWarehouseRepository
     {
-
+        
         Task<Warehouse?> GetWarehouseByIdAsync(int id);
         Task<IEnumerable<Warehouse>> GetAllWarehousesAsync();
         Task<Warehouse> CreateWarehouseAsync(Warehouse warehouse);
         Task<Warehouse> UpdateWarehouseAsync(Warehouse warehouse);
         Task DeleteWarehouseAsync(int id);
 
-     
+    
         Task<WarehouseStock?> GetStockByIdAsync(int id);
         Task<WarehouseStock?> GetStockByWarehouseAndProductAsync(int warehouseId, int productId);
         Task<IEnumerable<WarehouseStock>> GetAllStockAsync();
@@ -32,7 +31,7 @@ namespace WarehouseService.Repositories.Interfaces
         Task<WarehouseZone> UpdateZoneAsync(WarehouseZone zone);
         Task DeleteZoneAsync(int id);
 
-
+    
         Task<WarehouseStaff?> GetStaffByIdAsync(int id);
         Task<IEnumerable<WarehouseStaff>> GetStaffByWarehouseAsync(int warehouseId);
         Task<IEnumerable<WarehouseStaff>> GetStaffByUserAsync(int userId);

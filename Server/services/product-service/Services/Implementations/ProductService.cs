@@ -40,7 +40,7 @@ namespace ProductService.Services.Implementations
 
         public async Task<Product> CreateProductAsync(Product product)
         {
-   
+        
             if (await _productRepository.ExistsAsync(product.SKU))
                 throw new InvalidOperationException($"Product with SKU {product.SKU} already exists");
 
@@ -58,7 +58,7 @@ namespace ProductService.Services.Implementations
 
         public async Task<Product> UpdateProductAsync(Product product)
         {
-      
+         
             product.UpdatedAt = DateTime.UtcNow;
             var updated = await _productRepository.UpdateAsync(product);
 
@@ -73,7 +73,6 @@ namespace ProductService.Services.Implementations
         public async Task<bool> DeleteProductAsync(int id)
         {
           
-
             var product = await _productRepository.GetByIdAsync(id);
             if (product == null)
                 return false;
@@ -98,7 +97,7 @@ namespace ProductService.Services.Implementations
             return true;
         }
 
-
+       
         
         private async Task SendNotificationToRoleAsync(string roles, string type, string title, string message, string? actionUrl = null)
         {

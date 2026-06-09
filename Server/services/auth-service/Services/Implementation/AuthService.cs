@@ -15,6 +15,7 @@ namespace AuthService.Services.Implementations
 {
     public class AuthService : IAuthService
     {
+        private readonly global::AuthService.Data.AuthDbContext _dbContext;
         private readonly IUserRepository _userRepository;
         private readonly IRoleRepository _roleRepository;
         private readonly IUserRoleRepository _userRoleRepository;
@@ -22,7 +23,7 @@ namespace AuthService.Services.Implementations
         private readonly IHttpClientFactory _httpClientFactory;
         private readonly BuildingBlocks.INotificationClient _notificationClient;
 
-        public AuthService(IUserRepository userRepository, IRoleRepository roleRepository, IUserRoleRepository userRoleRepository, IConfiguration configuration, IHttpClientFactory httpClientFactory, BuildingBlocks.INotificationClient notificationClient)
+        public AuthService(IUserRepository userRepository, IRoleRepository roleRepository, IUserRoleRepository userRoleRepository, IConfiguration configuration, IHttpClientFactory httpClientFactory, BuildingBlocks.INotificationClient notificationClient, global::AuthService.Data.AuthDbContext dbContext)
         {
             _userRepository = userRepository;
             _roleRepository = roleRepository;
@@ -30,6 +31,7 @@ namespace AuthService.Services.Implementations
             _configuration = configuration;
             _httpClientFactory = httpClientFactory;
             _notificationClient = notificationClient;
+            _dbContext = dbContext;
         }
 
         public async Task<UserResponseDto?> RegisterAsync(RegisterDto dto)
@@ -56,7 +58,7 @@ namespace AuthService.Services.Implementations
             var role = await _roleRepository.GetByNameAsync(roleName);
             if (role == null)
             {
-              
+             
                 role = new Role 
                 { 
                     Name = roleName, 
@@ -74,7 +76,7 @@ namespace AuthService.Services.Implementations
                 AssignedAt = DateTime.UtcNow
             });
 
-            
+           
             if (role.Name == "Supplier")
             {
                 try
@@ -95,23 +97,23 @@ namespace AuthService.Services.Implementations
                 }
                 catch
                 {
-                 
+                   
                 }
             }
 
-  
+
             await SendNotificationToRoleAsync("Admin", "UserRegistered",
                 "New User Registered",
                 $"New user '{created.FirstName} {created.LastName}' ({created.Email}) has been registered with role {roleName}.",
                 $"/admin/users/{created.Id}");
 
-          
+        
             await SendNotificationAsync(created.Id, "Welcome",
                 "Welcome to Logjistika!",
                 $"Welcome {created.FirstName}! Your account has been successfully created.",
                 $"/dashboard");
 
-        
+           
             var userWithRoles = await _userRepository.GetUserWithRolesAsync(created.Id);
             return MapToResponse(userWithRoles!);
         }
@@ -152,7 +154,7 @@ namespace AuthService.Services.Implementations
             };
         }
 
-     
+        
         
         private async Task SendNotificationAsync(int userId, string type, string title, string message, string? actionUrl = null)
         {
@@ -202,7 +204,7 @@ namespace AuthService.Services.Implementations
             }
             catch
             {
-                
+               
             }
 
             using var sha256 = SHA256.Create();
@@ -306,7 +308,7 @@ namespace AuthService.Services.Implementations
                 }
                 catch
                 {
-                  
+                   
                 }
             }
 
@@ -316,7 +318,7 @@ namespace AuthService.Services.Implementations
                 $"You have been assigned the '{role.Name}' role.",
                 $"/profile");
 
-     
+      
             await SendNotificationToRoleAsync("Admin", "RoleAssignment",
                 "Role Assigned to User",
                 $"User '{user.FirstName} {user.LastName}' ({user.Email}) has been assigned the '{role.Name}' role.",
@@ -333,7 +335,7 @@ namespace AuthService.Services.Implementations
             return true;
         }
 
-     
+      
         
         public async Task<List<int>> GetUserIdsByRoleAsync(string roleName)
         {
@@ -390,7 +392,7 @@ namespace AuthService.Services.Implementations
             return await _userRepository.ExistsAsync(email);
         }
 
-      
+     
         
         private string GenerateAccessToken(User? user)
         {
@@ -412,6 +414,25 @@ namespace AuthService.Services.Implementations
                 foreach (var userRole in user.UserRoles)
                 {
                     claims.Add(new Claim(ClaimTypes.Role, userRole.Role.Name));
+                }
+              
+                try
+                {
+                    var roleIds = user.UserRoles.Select(ur => ur.RoleId).Distinct().ToList();
+                    var perms = _dbContext.RolePermissions
+                                .Where(rp => roleIds.Contains(rp.RoleId))
+                                .Select(rp => rp.Permission.Name)
+                                .Distinct()
+                                .ToList();
+
+                    foreach (var perm in perms)
+                    {
+                        claims.Add(new Claim("permission", perm));
+                    }
+                }
+                catch
+                {
+                    
                 }
             }
 

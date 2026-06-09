@@ -1,3 +1,4 @@
+// WarehouseService/DTOs/LowStockAlertDto.cs
 namespace WarehouseService.DTOs
 {
     public class LowStockAlertDto
@@ -9,6 +10,6 @@ namespace WarehouseService.DTOs
         public string ProductSku { get; set; } = string.Empty;
         public int CurrentQuantity { get; set; }
         public int MinimumLevel { get; set; }
-        public int Deficit { get; set; }  
+        public int Deficit { get; set; }  // Sigurohu që ka set
     }
 }

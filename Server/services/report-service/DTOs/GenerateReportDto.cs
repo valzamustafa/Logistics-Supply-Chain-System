@@ -1,4 +1,6 @@
-   namespace ReportService.DTOs
+using System.Text.Json;
+
+namespace ReportService.DTOs
 {
     public class GenerateReportDto
     {
@@ -9,5 +11,6 @@
         public int? UserId { get; set; }
         public int? ProductId { get; set; }
         public int? OrderId { get; set; }
+        public JsonElement? Data { get; set; }
     }
 }

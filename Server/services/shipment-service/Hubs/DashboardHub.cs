@@ -1,7 +1,9 @@
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.SignalR;
 
 namespace ShipmentService.Hubs;
 
+[Authorize]
 public class DashboardHub : Hub
 {
     public async Task SendShipmentUpdate(object shipment)

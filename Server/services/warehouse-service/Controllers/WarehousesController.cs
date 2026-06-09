@@ -15,7 +15,7 @@ namespace WarehouseService.Controllers
             _warehouseService = warehouseService;
         }
 
-       
+        
         
         [HttpGet]
         public async Task<IActionResult> GetAll()
@@ -111,7 +111,7 @@ namespace WarehouseService.Controllers
             }
         }
 
-       
+
         
         [HttpGet("{warehouseId}/zones")]
         public async Task<IActionResult> GetZonesByWarehouse(int warehouseId)
@@ -155,7 +155,7 @@ namespace WarehouseService.Controllers
             return result ? Ok(new { message = "Zone deleted" }) : NotFound();
         }
 
-
+    
         
         [HttpGet("{warehouseId}/staff")]
         public async Task<IActionResult> GetStaffByWarehouse(int warehouseId)
@@ -214,7 +214,7 @@ namespace WarehouseService.Controllers
             return Ok(staff);
         }
 
-    
+     
         
         [HttpGet("stock")]
         public async Task<IActionResult> GetAllStock()
@@ -384,7 +384,7 @@ namespace WarehouseService.Controllers
             }
         }
 
-    
+      
         
         [HttpGet("summary")]
         public async Task<IActionResult> GetStockSummary()
@@ -459,7 +459,7 @@ namespace WarehouseService.Controllers
             }
         }
 
-
+     
         
         [HttpPost("warehouse/{warehouseId}/bulk-assign")]
         public async Task<IActionResult> BulkAssignProducts(int warehouseId, [FromBody] List<AssignProductToWarehouseDto> products)
