@@ -1,3 +1,4 @@
+using System;
 using Microsoft.AspNetCore.Mvc;
 using OrderService.DTOs;
 using OrderService.Services.Interfaces;
@@ -127,7 +128,13 @@ namespace OrderService.Controllers
                 var stripeSecretKey = _configuration["Stripe:SecretKey"];
                 if (string.IsNullOrWhiteSpace(stripeSecretKey))
                 {
-                    return BadRequest(new { message = "Stripe secret key is not configured." });
+                    stripeSecretKey = Environment.GetEnvironmentVariable("Stripe__SecretKey")
+                        ?? Environment.GetEnvironmentVariable("STRIPE_SECRET_KEY");
+                }
+
+                if (string.IsNullOrWhiteSpace(stripeSecretKey))
+                {
+                    return BadRequest(new { message = "Stripe secret key is not configured. Set Stripe:SecretKey, Stripe__SecretKey or STRIPE_SECRET_KEY." });
                 }
 
                 var client = _httpClientFactory.CreateClient();

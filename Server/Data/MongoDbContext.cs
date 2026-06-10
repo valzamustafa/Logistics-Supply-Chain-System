@@ -14,13 +14,11 @@ namespace Server.Data
             _database = client.GetDatabase("SupplyChainLogsDB");
         }
 
-        // Metoda për të marrë databazën
         public IMongoDatabase GetDatabase()
         {
             return _database;
         }
 
-        // Koleksionet për MongoDB
         public IMongoCollection<SystemLog> SystemLogs 
             => _database.GetCollection<SystemLog>("SystemLogs");
         
@@ -32,9 +30,11 @@ namespace Server.Data
         
         public IMongoCollection<RealTimeEvent> RealTimeEvents 
             => _database.GetCollection<RealTimeEvent>("RealTimeEvents");
-             public IMongoCollection<TrackingLog> TrackingLogs 
+        
+        public IMongoCollection<TrackingLog> TrackingLogs 
             => _database.GetCollection<TrackingLog>("TrackingLogs");
-            public IMongoCollection<PerformanceMetric> PerformanceMetrics 
-    => _database.GetCollection<PerformanceMetric>("PerformanceMetrics");
+        
+        public IMongoCollection<PerformanceMetric> PerformanceMetrics 
+            => _database.GetCollection<PerformanceMetric>("PerformanceMetrics");
     }
 }

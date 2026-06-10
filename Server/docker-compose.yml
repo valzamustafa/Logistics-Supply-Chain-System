@@ -36,6 +36,7 @@ services:
       - "27017:27017"
     volumes:
       - mongodb-data:/data/db
+      - ./mongo-init:/docker-entrypoint-initdb.d:ro
     networks:
       - logistics-network
     healthcheck:
@@ -110,8 +111,6 @@ services:
       - Services__InventoryService=http://inventory-service:80
       - Services__WarehouseService=http://warehouse-service:80
       - Services__ShipmentService=http://shipment-service:80
-      - Stripe__SecretKey=${STRIPE_SECRET_KEY}
-      - Stripe__PublishableKey=${STRIPE_PUBLISHABLE_KEY}
     ports:
       - "5002:80"
     networks:

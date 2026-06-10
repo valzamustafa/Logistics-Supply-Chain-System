@@ -37,7 +37,7 @@ app.UseCors("AllowAll");
 app.UseAuthorization();
 app.MapControllers();
 
-// ==========  MONGODB ==========
+// ========== MONGODB - VETËM KRIJO KOLEKSIONET NËSE NUK EKZISTOJNË ==========
 using (var scope = app.Services.CreateScope())
 {
     try
@@ -45,99 +45,89 @@ using (var scope = app.Services.CreateScope())
         var mongoContext = scope.ServiceProvider.GetRequiredService<MongoDbContext>();
         var database = mongoContext.GetDatabase();
         
-      
-var collections = new[] { "SystemLogs", "ChatMessages", "AuditTrails", "RealTimeEvents", "TrackingLogs", "PerformanceMetrics" };
+        // Test connection
+        await database.RunCommandAsync((Command<BsonDocument>)"{ping:1}");
+        Console.WriteLine("✅ MongoDB connection successful!");
         
-        var existingCollections = database.ListCollectionNames().ToList();
+        var collections = new[] { "SystemLogs", "ChatMessages", "AuditTrails", "RealTimeEvents", "TrackingLogs", "PerformanceMetrics" };
+        var existingCollections = await database.ListCollectionNames().ToListAsync();
         
         foreach (var collectionName in collections)
         {
             if (!existingCollections.Contains(collectionName))
             {
-                database.CreateCollection(collectionName);
+                await database.CreateCollectionAsync(collectionName);
                 Console.WriteLine($"✅ Created MongoDB collection: {collectionName}");
+            }
+            else
+            {
+                Console.WriteLine($"ℹ️ Collection already exists: {collectionName}");
             }
         }
 
-        if (!database.GetCollection<SystemLog>("SystemLogs").Find(FilterDefinition<SystemLog>.Empty).Any())
+        async Task SeedIfEmpty<T>(IMongoCollection<T> collection, IEnumerable<T> documents)
         {
-            database.GetCollection<SystemLog>("SystemLogs").InsertOne(new SystemLog
+            if (await collection.CountDocumentsAsync(FilterDefinition<T>.Empty) == 0)
             {
-                Level = "Info",
-                Service = "Server",
-                Message = "MongoDB seed collection created successfully.",
-                Timestamp = DateTime.UtcNow
-            });
+                await collection.InsertManyAsync(documents);
+                Console.WriteLine($"🌱 Seeded {collection.CollectionNamespace.CollectionName} with sample documents.");
+            }
+            else
+            {
+                Console.WriteLine($"ℹ️ {collection.CollectionNamespace.CollectionName} already contains data.");
+            }
         }
 
-        if (!database.GetCollection<ChatMessage>("ChatMessages").Find(FilterDefinition<ChatMessage>.Empty).Any())
+        await SeedIfEmpty(database.GetCollection<SystemLog>("SystemLogs"), new[]
         {
-            database.GetCollection<ChatMessage>("ChatMessages").InsertOne(new ChatMessage
-            {
-                FromUserId = 1,
-                ToUserId = 2,
-                RoomId = "support-room",
-                Message = "Welcome to Logjistika chat!",
-                SentAt = DateTime.UtcNow,
-                IsRead = false
-            });
-        }
+            new SystemLog { Level = "Info", Service = "OrderService", Message = "Order #2201 validated successfully.", UserId = 135, IpAddress = "192.168.10.5", Endpoint = "/api/orders/validate", Timestamp = DateTime.UtcNow.AddMinutes(-18) },
+            new SystemLog { Level = "Warning", Service = "ShipmentService", Message = "Shipment #5401 delayed because of weather.", UserId = 221, IpAddress = "192.168.10.23", Endpoint = "/api/shipments/status", Timestamp = DateTime.UtcNow.AddHours(-2) },
+            new SystemLog { Level = "Error", Service = "AuthService", Message = "Failed login attempt for user 1024.", UserId = 1024, IpAddress = "10.0.0.12", Endpoint = "/api/auth/login", Timestamp = DateTime.UtcNow.AddHours(-1) },
+            new SystemLog { Level = "Info", Service = "InventoryService", Message = "Stock level updated for SKU B7-200.", UserId = 307, IpAddress = "192.168.10.16", Endpoint = "/api/inventory/update", Timestamp = DateTime.UtcNow.AddMinutes(-45) }
+        });
 
-        if (!database.GetCollection<AuditTrail>("AuditTrails").Find(FilterDefinition<AuditTrail>.Empty).Any())
+        await SeedIfEmpty(database.GetCollection<ChatMessage>("ChatMessages"), new[]
         {
-            database.GetCollection<AuditTrail>("AuditTrails").InsertOne(new AuditTrail
-            {
-                UserId = 1,
-                Action = "SeededAudit",
-                Entity = "System",
-                NewValue = "Initial MongoDB audit trail created",
-                CreatedAt = DateTime.UtcNow
-            });
-        }
+            new ChatMessage { FromUserId = 101, ToUserId = 1, RoomId = "support-101", Message = "Hello, can you confirm the delivery ETA for order #2201?", IsRead = false, SentAt = DateTime.UtcNow.AddMinutes(-20) },
+            new ChatMessage { FromUserId = 1, ToUserId = 101, RoomId = "support-101", Message = "Sure, the delivery is scheduled for 13:45 today.", IsRead = true, SentAt = DateTime.UtcNow.AddMinutes(-18), ReadAt = DateTime.UtcNow.AddMinutes(-17) },
+            new ChatMessage { FromUserId = 202, ToUserId = 103, RoomId = "warehouse-202", Message = "Pallet A4 moved to dock 5 and ready for loading.", IsRead = true, SentAt = DateTime.UtcNow.AddMinutes(-10), ReadAt = DateTime.UtcNow.AddMinutes(-9) }
+        });
 
-        if (!database.GetCollection<RealTimeEvent>("RealTimeEvents").Find(FilterDefinition<RealTimeEvent>.Empty).Any())
+        await SeedIfEmpty(database.GetCollection<AuditTrail>("AuditTrails"), new[]
         {
-            database.GetCollection<RealTimeEvent>("RealTimeEvents").InsertOne(new RealTimeEvent
-            {
-                EventType = "SystemStarted",
-                UserId = 1,
-                Data = "MongoDB event seed created",
-                CreatedAt = DateTime.UtcNow
-            });
-        }
+            new AuditTrail { UserId = 135, Action = "Update", Entity = "Order", EntityId = 2201, OldValue = "Status=Processing", NewValue = "Status=Confirmed", IpAddress = "192.168.10.5", CreatedAt = DateTime.UtcNow.AddHours(-3) },
+            new AuditTrail { UserId = 221, Action = "Create", Entity = "Shipment", EntityId = 5401, OldValue = null, NewValue = "Shipment created for order #2201", IpAddress = "192.168.10.23", CreatedAt = DateTime.UtcNow.AddHours(-2) },
+            new AuditTrail { UserId = 307, Action = "Update", Entity = "Inventory", EntityId = 7802, OldValue = "Quantity=15", NewValue = "Quantity=30", IpAddress = "192.168.10.16", CreatedAt = DateTime.UtcNow.AddHours(-1) }
+        });
 
-        if (!database.GetCollection<TrackingLog>("TrackingLogs").Find(FilterDefinition<TrackingLog>.Empty).Any())
+        await SeedIfEmpty(database.GetCollection<RealTimeEvent>("RealTimeEvents"), new[]
         {
-            database.GetCollection<TrackingLog>("TrackingLogs").InsertOne(new TrackingLog
-            {
-                ShipmentId = 1,
-                Status = "Created",
-                Location = "Prishtina Warehouse",
-                Latitude = 42.6629,
-                Longitude = 21.1655,
-                Description = "Initial tracking log entry",
-                Timestamp = DateTime.UtcNow
-            });
-        }
+            new RealTimeEvent { EventType = "DeliveryScheduled", UserId = 135, Data = "Order #2201 delivery scheduled for 2026-06-11 13:45", CreatedAt = DateTime.UtcNow.AddMinutes(-25) },
+            new RealTimeEvent { EventType = "InventoryReplenished", UserId = 307, Data = "SKU B7-200 replenished with 15 units", CreatedAt = DateTime.UtcNow.AddMinutes(-40) },
+            new RealTimeEvent { EventType = "UserLoggedIn", UserId = 1024, Data = "User 1024 logged in from 10.0.0.12", CreatedAt = DateTime.UtcNow.AddMinutes(-62) }
+        });
 
-        if (!database.GetCollection<PerformanceMetric>("PerformanceMetrics").Find(FilterDefinition<PerformanceMetric>.Empty).Any())
+        await SeedIfEmpty(database.GetCollection<TrackingLog>("TrackingLogs"), new[]
         {
-            database.GetCollection<PerformanceMetric>("PerformanceMetrics").InsertOne(new PerformanceMetric
-            {
-                Endpoint = "/api/health",
-                Method = "GET",
-                ResponseTimeMs = 35,
-                StatusCode = 200,
-                UserId = "1",
-                Timestamp = DateTime.UtcNow
-            });
-        }
+            new TrackingLog { ShipmentId = 5401, Status = "Picked up", Location = "Port of Rotterdam", Latitude = 51.9475, Longitude = 4.1427, Description = "Shipment collected by carrier.", Timestamp = DateTime.UtcNow.AddHours(-10) },
+            new TrackingLog { ShipmentId = 5401, Status = "In transit", Location = "Brussels Distribution Hub", Latitude = 50.8503, Longitude = 4.3517, Description = "Cargo arrived at the regional hub.", Timestamp = DateTime.UtcNow.AddHours(-4) },
+            new TrackingLog { ShipmentId = 5401, Status = "Delayed", Location = "Antwerp Terminal", Latitude = 51.2194, Longitude = 4.4025, Description = "Delayed due to customs inspection.", Timestamp = DateTime.UtcNow.AddHours(-1) },
+            new TrackingLog { ShipmentId = 5402, Status = "Delivered", Location = "Customer Warehouse", Latitude = 48.8566, Longitude = 2.3522, Description = "Delivery completed successfully.", Timestamp = DateTime.UtcNow.AddDays(-1) }
+        });
 
-        Console.WriteLine("✅ MongoDB initialized successfully!");
+        await SeedIfEmpty(database.GetCollection<PerformanceMetric>("PerformanceMetrics"), new[]
+        {
+            new PerformanceMetric { Endpoint = "/api/orders", Method = "GET", ResponseTimeMs = 124, StatusCode = 200, UserId = "135", Timestamp = DateTime.UtcNow.AddMinutes(-22) },
+            new PerformanceMetric { Endpoint = "/api/shipments", Method = "POST", ResponseTimeMs = 287, StatusCode = 201, UserId = "221", Timestamp = DateTime.UtcNow.AddMinutes(-27) },
+            new PerformanceMetric { Endpoint = "/api/products", Method = "GET", ResponseTimeMs = 98, StatusCode = 200, UserId = "307", Timestamp = DateTime.UtcNow.AddMinutes(-33) },
+            new PerformanceMetric { Endpoint = "/api/auth/login", Method = "POST", ResponseTimeMs = 412, StatusCode = 401, UserId = "1024", Timestamp = DateTime.UtcNow.AddMinutes(-65) }
+        });
+
+        Console.WriteLine("✅ MongoDB is ready with sample data if needed");
     }
     catch (Exception ex)
     {
-        Console.WriteLine($"⚠️ MongoDB initialization warning: {ex.Message}");
+        Console.WriteLine($"⚠️ MongoDB connection warning: {ex.Message}");
         Console.WriteLine("MongoDB will work when the service is available.");
     }
 }
